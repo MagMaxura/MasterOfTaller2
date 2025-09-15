@@ -1,0 +1,9 @@
+{
+  "name": "Maestros del Taller",
+  "description": "A gamification platform to boost productivity and motivation for workshop technicians through missions, XP, and rewards. Technicians can track their progress, earn badges, and climb the leaderboards.",
+  "requestFramePermissions": [
+    "camera",
+    "geolocation"
+  ],
+  "prompt": ""
+}
