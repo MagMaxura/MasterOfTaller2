@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo } from 'react';
 import { User, Mission, MissionStatus } from '../../types';
 import { useData } from '../../contexts/DataContext';
@@ -19,8 +20,10 @@ import MissionsManager from './MissionsManager';
 import MissionDetailsModal from '../technician/missions/MissionDetailsModal';
 import KnowledgeBase from '../knowledge/KnowledgeBase';
 import SuppliesManagement from './supplies/SuppliesManagement';
+import Leaderboard from '../common/Leaderboard';
+import HallOfFame from '../common/HallOfFame';
 
-import { PlusIcon, BoxIcon, CalendarIcon, MapPinIcon, UserIcon, ChatIcon, TasksIcon, BookOpenIcon, LogoutIcon, MenuIcon } from '../Icons';
+import { PlusIcon, BoxIcon, CalendarIcon, MapPinIcon, UserIcon, ChatIcon, TasksIcon, BookOpenIcon, LogoutIcon, MenuIcon, ChartIcon, HallOfFameIcon } from '../Icons';
 
 // --- MAIN COMPONENT ---
 const AdminView: React.FC = () => {
@@ -41,6 +44,8 @@ const AdminView: React.FC = () => {
         { id: 'manage', label: 'Gestionar', icon: <UserIcon /> },
         { id: 'missions', label: 'Misiones', icon: <TasksIcon /> },
         { id: 'requests', label: 'Solicitudes', icon: <TasksIcon />, notification: missionRequestsCount > 0 },
+        { id: 'leaderboard', label: 'Clasificación', icon: <ChartIcon /> },
+        { id: 'hall_of_fame', label: 'Muro de la Fama', icon: <HallOfFameIcon /> },
         { id: 'create', label: 'Crear Misión', icon: <PlusIcon /> },
         { id: 'stock', label: 'Stock (Equipo)', icon: <BoxIcon /> },
         { id: 'supplies', label: 'Insumos', icon: <BoxIcon /> },
@@ -117,16 +122,42 @@ const AdminView: React.FC = () => {
             
             <div className="flex-1 flex flex-col overflow-hidden">
                 <main className="flex-1 p-4 md:p-8 overflow-y-auto">
-                    {activeTab === 'manage' && <UserManagement onManageInventory={setManagingInventoryFor} onManageBadges={setManagingBadgesFor} onNotifyUser={setNotifyingUser} />}
-                    {activeTab === 'missions' && <MissionsManager onOpenMission={setSelectedMission} onEditMission={setEditingMission} />}
-                    {activeTab === 'requests' && <MissionRequests onReview={setEditingMission} />}
-                    {activeTab === 'create' && <MissionCreator users={users} />}
-                    {activeTab === 'chat' && <ChatView currentUser={currentUser} />}
-                    {activeTab === 'stock' && <StockManagement onOpenCreateModal={() => setIsCreateItemModalOpen(true)} />}
-                    {activeTab === 'supplies' && <SuppliesManagement />}
-                    {activeTab === 'knowledge' && <KnowledgeBase />}
-                    {activeTab === 'calendar' && <MissionCalendar missions={missions} users={users} onOpenMission={setSelectedMission} />}
-                    {activeTab === 'live_map' && <LiveLocationMap users={users} />}
+                    <div className={activeTab === 'manage' ? 'block' : 'hidden'}>
+                        <UserManagement onManageInventory={setManagingInventoryFor} onManageBadges={setManagingBadgesFor} onNotifyUser={setNotifyingUser} />
+                    </div>
+                    <div className={activeTab === 'missions' ? 'block' : 'hidden'}>
+                        <MissionsManager onOpenMission={setSelectedMission} onEditMission={setEditingMission} />
+                    </div>
+                    <div className={activeTab === 'requests' ? 'block' : 'hidden'}>
+                        <MissionRequests onReview={setEditingMission} />
+                    </div>
+                    <div className={activeTab === 'leaderboard' ? 'block' : 'hidden'}>
+                        <Leaderboard users={users} />
+                    </div>
+                    <div className={activeTab === 'hall_of_fame' ? 'block' : 'hidden'}>
+                        <HallOfFame missions={missions} users={users} />
+                    </div>
+                    <div className={activeTab === 'create' ? 'block' : 'hidden'}>
+                        <MissionCreator users={users} />
+                    </div>
+                    <div className={activeTab === 'chat' ? 'block' : 'hidden'}>
+                        <ChatView currentUser={currentUser} />
+                    </div>
+                    <div className={activeTab === 'stock' ? 'block' : 'hidden'}>
+                        <StockManagement onOpenCreateModal={() => setIsCreateItemModalOpen(true)} />
+                    </div>
+                    <div className={activeTab === 'supplies' ? 'block' : 'hidden'}>
+                        <SuppliesManagement />
+                    </div>
+                    <div className={activeTab === 'knowledge' ? 'block' : 'hidden'}>
+                        <KnowledgeBase />
+                    </div>
+                    <div className={activeTab === 'calendar' ? 'block' : 'hidden'}>
+                        <MissionCalendar missions={missions} users={users} onOpenMission={setSelectedMission} />
+                    </div>
+                    <div className={activeTab === 'live_map' ? 'block' : 'hidden'}>
+                        <LiveLocationMap users={users} />
+                    </div>
                 </main>
             </div>
             

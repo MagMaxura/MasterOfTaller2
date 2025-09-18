@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo } from 'react';
 import { User, Mission, MissionStatus } from '../types';
 import { useData } from '../contexts/DataContext';
@@ -34,7 +35,6 @@ const AdminView: React.FC = () => {
     const [managingBadgesFor, setManagingBadgesFor] = useState<User | null>(null);
     const [isCreateItemModalOpen, setIsCreateItemModalOpen] = useState(false);
     const [notifyingUser, setNotifyingUser] = useState<User | null>(null);
-    // FIX: Renamed state to handle both mission editing and approving.
     const [editingMission, setEditingMission] = useState<Mission | null>(null);
     const [selectedMission, setSelectedMission] = useState<Mission | null>(null);
     
@@ -122,21 +122,42 @@ const AdminView: React.FC = () => {
             
             <div className="flex-1 flex flex-col overflow-hidden">
                 <main className="flex-1 p-4 md:p-8 overflow-y-auto">
-                    {/* FIX: Pass onManageBadges prop to fix missing property error. */}
-                    {activeTab === 'manage' && <UserManagement onManageInventory={setManagingInventoryFor} onManageBadges={setManagingBadgesFor} onNotifyUser={setNotifyingUser} />}
-                    {/* FIX: Passed required onEditMission prop. */}
-                    {activeTab === 'missions' && <MissionsManager onOpenMission={setSelectedMission} onEditMission={setEditingMission} />}
-                    {/* FIX: Changed onApprove to onReview prop. */}
-                    {activeTab === 'requests' && <MissionRequests onReview={setEditingMission} />}
-                    {activeTab === 'leaderboard' && <Leaderboard users={users} />}
-                    {activeTab === 'hall_of_fame' && <HallOfFame missions={missions} users={users} />}
-                    {activeTab === 'create' && <MissionCreator users={users} />}
-                    {activeTab === 'chat' && <ChatView currentUser={currentUser} />}
-                    {activeTab === 'stock' && <StockManagement onOpenCreateModal={() => setIsCreateItemModalOpen(true)} />}
-                    {activeTab === 'supplies' && <SuppliesManagement />}
-                    {activeTab === 'knowledge' && <KnowledgeBase />}
-                    {activeTab === 'calendar' && <MissionCalendar missions={missions} users={users} onOpenMission={setSelectedMission} />}
-                    {activeTab === 'live_map' && <LiveLocationMap users={users} />}
+                    <div className={activeTab === 'manage' ? 'block' : 'hidden'}>
+                        <UserManagement onManageInventory={setManagingInventoryFor} onManageBadges={setManagingBadgesFor} onNotifyUser={setNotifyingUser} />
+                    </div>
+                    <div className={activeTab === 'missions' ? 'block' : 'hidden'}>
+                        <MissionsManager onOpenMission={setSelectedMission} onEditMission={setEditingMission} />
+                    </div>
+                    <div className={activeTab === 'requests' ? 'block' : 'hidden'}>
+                        <MissionRequests onReview={setEditingMission} />
+                    </div>
+                    <div className={activeTab === 'leaderboard' ? 'block' : 'hidden'}>
+                        <Leaderboard users={users} />
+                    </div>
+                    <div className={activeTab === 'hall_of_fame' ? 'block' : 'hidden'}>
+                        <HallOfFame missions={missions} users={users} />
+                    </div>
+                    <div className={activeTab === 'create' ? 'block' : 'hidden'}>
+                        <MissionCreator users={users} />
+                    </div>
+                    <div className={activeTab === 'chat' ? 'block' : 'hidden'}>
+                        <ChatView currentUser={currentUser} />
+                    </div>
+                    <div className={activeTab === 'stock' ? 'block' : 'hidden'}>
+                        <StockManagement onOpenCreateModal={() => setIsCreateItemModalOpen(true)} />
+                    </div>
+                    <div className={activeTab === 'supplies' ? 'block' : 'hidden'}>
+                        <SuppliesManagement />
+                    </div>
+                    <div className={activeTab === 'knowledge' ? 'block' : 'hidden'}>
+                        <KnowledgeBase />
+                    </div>
+                    <div className={activeTab === 'calendar' ? 'block' : 'hidden'}>
+                        <MissionCalendar missions={missions} users={users} onOpenMission={setSelectedMission} />
+                    </div>
+                    <div className={activeTab === 'live_map' ? 'block' : 'hidden'}>
+                        <LiveLocationMap users={users} />
+                    </div>
                 </main>
             </div>
             
@@ -144,7 +165,6 @@ const AdminView: React.FC = () => {
             {managingInventoryFor && <InventoryManagementModal user={managingInventoryFor} onClose={() => setManagingInventoryFor(null)} />}
             {managingBadgesFor && <BadgeManagementModal user={managingBadgesFor} onClose={() => setManagingBadgesFor(null)} />}
             {notifyingUser && <NotificationModal user={notifyingUser} onClose={() => setNotifyingUser(null)} />}
-            {/* FIX: Use editingMission state for the modal. */}
             {editingMission && <ApproveMissionModal mission={editingMission} onClose={() => setEditingMission(null)} />}
             {selectedMission && <MissionDetailsModal mission={selectedMission} user={currentUser} onClose={() => setSelectedMission(null)} isAdminViewing={true} />}
         </div>
