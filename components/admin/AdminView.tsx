@@ -156,7 +156,7 @@ const AdminView: React.FC = () => {
                         <MissionCalendar missions={missions} users={users} onOpenMission={setSelectedMission} />
                     </div>
                     <div className={activeTab === 'live_map' ? 'block' : 'hidden'}>
-                        <LiveLocationMap users={users} />
+                        <LiveLocationMap users={users} isVisible={activeTab === 'live_map'} />
                     </div>
                 </main>
             </div>

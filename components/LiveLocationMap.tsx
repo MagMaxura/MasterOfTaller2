@@ -1,11 +1,12 @@
 
-import React, { useMemo, useEffect, useState, useRef } from 'react';
+import React, { useMemo, useEffect } from 'react';
 import { User, Role } from '../types';
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import L from 'leaflet';
 
 interface LiveLocationMapProps {
   users: User[];
+  isVisible: boolean;
 }
 
 const createCustomIcon = (user: User) => {
@@ -26,6 +27,9 @@ const MapBoundsController: React.FC<{ technicians: User[] }> = ({ technicians })
     useEffect(() => {
         if (technicians.length > 0) {
             const bounds = L.latLngBounds(technicians.map(u => [u.location!.lat, u.location!.lng]));
+            // invalidateSize ensures the map recalculates its dimensions, which is crucial
+            // when it becomes visible after being hidden with display: none.
+            map.invalidateSize();
             map.fitBounds(bounds, { padding: [50, 50] });
         }
     }, [map, technicians]);
@@ -34,29 +38,22 @@ const MapBoundsController: React.FC<{ technicians: User[] }> = ({ technicians })
 };
 
 
-const LiveLocationMap: React.FC<LiveLocationMapProps> = ({ users }) => {
+const LiveLocationMap: React.FC<LiveLocationMapProps> = ({ users, isVisible }) => {
   const techniciansWithLocation = useMemo(() =>
     users.filter(u => u.role === Role.TECHNICIAN && u.location && u.location.lat && u.location.lng),
     [users]
   );
 
   const hasLocations = techniciansWithLocation.length > 0;
-  const mapContainerRef = useRef<HTMLDivElement>(null);
-  const [isContainerMounted, setIsContainerMounted] = useState(false);
-
-  useEffect(() => {
-    if (mapContainerRef.current) {
-      setIsContainerMounted(true);
-    }
-  }, []);
-
 
   return (
     <div className="bg-brand-secondary p-6 rounded-lg shadow-xl">
       <h3 className="text-xl font-bold mb-4 text-center">Ubicación del Equipo en Tiempo Real</h3>
-      <div ref={mapContainerRef} className="bg-brand-primary p-2 rounded-lg min-h-[500px] h-[60vh] overflow-hidden">
+      <div className="bg-brand-primary p-2 rounded-lg min-h-[500px] h-[60vh] overflow-hidden">
         {hasLocations ? (
-          isContainerMounted && (
+          // By only rendering MapContainer when isVisible, we ensure the container div
+          // has dimensions, which is required by Leaflet for initialization.
+          isVisible && (
             <MapContainer
               center={[techniciansWithLocation[0].location!.lat, techniciansWithLocation[0].location!.lng]}
               zoom={13}
