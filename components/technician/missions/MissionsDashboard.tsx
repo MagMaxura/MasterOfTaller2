@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { Mission, MissionStatus, User } from '../../../types';
-import { useAppContext } from '../../../contexts/AppContext';
+import { useData } from '../../../contexts/DataContext';
 import MissionColumn from './MissionColumn';
 import RequestMissionModal from './RequestMissionModal';
 import { PlusIcon } from '../../Icons';
@@ -11,7 +11,7 @@ const AvailableMissionCard: React.FC<{
     requestType?: 'take' | 'join';
 }> = ({ mission, onRequest, requestType = 'take' }) => {
     const [isLoading, setIsLoading] = useState(false);
-    const { users } = useAppContext();
+    const { users } = useData();
     const usersMap = useMemo(() => new Map(users.map(u => [u.id, u])), [users]);
 
     const handleRequest = async () => {
@@ -67,13 +67,15 @@ interface MissionsDashboardProps {
 }
 
 const MissionsDashboard: React.FC<MissionsDashboardProps> = ({ user, onOpenMission }) => {
-    const { missions, technicianRequestMission, requestToJoinMission } = useAppContext();
+    const { missions, technicianRequestMission, requestToJoinMission } = useData();
     const [isRequestModalOpen, setIsRequestModalOpen] = useState(false);
 
     const { available, otherInProgress, requested, pending, inProgress, completed } = useMemo(() => {
-        const available = missions.filter(m => (!m.assignedTo || m.assignedTo.length === 0) && m.status === MissionStatus.PENDING && !m.title.startsWith('[UNIRSE]'));
-        const userMissions = missions.filter(m => m.assignedTo?.includes(user.id));
-        const otherInProgress = missions.filter(m => m.status === MissionStatus.IN_PROGRESS && !m.assignedTo?.includes(user.id) && !m.title.startsWith('[UNIRSE]'));
+        const visibleMissions = missions.filter(m => m.visibleTo?.includes(user.id));
+
+        const available = visibleMissions.filter(m => (!m.assignedTo || m.assignedTo.length === 0) && m.status === MissionStatus.PENDING && !m.title.startsWith('[UNIRSE]'));
+        const userMissions = visibleMissions.filter(m => m.assignedTo?.includes(user.id));
+        const otherInProgress = visibleMissions.filter(m => m.status === MissionStatus.IN_PROGRESS && !m.assignedTo?.includes(user.id) && !m.title.startsWith('[UNIRSE]'));
         
         return {
             available,

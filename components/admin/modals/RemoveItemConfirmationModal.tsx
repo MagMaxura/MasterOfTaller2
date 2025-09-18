@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { UserInventoryItem } from '../../../types';
-import { useAppContext } from '../../../contexts/AppContext';
+import { useData } from '../../../contexts/DataContext';
+import { useToast } from '../../../contexts/ToastContext';
 
 interface RemoveItemConfirmationModalProps {
     itemToRemove: UserInventoryItem;
@@ -8,7 +9,8 @@ interface RemoveItemConfirmationModalProps {
 }
 
 const RemoveItemConfirmationModal: React.FC<RemoveItemConfirmationModalProps> = ({ itemToRemove, onClose }) => {
-    const { removeInventoryItem, disposeOfInventoryItem, showToast } = useAppContext();
+    const { removeInventoryItem, disposeOfInventoryItem } = useData();
+    const { showToast } = useToast();
     const [isLoading, setIsLoading] = useState<'return' | 'dispose' | null>(null);
 
     const handleReturnToStock = async () => {

@@ -91,6 +91,7 @@ export interface Mission {
   progressPhoto?: string; // base64
   completedDate?: string;
   bonusXp?: number;
+  visibleTo: string[] | null; // User IDs
 }
 
 export interface MissionMilestone {

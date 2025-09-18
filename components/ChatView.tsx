@@ -1,13 +1,13 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { User, Role, Chat, ChatMessage } from '../types';
-import { useAppContext } from '../contexts/AppContext';
+import { useData } from '../contexts/DataContext';
 
 interface ChatViewProps {
   currentUser: User;
 }
 
 const ChatView: React.FC<ChatViewProps> = ({ currentUser }) => {
-    const { users, chats, chatMessages, handleSelectOrCreateChat, handleSendMessage, handleMarkAsRead } = useAppContext();
+    const { users, chats, chatMessages, handleSelectOrCreateChat, handleSendMessage, handleMarkAsRead } = useData();
     const [selectedChat, setSelectedChat] = useState<Chat | null>(null);
     const [newMessage, setNewMessage] = useState('');
     const [isLoading, setIsLoading] = useState(false);

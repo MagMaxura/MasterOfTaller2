@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
 import { EquipmentSlot } from '../../../types';
-import { useAppContext } from '../../../contexts/AppContext';
+import { useData } from '../../../contexts/DataContext';
+import { useToast } from '../../../contexts/ToastContext';
 import { BoxIcon } from '../../Icons';
 
 const CreateItemModal: React.FC<{ onClose: () => void; }> = ({ onClose }) => {
-    const { addInventoryItem, showToast } = useAppContext();
+    const { addInventoryItem } = useData();
+    const { showToast } = useToast();
     const [name, setName] = useState('');
     const [description, setDescription] = useState('');
     const [quantity, setQuantity] = useState(1);

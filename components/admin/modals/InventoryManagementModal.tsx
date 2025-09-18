@@ -1,10 +1,12 @@
 import React, { useState, useMemo } from 'react';
 import { User, InventoryItem, UserInventoryItem } from '../../../types';
-import { useAppContext } from '../../../contexts/AppContext';
+import { useData } from '../../../contexts/DataContext';
+import { useToast } from '../../../contexts/ToastContext';
 import RemoveItemConfirmationModal from './RemoveItemConfirmationModal';
 
 const InventoryManagementModal: React.FC<{ user: User; onClose: () => void; }> = ({ user, onClose }) => {
-    const { users, allInventoryItems, assignInventoryItem, showToast } = useAppContext();
+    const { users, allInventoryItems, assignInventoryItem } = useData();
+    const { showToast } = useToast();
     const [loading, setLoading] = useState<Record<string, boolean>>({});
     const [confirmingRemove, setConfirmingRemove] = useState<UserInventoryItem | null>(null);
 
@@ -41,7 +43,7 @@ const InventoryManagementModal: React.FC<{ user: User; onClose: () => void; }> =
             <div className="bg-brand-secondary rounded-lg max-w-4xl w-full p-6 relative flex flex-col max-h-[90vh]">
                 <button type="button" onClick={onClose} className="absolute top-4 right-4 text-brand-light hover:text-white text-3xl">&times;</button>
                 <h3 className="text-2xl font-bold mb-4">Gestionar Inventario de {user.name}</h3>
-                <div className="grid md:grid-cols-2 gap-6 flex-grow overflow-hidden">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 flex-grow overflow-hidden">
                     {/* Assigned Inventory */}
                     <div className="bg-brand-primary p-4 rounded-lg flex flex-col"><h4 className="font-bold mb-3 text-lg">Inventario Asignado</h4><div className="space-y-2 overflow-y-auto">
                         {user.inventory.length === 0 && <p className="text-brand-light italic text-center p-4">Este técnico no tiene insumos asignados.</p>}

@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
 import { User, Role, MissionDifficulty, MissionStatus } from '../../types';
 import { GeneratedMissionData, generateMissionIdea } from '../../services/geminiService';
-import { useAppContext } from '../../contexts/AppContext';
+import { useData } from '../../contexts/DataContext';
+import { useToast } from '../../contexts/ToastContext';
 import { AiIcon } from '../Icons';
 
 const MissionCreator: React.FC<{ users: User[] }> = ({ users }) => {
-    const { addMission, showToast } = useAppContext();
+    const { addMission } = useData();
+    const { showToast } = useToast();
     const [missionData, setMissionData] = useState<Partial<GeneratedMissionData>>({ title: '', description: '', difficulty: MissionDifficulty.MEDIUM, xp: 50, skills: [] });
     const [assignedTo, setAssignedTo] = useState<string[]>([]);
     const [deadline, setDeadline] = useState('');
@@ -14,6 +16,7 @@ const MissionCreator: React.FC<{ users: User[] }> = ({ users }) => {
     const [isLoading, setIsLoading] = useState(false);
     const [isAiLoading, setIsAiLoading] = useState(false);
     const [error, setError] = useState('');
+    const [visibleTo, setVisibleTo] = useState<string[]>([]);
 
     const technicians = users.filter(u => u.role === Role.TECHNICIAN);
 
@@ -44,6 +47,14 @@ const MissionCreator: React.FC<{ users: User[] }> = ({ users }) => {
     const removeAssignee = (id: string) => {
         setAssignedTo(assignedTo.filter(techId => techId !== id));
     };
+    
+    const handleVisibilityChange = (technicianId: string) => {
+        setVisibleTo(prev => 
+            prev.includes(technicianId) 
+                ? prev.filter(id => id !== technicianId) 
+                : [...prev, technicianId]
+        );
+    };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -67,6 +78,7 @@ const MissionCreator: React.FC<{ users: User[] }> = ({ users }) => {
                 startDate,
                 deadline,
                 skills: missionData.skills || [],
+                visibleTo,
             });
             showToast('¡Misión creada con éxito!', 'success');
             // Reset form
@@ -75,6 +87,7 @@ const MissionCreator: React.FC<{ users: User[] }> = ({ users }) => {
             setStartDate(new Date().toISOString().split('T')[0]);
             setDeadline('');
             setAiKeywords('');
+            setVisibleTo([]);
         } catch (err) {
             showToast(err instanceof Error ? err.message : 'Error al crear la misión.', 'error');
         } finally {
@@ -128,6 +141,27 @@ const MissionCreator: React.FC<{ users: User[] }> = ({ users }) => {
                 <div><label className="block text-sm font-medium text-brand-light mb-1">XP</label><input type="number" value={missionData.xp || 0} onChange={e => setMissionData(d => ({ ...d, xp: parseInt(e.target.value, 10) || 0 }))} min="0" className="w-full bg-brand-primary p-2.5 rounded border border-brand-accent" required /></div>
             </div>
             
+            <div className="col-span-full">
+                <label className="block font-semibold mb-2">Visible para Técnicos</label>
+                <div className="bg-brand-primary p-3 rounded-lg grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                    {technicians.map(tech => (
+                        <div key={tech.id} className="flex items-center gap-2">
+                            <input
+                                type="checkbox"
+                                id={`vis-${tech.id}`}
+                                checked={visibleTo.includes(tech.id)}
+                                onChange={() => handleVisibilityChange(tech.id)}
+                                className="h-5 w-5 rounded bg-brand-secondary border-brand-accent text-brand-blue focus:ring-brand-blue"
+                            />
+                            <label htmlFor={`vis-${tech.id}`} className="flex items-center gap-2 text-brand-light select-none cursor-pointer">
+                                <img src={tech.avatar} alt={tech.name} className="w-6 h-6 rounded-full" />
+                                <span>{tech.name}</span>
+                            </label>
+                        </div>
+                    ))}
+                </div>
+            </div>
+
             <button type="submit" disabled={isLoading} className="w-full mt-4 bg-brand-blue text-white font-bold py-3 px-4 rounded-lg flex items-center justify-center gap-2 disabled:bg-brand-accent">
                 {isLoading && <div className="w-5 h-5 border-2 border-t-transparent border-white rounded-full animate-spin"></div>}
                 Crear Misión

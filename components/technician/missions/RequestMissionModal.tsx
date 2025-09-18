@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
-import { useAppContext } from '../../../contexts/AppContext';
+import { useData } from '../../../contexts/DataContext';
+import { useToast } from '../../../contexts/ToastContext';
 
 const RequestMissionModal: React.FC<{ onClose: () => void; }> = ({ onClose }) => {
-    const { requestMission, showToast } = useAppContext();
+    const { requestMission } = useData();
+    const { showToast } = useToast();
     const [title, setTitle] = useState('');
     const [description, setDescription] = useState('');
     const [isLoading, setIsLoading] = useState(false);

@@ -1,12 +1,12 @@
 import React from 'react';
 import { User } from '../../types';
 import { LEVEL_THRESHOLDS } from '../../config';
-import { useAppContext } from '../../contexts/AppContext';
+import { useAuth } from '../../contexts/AuthContext';
 import { ArrowLeftIcon, LogoutIcon } from '../Icons';
 import ProgressBar from '../common/ProgressBar';
 
 const Header: React.FC<{ user: User; isAdminViewing?: boolean; onBack?: () => void; }> = ({ user, isAdminViewing, onBack }) => {
-    const { handleLogout } = useAppContext();
+    const { handleLogout } = useAuth();
     const nextLevelXp = LEVEL_THRESHOLDS[user.level] || LEVEL_THRESHOLDS[LEVEL_THRESHOLDS.length - 1];
     const currentLevelXp = LEVEL_THRESHOLDS[user.level - 1] || 0;
     const levelProgress = user.xp - currentLevelXp;
@@ -20,10 +20,10 @@ const Header: React.FC<{ user: User; isAdminViewing?: boolean; onBack?: () => vo
                     <h2 className="font-bold text-lg">{user.name}</h2>
                     <div className="flex items-center gap-2 text-sm text-brand-light">
                         <span>Nivel: {user.level}</span>
-                        <div className="w-32">
+                        <div className="w-24 sm:w-32">
                             <ProgressBar value={levelProgress} max={xpForNextLevel} colorClass="bg-brand-orange" />
                         </div>
-                        <span>{user.xp} / {nextLevelXp} XP</span>
+                        <span className="hidden sm:inline">{user.xp} / {nextLevelXp} XP</span>
                     </div>
                 </div>
             </div>

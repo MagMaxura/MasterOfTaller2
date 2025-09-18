@@ -1,9 +1,15 @@
 import React from 'react';
 import { User, MissionStatus, Role } from '../../types';
-import { useAppContext } from '../../contexts/AppContext';
+import { useData } from '../../contexts/DataContext';
+import { useToast } from '../../contexts/ToastContext';
 
-const UserManagement: React.FC<{ onManageInventory: (user: User) => void; onNotifyUser: (user: User) => void; }> = ({ onManageInventory, onNotifyUser }) => {
-    const { users, missions, setViewingProfileOf, showToast } = useAppContext();
+const UserManagement: React.FC<{ 
+    onManageInventory: (user: User) => void; 
+    onManageBadges: (user: User) => void;
+    onNotifyUser: (user: User) => void; 
+}> = ({ onManageInventory, onManageBadges, onNotifyUser }) => {
+    const { users, missions, setViewingProfileOf, deactivateUser } = useData();
+    const { showToast } = useToast();
     const technicians = users.filter(u => u.role === Role.TECHNICIAN);
 
     const handleNotifyClick = (user: User) => {
@@ -12,6 +18,17 @@ const UserManagement: React.FC<{ onManageInventory: (user: User) => void; onNoti
             return;
         }
         onNotifyUser(user);
+    };
+
+    const handleDeactivate = async (userToDeactivate: User) => {
+        if (window.confirm(`¿Estás seguro de que quieres desactivar a ${userToDeactivate.name}? El técnico ya no aparecerá en la aplicación, pero su historial de misiones se conservará. Esta acción se puede revertir desde la base de datos.`)) {
+            try {
+                await deactivateUser(userToDeactivate.id);
+                showToast(`${userToDeactivate.name} ha sido desactivado.`, 'success');
+            } catch (error) {
+                showToast(error instanceof Error ? error.message : "Error al desactivar el técnico.", 'error');
+            }
+        }
     };
     
     return (
@@ -39,7 +56,14 @@ const UserManagement: React.FC<{ onManageInventory: (user: User) => void; onNoti
                             <div className="border-t border-brand-accent pt-3 mt-auto grid grid-cols-2 gap-2">
                                 <button onClick={() => setViewingProfileOf(user)} className="bg-brand-light text-brand-primary text-sm font-semibold py-2 px-3 rounded hover:bg-brand-highlight transition-colors">Ver Perfil</button>
                                 <button onClick={() => onManageInventory(user)} className="bg-brand-accent text-white text-sm font-semibold py-2 px-3 rounded hover:bg-brand-light hover:text-brand-primary transition-colors">Inventario</button>
-                                <button onClick={() => handleNotifyClick(user)} className="col-span-2 bg-brand-orange text-brand-primary text-sm font-semibold py-2 px-3 rounded hover:bg-orange-400 transition-colors disabled:opacity-50 disabled:cursor-not-allowed" disabled={!user.pushSubscription}>Enviar Notificación</button>
+                                <button onClick={() => onManageBadges(user)} className="bg-brand-accent text-white text-sm font-semibold py-2 px-3 rounded hover:bg-brand-light hover:text-brand-primary transition-colors">Insignias</button>
+                                <button onClick={() => handleNotifyClick(user)} className="bg-brand-orange text-brand-primary text-sm font-semibold py-2 px-3 rounded hover:bg-orange-400 transition-colors disabled:opacity-50 disabled:cursor-not-allowed" disabled={!user.pushSubscription}>Notificar</button>
+                                <button 
+                                    onClick={() => handleDeactivate(user)} 
+                                    className="col-span-2 bg-brand-red/80 text-white text-sm font-semibold py-2 px-3 rounded hover:bg-brand-red transition-colors"
+                                >
+                                    Desactivar Técnico
+                                </button>
                             </div>
                         </div>
                     );

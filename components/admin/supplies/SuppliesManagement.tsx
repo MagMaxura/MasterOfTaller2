@@ -1,11 +1,13 @@
 import React, { useState, useMemo } from 'react';
 import { Supply } from '../../../types';
-import { useAppContext } from '../../../contexts/AppContext';
+import { useData } from '../../../contexts/DataContext';
+import { useToast } from '../../../contexts/ToastContext';
 import { PlusIcon } from '../../Icons';
 import SupplyFormModal from './SupplyFormModal';
 
 const SuppliesManagement: React.FC = () => {
-    const { supplies, missionSupplies, updateSupply, deleteSupply, showToast } = useAppContext();
+    const { supplies, missionSupplies, updateSupply, deleteSupply } = useData();
+    const { showToast } = useToast();
     const [isFormModalOpen, setIsFormModalOpen] = useState(false);
     const [editingSupply, setEditingSupply] = useState<Supply | null>(null);
     const [isLoading, setIsLoading] = useState<Record<string, boolean>>({});

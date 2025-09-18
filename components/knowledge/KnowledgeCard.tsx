@@ -1,13 +1,13 @@
 import React, { useMemo } from 'react';
 import { MissionMilestone, User } from '../../types';
-import { useAppContext } from '../../contexts/AppContext';
+import { useData } from '../../contexts/DataContext';
 
 interface KnowledgeCardProps {
     milestone: MissionMilestone;
 }
 
 const KnowledgeCard: React.FC<KnowledgeCardProps> = ({ milestone }) => {
-    const { users } = useAppContext();
+    const { users } = useData();
     const usersMap = useMemo(() => new Map(users.map(u => [u.id, u])), [users]);
     const author = usersMap.get(milestone.user_id);
 

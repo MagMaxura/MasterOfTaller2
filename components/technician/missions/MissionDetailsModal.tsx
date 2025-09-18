@@ -1,35 +1,78 @@
-import React, { useState, useMemo, ChangeEvent } from 'react';
+import React, { useState, useMemo, ChangeEvent, useEffect } from 'react';
 import { Mission, User, MissionStatus, MissionMilestone, MissionSupply, Role } from '../../../types';
 import { LEVEL_THRESHOLDS, EARLY_COMPLETION_BONUS_XP } from '../../../config';
-import { useAppContext } from '../../../contexts/AppContext';
+import { useData } from '../../../contexts/DataContext';
+import { useAuth } from '../../../contexts/AuthContext';
+import { useToast } from '../../../contexts/ToastContext';
 import { hasSupplyAdminBadge } from '../../../utils/ranks';
 import { CameraIcon, StarIcon } from '../../Icons';
 import AssignSuppliesModal from '../../admin/missions/AssignSuppliesModal';
 
+const SupplyUsageRow: React.FC<{ missionSupply: MissionSupply, canEdit: boolean }> = ({ missionSupply, canEdit }) => {
+    const { updateMissionSupply } = useData();
+    const { showToast } = useToast();
+    const [isUpdating, setIsUpdating] = useState(false);
+    const [currentUsed, setCurrentUsed] = useState(missionSupply.quantity_used);
+
+    const handleUsageChange = async () => {
+        if (!canEdit) return;
+        if (currentUsed < 0 || currentUsed > missionSupply.quantity_assigned) {
+            showToast("La cantidad usada no puede ser negativa o mayor a la asignada.", 'error');
+            setCurrentUsed(missionSupply.quantity_used); // Reset
+            return;
+        }
+        if (currentUsed === missionSupply.quantity_used) return; // No change
+
+        setIsUpdating(true);
+        try {
+            await updateMissionSupply(missionSupply.id, { quantity_used: currentUsed });
+            showToast('Uso de insumo actualizado.', 'success');
+        } catch (error) {
+            showToast(error instanceof Error ? error.message : "Error al actualizar.", 'error');
+            setCurrentUsed(missionSupply.quantity_used); // Revert on error
+        } finally {
+            setIsUpdating(false);
+        }
+    };
+    
+    // To handle external updates to missionSupply.quantity_used
+    useEffect(() => {
+        setCurrentUsed(missionSupply.quantity_used);
+    }, [missionSupply.quantity_used]);
+
+    return (
+        <div className="bg-brand-primary p-3 rounded-lg flex items-center gap-4">
+            <img src={missionSupply.supplies.photo_url || 'https://placehold.co/64x64/1b263b/e0e1dd?text=?'} alt={missionSupply.supplies.model} className="w-12 h-12 object-cover rounded-md flex-shrink-0" />
+            <div className="flex-grow">
+                <p className="font-bold">{missionSupply.supplies.type} - {missionSupply.supplies.model}</p>
+                <p className="text-xs text-brand-light">{missionSupply.supplies.general_category} &gt; {missionSupply.supplies.specific_category}</p>
+            </div>
+            <div className="flex items-center gap-2">
+                <span className="text-sm hidden sm:inline">Usados:</span>
+                <input
+                    type="number"
+                    value={currentUsed}
+                    onChange={(e) => setCurrentUsed(parseInt(e.target.value, 10) || 0)}
+                    onBlur={handleUsageChange}
+                    min="0"
+                    max={missionSupply.quantity_assigned}
+                    disabled={isUpdating || !canEdit}
+                    className={`w-16 bg-brand-secondary p-1 rounded border border-brand-accent text-center ${!canEdit ? 'cursor-not-allowed text-brand-light' : ''}`}
+                />
+                <span className="text-sm text-brand-light">/ {missionSupply.quantity_assigned}</span>
+                {isUpdating && <div className="w-5 h-5 border-2 border-t-transparent border-brand-blue rounded-full animate-spin"></div>}
+            </div>
+        </div>
+    );
+};
+
+
 const MissionSuppliesPanel: React.FC<{ mission: Mission, canEdit: boolean }> = ({ mission, canEdit }) => {
-    const { missionSupplies, updateMissionSupply, showToast } = useAppContext();
-    const [updatingUsage, setUpdatingUsage] = useState<string | null>(null);
+    const { missionSupplies } = useData();
 
     const suppliesForMission = useMemo(() => {
         return missionSupplies.filter(ms => ms.mission_id === mission.id);
     }, [missionSupplies, mission.id]);
-
-    const handleUsageChange = async (ms: MissionSupply, used: number) => {
-        if (!canEdit) return;
-        if (used < 0 || used > ms.quantity_assigned) {
-            showToast("La cantidad usada no puede ser negativa o mayor a la asignada.", 'error');
-            return;
-        }
-        setUpdatingUsage(ms.id);
-        try {
-            await updateMissionSupply(ms.id, { quantity_used: used });
-            showToast('Uso de insumo actualizado.', 'success');
-        } catch (error) {
-            showToast(error instanceof Error ? error.message : "Error al actualizar.", 'error');
-        } finally {
-            setUpdatingUsage(null);
-        }
-    }
 
     if (suppliesForMission.length === 0) {
         return <p className="text-brand-light italic text-center py-4">No hay insumos asignados a esta misión.</p>
@@ -38,29 +81,7 @@ const MissionSuppliesPanel: React.FC<{ mission: Mission, canEdit: boolean }> = (
     return (
         <div className="space-y-3">
             {suppliesForMission.map(ms => (
-                <div key={ms.id} className="bg-brand-primary p-3 rounded-lg flex items-center gap-4">
-                    <img src={ms.supplies.photo_url || 'https://placehold.co/64x64/1b263b/e0e1dd?text=?'} alt={ms.supplies.model} className="w-12 h-12 object-cover rounded-md flex-shrink-0" />
-                    <div className="flex-grow">
-                        <p className="font-bold">{ms.supplies.type} - {ms.supplies.model}</p>
-                        <p className="text-xs text-brand-light">{ms.supplies.general_category} &gt; {ms.supplies.specific_category}</p>
-                    </div>
-                    <div className="flex items-center gap-2">
-                        <div className="flex items-center gap-2">
-                            <span className="text-sm">Usados:</span>
-                            <input
-                                type="number"
-                                defaultValue={ms.quantity_used}
-                                min="0"
-                                max={ms.quantity_assigned}
-                                disabled={updatingUsage === ms.id || !canEdit}
-                                onBlur={(e) => handleUsageChange(ms, parseInt(e.target.value, 10))}
-                                className={`w-16 bg-brand-secondary p-1 rounded border border-brand-accent ${!canEdit ? 'cursor-not-allowed text-brand-light' : ''}`}
-                            />
-                            <span className="text-sm text-brand-light">/ {ms.quantity_assigned}</span>
-                        </div>
-                         {updatingUsage === ms.id && <div className="w-5 h-5 border-2 border-t-transparent border-brand-blue rounded-full animate-spin"></div>}
-                    </div>
-                </div>
+                <SupplyUsageRow key={ms.id} missionSupply={ms} canEdit={canEdit} />
             ))}
         </div>
     );
@@ -73,7 +94,9 @@ const MissionDetailsModal: React.FC<{
     onClose: () => void;
     isAdminViewing?: boolean;
 }> = ({ mission, user, onClose, isAdminViewing }) => {
-    const { currentUser, updateUser, showToast, missionMilestones, users, addMissionMilestone, updateMission, toggleMilestoneSolution } = useAppContext();
+    const { currentUser } = useAuth();
+    const { updateUser, missionMilestones, users, addMissionMilestone, updateMission, toggleMilestoneSolution } = useData();
+    const { showToast } = useToast();
     const [isUpdating, setIsUpdating] = useState(false);
     const [isTogglingSolution, setIsTogglingSolution] = useState<string | null>(null);
     const [newMilestoneText, setNewMilestoneText] = useState('');
@@ -185,7 +208,7 @@ const MissionDetailsModal: React.FC<{
                            ))}
                        </div>
                     </div>
-                    <p className="text-brand-light mb-4">{mission.description}</p>
+                    <p className="text-brand-light mb-4 text-sm">{mission.description}</p>
                     <div className="grid grid-cols-2 gap-4 mb-6 text-sm">
                         <p><strong>XP:</strong> <span className="text-brand-orange font-bold">{mission.xp} {mission.bonusXp ? `+ ${mission.bonusXp} (Bonus)` : ''}</span></p>
                         <p><strong>Dificultad:</strong> {mission.difficulty}</p>

@@ -14,14 +14,18 @@ export const transformSupabaseProfileToUser = (p: any): User => {
     avatar: p.avatar,
     xp: p.xp,
     level: p.level,
-    skills: (p.profile_skills || []).map((ps: any): Skill => ({ 
+    skills: (p.profile_skills || [])
+      .filter((ps: any) => ps && ps.skills && typeof ps.skills === 'object') // Ensure junction and target objects exist and are objects
+      .map((ps: any): Skill => ({ 
         id: ps.skills.id,
         name: ps.skills.name,
         level: ps.level 
     })),
-    badges: (p.user_badges || []).map((ub: any): Badge => ub.badges),
+    badges: (p.user_badges || [])
+      .filter((ub: any) => ub && ub.badges && typeof ub.badges === 'object') // Ensure junction and target objects exist and are objects
+      .map((ub: any): Badge => ub.badges),
     inventory: (p.user_inventory || [])
-      .filter((ui: any) => ui.inventory_items) // Filter out items where the joined item is null
+      .filter((ui: any) => ui && ui.inventory_items && typeof ui.inventory_items === 'object') // Ensure junction and target objects exist and are objects
       .map((ui: any): UserInventoryItem => ({
           id: ui.id,
           assigned_at: ui.assigned_at,

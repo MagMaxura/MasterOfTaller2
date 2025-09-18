@@ -1,9 +1,20 @@
 import React, { useMemo } from 'react';
 import { Mission, User, MissionStatus } from '../../types';
+import { useAuth } from '../../contexts/AuthContext';
 
 const HallOfFame: React.FC<{missions: Mission[], users: User[]}> = ({missions, users}) => {
-    const completedMissionsWithPhotos = useMemo(() => missions.filter(m => m.status === MissionStatus.COMPLETED && m.progressPhoto), [missions]);
+    const { currentUser } = useAuth();
+    const completedMissionsWithPhotos = useMemo(() => {
+        if (!currentUser) return [];
+        return missions.filter(m => 
+            m.visibleTo?.includes(currentUser.id) && 
+            m.status === MissionStatus.COMPLETED && 
+            m.progressPhoto
+        );
+    }, [missions, currentUser]);
+
     const usersMap = useMemo(() => new Map(users.map(u => [u.id, u])), [users]);
+    
     return (
         <div className="bg-brand-secondary p-6 rounded-lg shadow-lg">
             <h3 className="text-2xl font-bold mb-6 text-center">Muro de la Fama</h3>

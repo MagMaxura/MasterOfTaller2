@@ -1,12 +1,14 @@
 import React, { useState } from 'react';
 import { User } from '../../../types';
-import { useAppContext } from '../../../contexts/AppContext';
+import { useData } from '../../../contexts/DataContext';
+import { useToast } from '../../../contexts/ToastContext';
 
 const NotificationModal: React.FC<{
     user: User;
     onClose: () => void;
 }> = ({ user, onClose }) => {
-    const { sendNotification, showToast } = useAppContext();
+    const { sendNotification } = useData();
+    const { showToast } = useToast();
     const [title, setTitle] = useState(`Mensaje para ${user.name}`);
     const [body, setBody] = useState('');
     const [isLoading, setIsLoading] = useState(false);

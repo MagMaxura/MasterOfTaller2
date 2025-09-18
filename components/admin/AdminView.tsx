@@ -1,28 +1,26 @@
 import React, { useState, useMemo } from 'react';
-import { User, Mission, MissionStatus } from '../types';
-import { useData } from '../contexts/DataContext';
-import { useAuth } from '../contexts/AuthContext';
+import { User, Mission, MissionStatus } from '../../types';
+import { useData } from '../../contexts/DataContext';
+import { useAuth } from '../../contexts/AuthContext';
 
-import UserManagement from './admin/UserManagement';
-import MissionCreator from './admin/MissionCreator';
-import StockManagement from './admin/stock/StockManagement';
-import CreateItemModal from './admin/stock/CreateItemModal';
-import InventoryManagementModal from './admin/modals/InventoryManagementModal';
-import BadgeManagementModal from './admin/modals/BadgeManagementModal';
-import NotificationModal from './admin/modals/NotificationModal';
-import MissionCalendar from './MissionCalendar';
-import LiveLocationMap from './LiveLocationMap';
-import ChatView from './ChatView';
-import MissionRequests from './admin/MissionRequests';
-import ApproveMissionModal from './admin/modals/ApproveMissionModal';
-import MissionsManager from './admin/MissionsManager';
-import MissionDetailsModal from './technician/missions/MissionDetailsModal';
-import KnowledgeBase from './knowledge/KnowledgeBase';
-import SuppliesManagement from './admin/supplies/SuppliesManagement';
-import Leaderboard from './common/Leaderboard';
-import HallOfFame from './common/HallOfFame';
+import UserManagement from './UserManagement';
+import MissionCreator from './MissionCreator';
+import StockManagement from './stock/StockManagement';
+import CreateItemModal from './stock/CreateItemModal';
+import InventoryManagementModal from './modals/InventoryManagementModal';
+import BadgeManagementModal from './modals/BadgeManagementModal';
+import NotificationModal from './modals/NotificationModal';
+import MissionCalendar from '../MissionCalendar';
+import LiveLocationMap from '../LiveLocationMap';
+import ChatView from '../ChatView';
+import MissionRequests from './MissionRequests';
+import ApproveMissionModal from './modals/ApproveMissionModal';
+import MissionsManager from './MissionsManager';
+import MissionDetailsModal from '../technician/missions/MissionDetailsModal';
+import KnowledgeBase from '../knowledge/KnowledgeBase';
+import SuppliesManagement from './supplies/SuppliesManagement';
 
-import { PlusIcon, BoxIcon, CalendarIcon, MapPinIcon, UserIcon, ChatIcon, TasksIcon, BookOpenIcon, LogoutIcon, MenuIcon, ChartIcon, HallOfFameIcon } from './Icons';
+import { PlusIcon, BoxIcon, CalendarIcon, MapPinIcon, UserIcon, ChatIcon, TasksIcon, BookOpenIcon, LogoutIcon, MenuIcon } from '../Icons';
 
 // --- MAIN COMPONENT ---
 const AdminView: React.FC = () => {
@@ -34,7 +32,6 @@ const AdminView: React.FC = () => {
     const [managingBadgesFor, setManagingBadgesFor] = useState<User | null>(null);
     const [isCreateItemModalOpen, setIsCreateItemModalOpen] = useState(false);
     const [notifyingUser, setNotifyingUser] = useState<User | null>(null);
-    // FIX: Renamed state to handle both mission editing and approving.
     const [editingMission, setEditingMission] = useState<Mission | null>(null);
     const [selectedMission, setSelectedMission] = useState<Mission | null>(null);
     
@@ -44,8 +41,6 @@ const AdminView: React.FC = () => {
         { id: 'manage', label: 'Gestionar', icon: <UserIcon /> },
         { id: 'missions', label: 'Misiones', icon: <TasksIcon /> },
         { id: 'requests', label: 'Solicitudes', icon: <TasksIcon />, notification: missionRequestsCount > 0 },
-        { id: 'leaderboard', label: 'Clasificación', icon: <ChartIcon /> },
-        { id: 'hall_of_fame', label: 'Muro de la Fama', icon: <HallOfFameIcon /> },
         { id: 'create', label: 'Crear Misión', icon: <PlusIcon /> },
         { id: 'stock', label: 'Stock (Equipo)', icon: <BoxIcon /> },
         { id: 'supplies', label: 'Insumos', icon: <BoxIcon /> },
@@ -122,14 +117,9 @@ const AdminView: React.FC = () => {
             
             <div className="flex-1 flex flex-col overflow-hidden">
                 <main className="flex-1 p-4 md:p-8 overflow-y-auto">
-                    {/* FIX: Pass onManageBadges prop to fix missing property error. */}
                     {activeTab === 'manage' && <UserManagement onManageInventory={setManagingInventoryFor} onManageBadges={setManagingBadgesFor} onNotifyUser={setNotifyingUser} />}
-                    {/* FIX: Passed required onEditMission prop. */}
                     {activeTab === 'missions' && <MissionsManager onOpenMission={setSelectedMission} onEditMission={setEditingMission} />}
-                    {/* FIX: Changed onApprove to onReview prop. */}
                     {activeTab === 'requests' && <MissionRequests onReview={setEditingMission} />}
-                    {activeTab === 'leaderboard' && <Leaderboard users={users} />}
-                    {activeTab === 'hall_of_fame' && <HallOfFame missions={missions} users={users} />}
                     {activeTab === 'create' && <MissionCreator users={users} />}
                     {activeTab === 'chat' && <ChatView currentUser={currentUser} />}
                     {activeTab === 'stock' && <StockManagement onOpenCreateModal={() => setIsCreateItemModalOpen(true)} />}
@@ -144,7 +134,6 @@ const AdminView: React.FC = () => {
             {managingInventoryFor && <InventoryManagementModal user={managingInventoryFor} onClose={() => setManagingInventoryFor(null)} />}
             {managingBadgesFor && <BadgeManagementModal user={managingBadgesFor} onClose={() => setManagingBadgesFor(null)} />}
             {notifyingUser && <NotificationModal user={notifyingUser} onClose={() => setNotifyingUser(null)} />}
-            {/* FIX: Use editingMission state for the modal. */}
             {editingMission && <ApproveMissionModal mission={editingMission} onClose={() => setEditingMission(null)} />}
             {selectedMission && <MissionDetailsModal mission={selectedMission} user={currentUser} onClose={() => setSelectedMission(null)} isAdminViewing={true} />}
         </div>

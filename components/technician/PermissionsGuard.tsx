@@ -2,7 +2,8 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { User } from '../../types';
 import { LEVEL_THRESHOLDS } from '../../config';
 import { subscribeUserToPush } from '../../utils/pushNotifications';
-import { useAppContext } from '../../contexts/AppContext';
+import { useData } from '../../contexts/DataContext';
+import { useToast } from '../../contexts/ToastContext';
 
 // --- PERMISSIONS BANNER ---
 const PermissionsBanner: React.FC<{
@@ -33,7 +34,8 @@ const PermissionsBanner: React.FC<{
 
 // --- PERMISSIONS GUARD ---
 const PermissionsGuard: React.FC<{ user: User; children: React.ReactNode; }> = ({ user, children }) => {
-    const { savePushSubscription, updateUser, showToast } = useAppContext();
+    const { savePushSubscription, updateUser } = useData();
+    const { showToast } = useToast();
     const [permissions, setPermissions] = useState<{
         notifications: PermissionState;
         geolocation: PermissionState;

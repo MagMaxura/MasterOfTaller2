@@ -1,6 +1,7 @@
 import React, { useState, useMemo, memo } from 'react';
 import { InventoryItem } from '../../../types';
-import { useAppContext } from '../../../contexts/AppContext';
+import { useData } from '../../../contexts/DataContext';
+import { useToast } from '../../../contexts/ToastContext';
 import { PlusIcon, EditIcon } from '../../Icons';
 
 interface StockItemProps {
@@ -69,7 +70,8 @@ const StockItem = memo<StockItemProps>(({ item, assignedCount, onUpdate, onDelet
 });
 
 const StockManagement: React.FC<{ onOpenCreateModal: () => void; }> = ({ onOpenCreateModal }) => {
-    const { users, allInventoryItems, updateInventoryItemQuantity, deleteInventoryItem, showToast } = useAppContext();
+    const { users, allInventoryItems, updateInventoryItemQuantity, deleteInventoryItem } = useData();
+    const { showToast } = useToast();
     const [updatingIds, setUpdatingIds] = useState<Set<string>>(new Set());
     const [deletingId, setDeletingId] = useState<string | null>(null);
 

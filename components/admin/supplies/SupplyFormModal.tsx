@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Supply } from '../../../types';
-import { useAppContext } from '../../../contexts/AppContext';
+import { useData } from '../../../contexts/DataContext';
+import { useToast } from '../../../contexts/ToastContext';
 import { BoxIcon } from '../../Icons';
 
 interface SupplyFormModalProps {
@@ -9,7 +10,8 @@ interface SupplyFormModalProps {
 }
 
 const SupplyFormModal: React.FC<SupplyFormModalProps> = ({ supply, onClose }) => {
-    const { addSupply, updateSupply, showToast } = useAppContext();
+    const { addSupply, updateSupply } = useData();
+    const { showToast } = useToast();
     const [formData, setFormData] = useState({
         general_category: supply?.general_category || '',
         specific_category: supply?.specific_category || '',

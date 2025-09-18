@@ -196,6 +196,7 @@ export interface Database {
           status: Database["public"]["Enums"]["mission_status"]
           title: string
           xp: number
+          visible_to: string[] | null
         }
         Insert: {
           assigned_to?: string[] | null
@@ -212,6 +213,7 @@ export interface Database {
           status: Database["public"]["Enums"]["mission_status"]
           title: string
           xp: number
+          visible_to?: string[] | null
         }
         Update: {
           assigned_to?: string[] | null
@@ -228,6 +230,7 @@ export interface Database {
           status?: Database["public"]["Enums"]["mission_status"]
           title?: string
           xp?: number
+          visible_to?: string[] | null
         }
         Relationships: []
       }
@@ -346,6 +349,7 @@ export interface Database {
         Row: {
           avatar: string
           id: string
+          is_active: boolean
           lat: number | null
           level: number
           lng: number | null
@@ -358,6 +362,7 @@ export interface Database {
         Insert: {
           avatar: string
           id: string
+          is_active?: boolean
           lat?: number | null
           level?: number
           lng?: number | null
@@ -370,6 +375,7 @@ export interface Database {
         Update: {
           avatar?: string
           id?: string
+          is_active?: boolean
           lat?: number | null
           level?: number
           lng?: number | null

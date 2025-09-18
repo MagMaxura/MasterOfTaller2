@@ -1,9 +1,9 @@
 import React, { useMemo } from 'react';
 import { Mission, MissionStatus } from '../../types';
-import { useAppContext } from '../../contexts/AppContext';
+import { useData } from '../../contexts/DataContext';
 import AdminMissionCard from './missions/AdminMissionCard';
 
-const MissionColumn: React.FC<{ title: string; missions: Mission[]; onOpenMission: (mission: Mission) => void; }> = ({ title, missions, onOpenMission }) => {
+const MissionColumn: React.FC<{ title: string; missions: Mission[]; onOpenMission: (mission: Mission) => void; onEditMission: (mission: Mission) => void; }> = ({ title, missions, onOpenMission, onEditMission }) => {
     const colorMap: { [key: string]: string } = {
         [MissionStatus.PENDING]: 'border-brand-light',
         [MissionStatus.IN_PROGRESS]: 'border-brand-blue',
@@ -13,7 +13,7 @@ const MissionColumn: React.FC<{ title: string; missions: Mission[]; onOpenMissio
         <div className={`bg-brand-primary p-4 rounded-lg flex-1 border-t-4 ${colorMap[title]} min-w-[300px]`}>
             <h3 className="font-bold text-xl mb-4">{title} ({missions.length})</h3>
             <div className="space-y-4">
-                {missions.sort((a,b) => new Date(b.deadline).getTime() - new Date(a.deadline).getTime()).map(m => <AdminMissionCard key={m.id} mission={m} onOpen={() => onOpenMission(m)} />)}
+                {missions.sort((a,b) => new Date(b.deadline).getTime() - new Date(a.deadline).getTime()).map(m => <AdminMissionCard key={m.id} mission={m} onOpen={() => onOpenMission(m)} onEdit={() => onEditMission(m)} />)}
             </div>
         </div>
     );
@@ -21,10 +21,11 @@ const MissionColumn: React.FC<{ title: string; missions: Mission[]; onOpenMissio
 
 interface MissionsManagerProps {
     onOpenMission: (mission: Mission) => void;
+    onEditMission: (mission: Mission) => void;
 }
 
-const MissionsManager: React.FC<MissionsManagerProps> = ({ onOpenMission }) => {
-    const { missions } = useAppContext();
+const MissionsManager: React.FC<MissionsManagerProps> = ({ onOpenMission, onEditMission }) => {
+    const { missions } = useData();
 
     const { pending, inProgress, completed } = useMemo(() => {
         const missionsToShow = missions.filter(m => m.status !== MissionStatus.REQUESTED);
@@ -39,9 +40,9 @@ const MissionsManager: React.FC<MissionsManagerProps> = ({ onOpenMission }) => {
         <div className="space-y-8">
             <h2 className="text-2xl font-bold">Estado de Misiones</h2>
             <div className="flex flex-col md:flex-row gap-6">
-                <MissionColumn title={MissionStatus.PENDING} missions={pending} onOpenMission={onOpenMission} />
-                <MissionColumn title={MissionStatus.IN_PROGRESS} missions={inProgress} onOpenMission={onOpenMission} />
-                <MissionColumn title={MissionStatus.COMPLETED} missions={completed} onOpenMission={onOpenMission} />
+                <MissionColumn title={MissionStatus.PENDING} missions={pending} onOpenMission={onOpenMission} onEditMission={onEditMission} />
+                <MissionColumn title={MissionStatus.IN_PROGRESS} missions={inProgress} onOpenMission={onOpenMission} onEditMission={onEditMission} />
+                <MissionColumn title={MissionStatus.COMPLETED} missions={completed} onOpenMission={onOpenMission} onEditMission={onEditMission} />
             </div>
         </div>
     );

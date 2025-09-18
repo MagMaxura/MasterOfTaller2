@@ -1,5 +1,7 @@
-import React, { useMemo, useState } from 'react';
-import { useAppContext } from '../../contexts/AppContext';
+import React, { useMemo, useState, useEffect } from 'react';
+import { useData } from '../../contexts/DataContext';
+import { useAuth } from '../../contexts/AuthContext';
+import { useToast } from '../../contexts/ToastContext';
 import { Mission, MissionSupply } from '../../types';
 
 interface GroupedSupplies {
@@ -8,7 +10,8 @@ interface GroupedSupplies {
 }
 
 const SupplyRow: React.FC<{ missionSupply: MissionSupply }> = ({ missionSupply }) => {
-    const { updateMissionSupply, showToast } = useAppContext();
+    const { updateMissionSupply } = useData();
+    const { showToast } = useToast();
     const [isUpdating, setIsUpdating] = useState(false);
     const [currentUsed, setCurrentUsed] = useState(missionSupply.quantity_used);
 
@@ -32,6 +35,12 @@ const SupplyRow: React.FC<{ missionSupply: MissionSupply }> = ({ missionSupply }
             setIsUpdating(false);
         }
     };
+    
+    // To handle external updates to missionSupply.quantity_used
+    useEffect(() => {
+        setCurrentUsed(missionSupply.quantity_used);
+    }, [missionSupply.quantity_used]);
+
 
     return (
         <div className="bg-brand-primary p-3 rounded-lg flex items-center gap-4">
@@ -64,7 +73,8 @@ const SupplyRow: React.FC<{ missionSupply: MissionSupply }> = ({ missionSupply }
 };
 
 const TechnicianSuppliesView: React.FC = () => {
-    const { currentUser, missions, missionSupplies } = useAppContext();
+    const { currentUser } = useAuth();
+    const { missions, missionSupplies } = useData();
 
     const groupedSupplies = useMemo<GroupedSupplies[]>(() => {
         if (!currentUser) return [];

@@ -1,13 +1,15 @@
 import React, { useMemo } from 'react';
 import { Mission, MissionStatus } from '../../types';
-import { useAppContext } from '../../contexts/AppContext';
+import { useData } from '../../contexts/DataContext';
+import { useToast } from '../../contexts/ToastContext';
 
 interface MissionRequestsProps {
-    onApprove: (mission: Mission) => void;
+    onReview: (mission: Mission) => void;
 }
 
-const MissionRequests: React.FC<MissionRequestsProps> = ({ onApprove }) => {
-    const { missions, users, rejectMissionRequest, approveJoinRequest, rejectJoinRequest, showToast } = useAppContext();
+const MissionRequests: React.FC<MissionRequestsProps> = ({ onReview }) => {
+    const { missions, users, rejectMissionRequest, approveJoinRequest, rejectJoinRequest } = useData();
+    const { showToast } = useToast();
     const requests = useMemo(() => missions.filter(m => m.status === MissionStatus.REQUESTED), [missions]);
     const usersMap = useMemo(() => new Map(users.map(u => [u.id, u])), [users]);
 
@@ -34,7 +36,7 @@ const MissionRequests: React.FC<MissionRequestsProps> = ({ onApprove }) => {
                 await approveJoinRequest(mission);
             }
         } else {
-            onApprove(mission);
+            onReview(mission);
         }
     }
 

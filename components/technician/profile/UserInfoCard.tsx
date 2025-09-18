@@ -1,11 +1,13 @@
 import React, { useState, useRef, ChangeEvent } from 'react';
 import { User } from '../../../types';
-import { useAppContext } from '../../../contexts/AppContext';
+import { useData } from '../../../contexts/DataContext';
+import { useToast } from '../../../contexts/ToastContext';
 import { getRank } from '../../../utils/ranks';
 import { CameraIcon } from '../../Icons';
 
 const UserInfoCard: React.FC<{ user: User; isAdminViewing?: boolean; }> = ({ user, isAdminViewing }) => {
-    const { updateUserAvatar, showToast } = useAppContext();
+    const { updateUserAvatar } = useData();
+    const { showToast } = useToast();
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [isUploading, setIsUploading] = useState(false);
 

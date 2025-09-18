@@ -1,9 +1,9 @@
 import React, { useState, useMemo } from 'react';
-import { useAppContext } from '../../contexts/AppContext';
+import { useData } from '../../contexts/DataContext';
 import KnowledgeCard from './KnowledgeCard';
 
 const KnowledgeBase: React.FC = () => {
-    const { missionMilestones, missions } = useAppContext();
+    const { missionMilestones, missions } = useData();
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedSkills, setSelectedSkills] = useState<Set<string>>(new Set());
 
