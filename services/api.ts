@@ -20,6 +20,7 @@ export const api = {
     const missionColumns = 'id, created_at, title, description, status, difficulty, xp, assigned_to, start_date, deadline, required_skills, progress_photo_url, completed_date, bonus_xp, visible_to';
     const inventoryItemColumns = 'id, name, description, icon_url, slot, quantity';
     const badgeColumns = 'id, name, icon, description';
+    const supplyColumns = 'id, created_at, general_category, specific_category, type, model, details, stock_quantity, photo_url';
 
     return Promise.all([
       supabase.from('profiles').select(profileColumns).eq('is_active', true),
@@ -32,8 +33,8 @@ export const api = {
       supabase.from('mission_milestones').select('id, mission_id, user_id, description, image_url, created_at, is_solution, mission:missions(title, required_skills)').order('created_at', { ascending: true }),
       supabase.from('chats').select('id, created_at, participant_1, participant_2').or(`participant_1.eq.${userId},participant_2.eq.${userId}`),
       supabase.from('chat_messages').select('id, chat_id, sender_id, content, created_at, is_read').order('created_at', { ascending: true }),
-      supabase.from('supplies').select('id, created_at, general_category, specific_category, type, model, details, stock_quantity, photo_url').order('general_category').order('specific_category'),
-      supabase.from('mission_supplies').select('id, created_at, mission_id, supply_id, quantity_assigned, quantity_used, supplies(*)')
+      supabase.from('supplies').select(supplyColumns).order('general_category').order('specific_category'),
+      supabase.from('mission_supplies').select(`id, created_at, mission_id, supply_id, quantity_assigned, quantity_used, supplies(${supplyColumns})`)
     ]);
   },
   async getFullProfile(userId: string) {

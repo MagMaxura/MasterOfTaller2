@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useMemo } from 'react';
 import { Role } from './types';
 import { supabase } from './config';
@@ -88,7 +89,17 @@ const App: React.FC = () => {
   }, []);
 
   if (!supabase) {
-    return <div className="min-h-screen bg-brand-red flex items-center justify-center text-white p-4">Error de Configuración: Revisa las variables de entorno de Supabase.</div>;
+    return (
+        <div className="min-h-screen bg-brand-red flex items-center justify-center text-white p-4 text-center">
+          <div>
+            <h1 className="text-2xl font-bold mb-2">Error de Configuración</h1>
+            <p>No se pudieron encontrar las variables de entorno de Supabase.</p>
+            <p className="mt-4 text-sm bg-red-800/50 p-3 rounded-md">
+              Asegúrate de haber configurado las variables <code className="font-mono bg-black/30 px-1 rounded">SUPABASE_URL</code> y <code className="font-mono bg-black/30 px-1 rounded">SUPABASE_ANON_KEY</code> en tu entorno de despliegue.
+            </p>
+          </div>
+        </div>
+    );
   }
 
   if (loading) return <LoadingSpinner />;

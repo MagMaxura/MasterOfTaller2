@@ -2,15 +2,19 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { MissionDifficulty } from "../types";
 
-// Ensure API_KEY is available in the environment variables
-const API_KEY = process.env.API_KEY;
-if (!API_KEY) {
-  // In a real app, you might want to handle this more gracefully.
-  // For this context, we'll proceed assuming it's set.
-  console.warn("API_KEY environment variable not set. Gemini API calls will fail.");
-}
+// The execution environment is expected to provide environment variables via process.env.
+// For this to work in a browser environment, a build tool must replace these variables.
+declare const process: any;
 
-const ai = new GoogleGenAI({ apiKey: API_KEY! });
+const API_KEY = process.env.API_KEY;
+
+// Initialize the AI client only if the API key is available.
+const ai = API_KEY ? new GoogleGenAI({ apiKey: API_KEY }) : null;
+
+if (!ai) {
+  // This error is critical for developers during setup.
+  console.error("CRITICAL: API_KEY environment variable not set. Gemini API calls will fail.");
+}
 
 export interface GeneratedMissionData {
   title: string;
@@ -21,6 +25,11 @@ export interface GeneratedMissionData {
 }
 
 export const generateMissionIdea = async (keywords: string): Promise<GeneratedMissionData> => {
+  // Throw an error if the AI client could not be initialized.
+  if (!ai) {
+    throw new Error("El servicio de IA no está configurado. Revisa la variable de entorno API_KEY.");
+  }
+  
   const prompt = `
     Basado en las siguientes palabras clave: "${keywords}", genera los detalles para una nueva misión para un técnico de taller.
     La descripción debe ser motivadora y clara, con al menos 20 palabras.
