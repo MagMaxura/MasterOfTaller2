@@ -1,5 +1,5 @@
 
-import React, { useMemo, useEffect } from 'react';
+import React, { useMemo, useEffect, useState, useRef } from 'react';
 import { User, Role } from '../types';
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import L from 'leaflet';
@@ -25,16 +25,15 @@ const createCustomIcon = (user: User) => {
 const MapBoundsController: React.FC<{ technicians: User[] }> = ({ technicians }) => {
     const map = useMap();
     useEffect(() => {
+        // This effect now runs after the map is confirmed to be in a sized container
+        map.invalidateSize();
         if (technicians.length > 0) {
             const bounds = L.latLngBounds(technicians.map(u => [u.location!.lat, u.location!.lng]));
-            // invalidateSize ensures the map recalculates its dimensions, which is crucial
-            // when it becomes visible after being hidden with display: none.
-            map.invalidateSize();
             map.fitBounds(bounds, { padding: [50, 50] });
         }
     }, [map, technicians]);
 
-    return null; // This component does not render anything
+    return null;
 };
 
 
@@ -45,15 +44,40 @@ const LiveLocationMap: React.FC<LiveLocationMapProps> = ({ users, isVisible }) =
   );
 
   const hasLocations = techniciansWithLocation.length > 0;
+  const [isMapReady, setIsMapReady] = useState(false);
+  const mapContainerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    // This effect handles the logic of when to render the map component.
+    // It waits until the container is visible AND has a calculated size using a ResizeObserver.
+    if (isVisible && mapContainerRef.current) {
+      const observer = new ResizeObserver(entries => {
+        // Check if the container has a non-zero size.
+        if (entries[0].contentRect.width > 0 && entries[0].contentRect.height > 0) {
+          setIsMapReady(true);
+          // Once we're ready, we can stop observing to prevent unnecessary re-renders.
+          observer.disconnect();
+        }
+      });
+
+      observer.observe(mapContainerRef.current);
+      
+      // Disconnect the observer when the component unmounts or visibility changes.
+      return () => observer.disconnect();
+    } else {
+      // If the component is not visible, reset the map ready state.
+      setIsMapReady(false);
+    }
+  }, [isVisible]);
 
   return (
     <div className="bg-brand-secondary p-6 rounded-lg shadow-xl">
       <h3 className="text-xl font-bold mb-4 text-center">Ubicación del Equipo en Tiempo Real</h3>
-      <div className="bg-brand-primary p-2 rounded-lg min-h-[500px] h-[60vh] overflow-hidden">
+      {/* We attach the ref to the map's direct container */}
+      <div ref={mapContainerRef} className="bg-brand-primary p-2 rounded-lg min-h-[500px] h-[60vh] overflow-hidden">
         {hasLocations ? (
-          // By only rendering MapContainer when isVisible, we ensure the container div
-          // has dimensions, which is required by Leaflet for initialization.
-          isVisible && (
+          // Only render the MapContainer when our observer confirms the container is ready.
+          isMapReady && (
             <MapContainer
               center={[techniciansWithLocation[0].location!.lat, techniciansWithLocation[0].location!.lng]}
               zoom={13}
