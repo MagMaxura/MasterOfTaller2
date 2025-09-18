@@ -10,6 +10,8 @@ import { ToastProvider } from './contexts/ToastContext';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { DataProvider, useData } from './contexts/DataContext';
 
+declare const window: any;
+
 // --- MAIN APP CONTENT ---
 const AppContent: React.FC = () => {
     const { currentUser, loading: authLoading } = useAuth();
@@ -92,11 +94,24 @@ const App: React.FC = () => {
     return (
         <div className="min-h-screen bg-brand-red flex items-center justify-center text-white p-4 text-center">
           <div>
-            <h1 className="text-2xl font-bold mb-2">Error de Configuración</h1>
-            <p>No se pudieron encontrar las variables de entorno de Supabase.</p>
-            <p className="mt-4 text-sm bg-red-800/50 p-3 rounded-md">
-              Asegúrate de haber configurado las variables <code className="font-mono bg-black/30 px-1 rounded">SUPABASE_URL</code> y <code className="font-mono bg-black/30 px-1 rounded">SUPABASE_ANON_KEY</code> en tu entorno de despliegue.
-            </p>
+            <h1 className="text-2xl font-bold mb-2">Error de Configuración de Supabase</h1>
+            <p className="mb-6">No se pudieron encontrar credenciales válidas para conectar con la base de datos.</p>
+            
+            <div className="mt-4 text-sm bg-red-800/50 p-4 rounded-md text-left space-y-4 max-w-lg">
+               <div>
+                  <h2 className="font-bold mb-2">Solución para Desarrollo Local:</h2>
+                  <p>
+                    Abre el archivo <code className="font-mono bg-black/30 px-1 rounded">public/supabase-credentials.js</code> y asegúrate de que contiene tu <strong>URL</strong> y <strong>clave anónima (anon key)</strong> correctas de Supabase.
+                  </p>
+              </div>
+
+               <div>
+                  <h2 className="font-bold mb-2">Solución para Producción (Vercel, etc.):</h2>
+                  <p>
+                    Asegúrate de haber configurado las variables de entorno <code className="font-mono bg-black/30 px-1 rounded">SUPABASE_URL</code> y <code className="font-mono bg-black/30 px-1 rounded">SUPABASE_ANON_KEY</code> en la configuración de tu plataforma de despliegue.
+                  </p>
+              </div>
+            </div>
           </div>
         </div>
     );

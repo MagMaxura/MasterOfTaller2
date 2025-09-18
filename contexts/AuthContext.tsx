@@ -33,6 +33,20 @@ export const AuthProvider: React.FC<{ session: any; children: React.ReactNode }>
             // Throw a proper Error object to get a better stack trace and message.
             throw new Error(`Supabase error fetching profile: ${error.message} (Code: ${error.code})`);
         }
+        
+        // FIX: Handle case where a user is authenticated but has no profile row.
+        // This can happen on first sign-up if the profile creation is delayed or fails.
+        if (!data) {
+            showToast("No se pudo encontrar el perfil de usuario. Serás redirigido al inicio de sesión.", 'error');
+            console.error(`No profile found for authenticated user ${session.user.id}. Logging out.`);
+            // Log the user out to prevent being stuck in a broken state.
+            if (supabase) {
+              await supabase.auth.signOut();
+            }
+            // No need to set state here, signOut will trigger re-render via onAuthStateChange
+            return; 
+        }
+
         setCurrentUser(transformSupabaseProfileToUser(data));
       } catch (error) {
         showToast("Error al cargar el perfil del usuario.", 'error');

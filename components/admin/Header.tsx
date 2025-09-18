@@ -1,11 +1,9 @@
 import React from 'react';
 import { User } from '../../types';
-// FIX: The `useAppContext` hook does not exist. Use `useAuth` to get the `handleLogout` function.
 import { useAuth } from '../../contexts/AuthContext';
 import { LogoutIcon } from '../Icons';
 
 const Header: React.FC<{ user: User; }> = ({ user }) => {
-    // FIX: The `useAppContext` hook does not exist. Use `useAuth` to get the `handleLogout` function.
     const { handleLogout } = useAuth();
     return (
     <header className="bg-brand-secondary p-4 flex items-center justify-between shadow-lg sticky top-0 z-20">
@@ -21,6 +19,7 @@ const Header: React.FC<{ user: User; }> = ({ user }) => {
             <span className="hidden sm:inline">Salir</span>
         </button>
     </header>
-)};
+    );
+};
 
 export default Header;

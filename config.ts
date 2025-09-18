@@ -8,12 +8,47 @@
 import { createClient } from '@supabase/supabase-js';
 import { Database } from './database.types';
 
-// The execution environment is expected to provide environment variables via process.env.
-// For this to work in a browser environment, a build tool must replace these variables.
+// La ejecución del entorno espera variables de entorno via process.env.
+// Para desarrollo local, un archivo puede proveer un fallback via el objeto window.
 declare const process: any;
+declare const window: any;
 
-const supabaseUrl = process.env.SUPABASE_URL;
-const supabaseAnonKey = process.env.SUPABASE_ANON_KEY;
+// --- Lógica de credenciales ---
+
+// Función auxiliar para obtener las credenciales, priorizando el entorno.
+const getSupabaseCredentials = () => {
+    // Prioridad 1: Variables de entorno (para Vercel/producción).
+    // Esta comprobación es más segura para entornos donde 'process' podría no estar definido.
+    const envUrl = typeof process !== 'undefined' && process.env ? process.env.SUPABASE_URL : undefined;
+    const envKey = typeof process !== 'undefined' && process.env ? process.env.SUPABASE_ANON_KEY : undefined;
+
+    // Si las variables de entorno existen Y NO están vacías, úsalas.
+    if (envUrl && envKey) {
+        console.log("Usando credenciales de entorno (producción).");
+        return { supabaseUrl: envUrl, supabaseAnonKey: envKey };
+    }
+
+    // Prioridad 2: Archivo de credenciales locales (para desarrollo).
+    // Este archivo es cargado por index.html y no debe ser subido a Git.
+    if (window.SUPABASE_LOCAL_CREDENTIALS) {
+        console.warn("Usando credenciales locales de Supabase. Asegúrate de que esto no suceda en producción.");
+        const localUrl = window.SUPABASE_LOCAL_CREDENTIALS.url;
+        const localKey = window.SUPABASE_LOCAL_CREDENTIALS.key;
+        
+        // Validar que las claves del archivo local no sean los placeholders.
+        if (localUrl && localKey && !localUrl.includes('xxxxxxxxxx') && !localKey.includes('eyxxxxxxxx')) {
+            return { supabaseUrl: localUrl, supabaseAnonKey: localKey };
+        } else {
+            console.error("Las credenciales locales en 'public/supabase-credentials.js' no han sido configuradas o son inválidas.");
+        }
+    }
+
+    // Si no se encuentra ninguna credencial válida
+    return { supabaseUrl: null, supabaseAnonKey: null };
+};
+
+const { supabaseUrl, supabaseAnonKey } = getSupabaseCredentials();
+
 
 // La aplicación mostrará una pantalla de error si estas variables no están configuradas.
 // Esta lógica se encuentra en el componente `App.tsx`.

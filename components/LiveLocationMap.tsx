@@ -1,5 +1,5 @@
 
-import React, { useMemo, useEffect, useState, useRef } from 'react';
+import React, { useMemo, useEffect, useState } from 'react';
 import { User, Role } from '../types';
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import L from 'leaflet';
@@ -25,7 +25,7 @@ const createCustomIcon = (user: User) => {
 const MapBoundsController: React.FC<{ technicians: User[] }> = ({ technicians }) => {
     const map = useMap();
     useEffect(() => {
-        // This effect now runs after the map is confirmed to be in a sized container
+        // This effect runs after the map is confirmed to be in a sized container
         map.invalidateSize();
         if (technicians.length > 0) {
             const bounds = L.latLngBounds(technicians.map(u => [u.location!.lat, u.location!.lng]));
@@ -45,39 +45,40 @@ const LiveLocationMap: React.FC<LiveLocationMapProps> = ({ users, isVisible }) =
 
   const hasLocations = techniciansWithLocation.length > 0;
   const [isMapReady, setIsMapReady] = useState(false);
-  const mapContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     // This effect handles the logic of when to render the map component.
-    // It waits until the container is visible AND has a calculated size using a ResizeObserver.
-    if (isVisible && mapContainerRef.current) {
-      const observer = new ResizeObserver(entries => {
-        // Check if the container has a non-zero size.
-        if (entries[0].contentRect.width > 0 && entries[0].contentRect.height > 0) {
-          setIsMapReady(true);
-          // Once we're ready, we can stop observing to prevent unnecessary re-renders.
-          observer.disconnect();
-        }
-      });
+    // It waits for a short, controlled delay after the tab becomes visible.
+    let timerId: number | undefined;
 
-      observer.observe(mapContainerRef.current);
-      
-      // Disconnect the observer when the component unmounts or visibility changes.
-      return () => observer.disconnect();
+    if (isVisible) {
+      // This delay gives the browser time to calculate the layout and dimensions
+      // of the map's container after its `display` property changes, which
+      // is the root cause of the "MutationObserver" error.
+      timerId = window.setTimeout(() => {
+        setIsMapReady(true);
+      }, 150);
     } else {
-      // If the component is not visible, reset the map ready state.
+      // If the component is not visible, unmount the map by resetting the state.
       setIsMapReady(false);
     }
+
+    // Cleanup: clear the timeout if visibility changes or the component unmounts
+    // before the timeout completes.
+    return () => {
+      if (timerId) {
+        clearTimeout(timerId);
+      }
+    };
   }, [isVisible]);
 
   return (
     <div className="bg-brand-secondary p-6 rounded-lg shadow-xl">
       <h3 className="text-xl font-bold mb-4 text-center">Ubicación del Equipo en Tiempo Real</h3>
-      {/* We attach the ref to the map's direct container */}
-      <div ref={mapContainerRef} className="bg-brand-primary p-2 rounded-lg min-h-[500px] h-[60vh] overflow-hidden">
+      <div className="bg-brand-primary p-2 rounded-lg min-h-[500px] h-[60vh] overflow-hidden">
         {hasLocations ? (
-          // Only render the MapContainer when our observer confirms the container is ready.
-          isMapReady && (
+          // Only render the MapContainer when our delay confirms the container is ready.
+          isMapReady ? (
             <MapContainer
               center={[techniciansWithLocation[0].location!.lat, techniciansWithLocation[0].location!.lng]}
               zoom={13}
@@ -109,6 +110,12 @@ const LiveLocationMap: React.FC<LiveLocationMapProps> = ({ users, isVisible }) =
               ))}
               <MapBoundsController technicians={techniciansWithLocation} />
             </MapContainer>
+          ) : (
+            // Display a spinner during the short delay to improve UX
+            <div className="flex flex-col items-center justify-center h-full text-center">
+                <div className="w-12 h-12 border-4 border-t-transparent border-brand-blue rounded-full animate-spin"></div>
+                <p className="mt-4 text-brand-light">Cargando mapa...</p>
+            </div>
           )
         ) : (
           <div className="flex flex-col items-center justify-center h-full text-center">
