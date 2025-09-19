@@ -51,7 +51,7 @@ const SupplyRow: React.FC<{ missionSupply: MissionSupply }> = ({ missionSupply }
             />
             <div className="flex-grow">
                 <p className="font-bold">{missionSupply.supplies.type} - {missionSupply.supplies.model}</p>
-                <p className="text-xs text-brand-light">{missionSupply.supplies.general_category} > {missionSupply.supplies.specific_category}</p>
+                <p className="text-xs text-brand-light">{missionSupply.supplies.general_category} &gt; {missionSupply.supplies.specific_category}</p>
             </div>
             <div className="flex items-center gap-2">
                 <span className="text-sm">Usados:</span>
