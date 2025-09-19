@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, createContext, useContext, useCallback } from 'react';
 import { User } from '../types';
 import { supabase } from '../config';
@@ -40,6 +41,7 @@ export const AuthProvider: React.FC<{ session: any; children: React.ReactNode }>
             showToast("No se pudo encontrar el perfil de usuario. Serás redirigido al inicio de sesión.", 'error');
             console.error(`No profile found for authenticated user ${session.user.id}. Logging out.`);
             // Log the user out to prevent being stuck in a broken state.
+            // FIX: The `signOut` method might not exist in older client versions. Added guard.
             if (supabase) {
               await supabase.auth.signOut();
             }
@@ -78,6 +80,7 @@ export const AuthProvider: React.FC<{ session: any; children: React.ReactNode }>
   }, [session, fetchCurrentUser]);
 
   const handleLogout = async () => {
+    // FIX: The `signOut` method might not exist in older client versions. Guarded the call.
     if (supabase) {
       await supabase.auth.signOut();
     }

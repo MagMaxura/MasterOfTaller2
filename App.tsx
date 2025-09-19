@@ -1,4 +1,5 @@
 
+
 import React, { useState, useEffect, useMemo } from 'react';
 import { Role } from './types';
 import { supabase } from './config';
@@ -9,8 +10,6 @@ import LoadingSpinner from './components/common/LoadingSpinner';
 import { ToastProvider } from './contexts/ToastContext';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { DataProvider, useData } from './contexts/DataContext';
-
-declare const window: any;
 
 // --- MAIN APP CONTENT ---
 const AppContent: React.FC = () => {
@@ -55,8 +54,9 @@ const AppContent: React.FC = () => {
 };
 
 
-// --- ROOT APP COMPONENT ---
-const App: React.FC = () => {
+// --- AUTHENTICATED APP WRAPPER ---
+// This component assumes Supabase is initialized and handles the session logic.
+const AuthenticatedApp: React.FC = () => {
   const [session, setSession] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [authError, setAuthError] = useState<string | null>(null);
@@ -70,54 +70,26 @@ const App: React.FC = () => {
         window.history.replaceState(null, '', window.location.pathname + window.location.search);
     }
     
-    if (!supabase) {
+    // We can safely assume `supabase` is initialized here.
+    const checkSession = async () => {
+      const { data } = await supabase.auth.getSession();
+      setSession(data.session);
       setLoading(false);
-      return;
-    }
+    };
+    checkSession();
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setLoading(false);
-    });
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
       if (window.location.hash.includes('access_token')) {
         window.history.replaceState(null, '', window.location.pathname + window.location.search);
       }
     });
 
-    return () => subscription?.unsubscribe();
+    return () => authListener.subscription?.unsubscribe();
   }, []);
 
-  if (!supabase) {
-    return (
-        <div className="min-h-screen bg-brand-red flex items-center justify-center text-white p-4 text-center">
-          <div>
-            <h1 className="text-2xl font-bold mb-2">Error de Configuración de Supabase</h1>
-            <p className="mb-6">No se pudieron encontrar credenciales válidas para conectar con la base de datos.</p>
-            
-            <div className="mt-4 text-sm bg-red-800/50 p-4 rounded-md text-left space-y-4 max-w-lg">
-               <div>
-                  <h2 className="font-bold mb-2">Solución para Desarrollo Local:</h2>
-                  <p>
-                    Abre el archivo <code className="font-mono bg-black/30 px-1 rounded">public/supabase-credentials.js</code> y asegúrate de que contiene tu <strong>URL</strong> y <strong>clave anónima (anon key)</strong> correctas de Supabase.
-                  </p>
-              </div>
-
-               <div>
-                  <h2 className="font-bold mb-2">Solución para Producción (Vercel, etc.):</h2>
-                  <p>
-                    Asegúrate de haber configurado las variables de entorno <code className="font-mono bg-black/30 px-1 rounded">SUPABASE_URL</code> y <code className="font-mono bg-black/30 px-1 rounded">SUPABASE_ANON_KEY</code> en la configuración de tu plataforma de despliegue.
-                  </p>
-              </div>
-            </div>
-          </div>
-        </div>
-    );
-  }
-
-  if (loading) return <LoadingSpinner />;
+  if (loading) return <LoadingSpinner message="Verificando sesión..." />;
   
   return (
     <ToastProvider>
@@ -132,6 +104,15 @@ const App: React.FC = () => {
       )}
     </ToastProvider>
   );
+};
+
+
+// --- ROOT APP COMPONENT (SIMPLIFIED BOOTSTRAP LOGIC) ---
+const App: React.FC = () => {
+  // Con la inicialización directa en config.ts, ya no necesitamos esperar ni
+  // manejar errores de configuración a este nivel. La aplicación puede renderizar
+  // directamente el componente que maneja la autenticación.
+  return <AuthenticatedApp />;
 };
 
 export default App;

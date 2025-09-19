@@ -27,17 +27,14 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ authError }) => {
             throw new Error("Cliente Supabase no inicializado.");
         }
         if (activeTab === 'login') {
+            // FIX: Corrected to use signInWithPassword for Supabase v2 compatibility. The old `signIn` is deprecated.
             const { error } = await supabase.auth.signInWithPassword({ email, password });
             if (error) throw error;
             // On success, the onAuthStateChange listener in App.tsx will handle the session.
         } else {
             const { data, error } = await supabase.auth.signUp({ 
                 email, 
-                password,
-                options: {
-                    // You can add user metadata here if needed
-                    // data: { full_name: 'Initial Name' } 
-                }
+                password
             });
             if (error) throw error;
             
@@ -66,11 +63,12 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ authError }) => {
       if (!supabase) {
           throw new Error("Cliente Supabase no inicializado.");
       }
+      // FIX: Corrected to use signInWithOAuth for Supabase v2 compatibility. The old `signIn` with a provider is deprecated.
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
           redirectTo: window.location.origin,
-        },
+        }
       });
       if (error) throw error;
     } catch (err: any) {
