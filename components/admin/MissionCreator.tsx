@@ -10,6 +10,7 @@ const MissionCreator: React.FC<{ users: User[] }> = ({ users }) => {
     const [description, setDescription] = useState('');
     const [difficulty, setDifficulty] = useState<MissionDifficulty>(MissionDifficulty.MEDIUM);
     const [xp, setXp] = useState(50);
+    const [bonusMonetario, setBonusMonetario] = useState(0);
     const [assignedTo, setAssignedTo] = useState<string[]>([]);
     const [deadline, setDeadline] = useState('');
     const [startDate, setStartDate] = useState(new Date().toISOString().split('T')[0]);
@@ -56,6 +57,7 @@ const MissionCreator: React.FC<{ users: User[] }> = ({ users }) => {
                 description,
                 difficulty,
                 xp,
+                bonusMonetario: bonusMonetario > 0 ? bonusMonetario : undefined,
                 assignedTo: assignedTo.length > 0 ? assignedTo : null,
                 startDate,
                 deadline,
@@ -68,6 +70,7 @@ const MissionCreator: React.FC<{ users: User[] }> = ({ users }) => {
             setDescription('');
             setDifficulty(MissionDifficulty.MEDIUM);
             setXp(50);
+            setBonusMonetario(0);
             setAssignedTo([]);
             setStartDate(new Date().toISOString().split('T')[0]);
             setDeadline('');
@@ -107,11 +110,12 @@ const MissionCreator: React.FC<{ users: User[] }> = ({ users }) => {
             
             <textarea placeholder="Descripción detallada de la misión..." value={description} onChange={e => setDescription(e.target.value)} className="w-full bg-brand-primary p-3 rounded border border-brand-accent h-28" required />
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-4">
                 <div><label className="block text-sm font-medium text-brand-light mb-1">Fecha de Inicio</label><input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="w-full bg-brand-primary p-2.5 rounded border border-brand-accent" required /></div>
                 <div><label className="block text-sm font-medium text-brand-light mb-1">Fecha Límite</label><input type="date" value={deadline} onChange={e => setDeadline(e.target.value)} className="w-full bg-brand-primary p-2.5 rounded border border-brand-accent" required /></div>
                 <div><label className="block text-sm font-medium text-brand-light mb-1">Dificultad</label><select value={difficulty} onChange={e => setDifficulty(e.target.value as MissionDifficulty)} className="w-full bg-brand-primary p-3 rounded border border-brand-accent"><option value={MissionDifficulty.LOW}>Bajo</option><option value={MissionDifficulty.MEDIUM}>Medio</option><option value={MissionDifficulty.HIGH}>Alto</option></select></div>
                 <div><label className="block text-sm font-medium text-brand-light mb-1">XP</label><input type="number" value={xp} onChange={e => setXp(parseInt(e.target.value, 10) || 0)} min="0" className="w-full bg-brand-primary p-2.5 rounded border border-brand-accent" required /></div>
+                <div><label className="block text-sm font-medium text-brand-light mb-1">Bono ($)</label><input type="number" value={bonusMonetario} onChange={e => setBonusMonetario(parseInt(e.target.value, 10) || 0)} min="0" className="w-full bg-brand-primary p-2.5 rounded border border-brand-accent" /></div>
             </div>
             
             <div className="col-span-full">

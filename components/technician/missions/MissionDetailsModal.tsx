@@ -95,7 +95,7 @@ const MissionDetailsModal: React.FC<{
     isAdminViewing?: boolean;
 }> = ({ mission, user, onClose, isAdminViewing }) => {
     const { currentUser } = useAuth();
-    const { updateUser, missionMilestones, users, addMissionMilestone, updateMission, toggleMilestoneSolution } = useData();
+    const { updateUser, missionMilestones, users, addMissionMilestone, updateMission, toggleMilestoneSolution, createMissionBonusEvent } = useData();
     const { showToast } = useToast();
     const [isUpdating, setIsUpdating] = useState(false);
     const [isTogglingSolution, setIsTogglingSolution] = useState<string | null>(null);
@@ -135,12 +135,17 @@ const MissionDetailsModal: React.FC<{
                 }
                 const totalXpGained = mission.xp + bonusXp;
                 
-                // Award XP to all assigned users
+                // Award XP and monetary bonus to all assigned users
                 for (const assignedUser of assignedUsers) {
+                    // XP
                     const updatedUserData: Partial<User> = { id: assignedUser.id, xp: assignedUser.xp + totalXpGained };
                     const nextLevelXp = LEVEL_THRESHOLDS[assignedUser.level] || Infinity;
                     if((updatedUserData.xp || 0) >= nextLevelXp) updatedUserData.level = assignedUser.level + 1;
                     await updateUser(updatedUserData);
+                    // Monetary Bonus
+                    if (mission.bonusMonetario && mission.bonusMonetario > 0) {
+                        await createMissionBonusEvent(assignedUser.id, mission);
+                    }
                 }
             }
             await updateMission(updatedMissionData);
@@ -210,10 +215,11 @@ const MissionDetailsModal: React.FC<{
                     </div>
                     <p className="text-brand-light mb-4 text-sm">{mission.description}</p>
                     <div className="grid grid-cols-2 gap-4 mb-6 text-sm">
-                        <p><strong>XP:</strong> <span className="text-brand-orange font-bold">{mission.xp} {mission.bonusXp ? `+ ${mission.bonusXp} (Bonus)` : ''}</span></p>
-                        <p><strong>Dificultad:</strong> {mission.difficulty}</p>
-                        <p><strong>Inicio:</strong> {new Date(mission.startDate + 'T00:00:00').toLocaleDateString()}</p>
-                        <p><strong>Límite:</strong> {new Date(mission.deadline + 'T00:00:00').toLocaleDateString()}</p>
+                        <div><strong>XP:</strong> <span className="text-brand-orange font-bold">{mission.xp} {mission.bonusXp ? `+ ${mission.bonusXp} (Bonus)` : ''}</span></div>
+                        <div><strong>Dificultad:</strong> {mission.difficulty}</div>
+                        <div><strong>Inicio:</strong> {new Date(mission.startDate + 'T00:00:00').toLocaleDateString()}</div>
+                        <div><strong>Límite:</strong> {new Date(mission.deadline + 'T00:00:00').toLocaleDateString()}</div>
+                        {mission.bonusMonetario && <div><strong>Bono:</strong> <span className="text-brand-green font-bold">${mission.bonusMonetario.toLocaleString('es-AR')}</span></div>}
                     </div>
                 </div>
 

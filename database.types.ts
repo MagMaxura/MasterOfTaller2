@@ -184,6 +184,7 @@ export interface Database {
         Row: {
           assigned_to: string[] | null
           bonus_xp: number | null
+          bonus_monetario: number | null
           completed_date: string | null
           created_at: string
           deadline: string
@@ -201,6 +202,7 @@ export interface Database {
         Insert: {
           assigned_to?: string[] | null
           bonus_xp?: number | null
+          bonus_monetario?: number | null
           completed_date?: string | null
           created_at?: string
           deadline: string
@@ -218,6 +220,7 @@ export interface Database {
         Update: {
           assigned_to?: string[] | null
           bonus_xp?: number | null
+          bonus_monetario?: number | null
           completed_date?: string | null
           created_at?: string
           deadline?: string
@@ -476,6 +479,143 @@ export interface Database {
           },
         ]
       }
+      salarios: {
+        Row: {
+          id: string
+          user_id: string
+          monto_base_quincenal: number
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          monto_base_quincenal: number
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          monto_base_quincenal?: number
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "salarios_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      eventos_nomina: {
+        Row: {
+          id: string
+          user_id: string
+          tipo: Database["public"]["Enums"]["tipo_evento_nomina"]
+          descripcion: string
+          monto: number
+          fecha_evento: string
+          periodo_pago_id: string | null
+          mission_id: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          tipo: Database["public"]["Enums"]["tipo_evento_nomina"]
+          descripcion: string
+          monto: number
+          fecha_evento: string
+          periodo_pago_id?: string | null
+          mission_id?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          tipo?: Database["public"]["Enums"]["tipo_evento_nomina"]
+          descripcion?: string
+          monto?: number
+          fecha_evento?: string
+          periodo_pago_id?: string | null
+          mission_id?: string | null
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "eventos_nomina_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "eventos_nomina_periodo_pago_id_fkey"
+            columns: ["periodo_pago_id"]
+            isOneToOne: false
+            referencedRelation: "periodos_pago"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "eventos_nomina_mission_id_fkey"
+            columns: ["mission_id"]
+            isOneToOne: false
+            referencedRelation: "missions"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      periodos_pago: {
+        Row: {
+          id: string
+          user_id: string
+          fecha_inicio_periodo: string
+          fecha_fin_periodo: string
+          fecha_pago: string
+          salario_base_calculado: number
+          total_adiciones: number
+          total_deducciones: number
+          monto_final_a_pagar: number
+          estado: Database["public"]["Enums"]["estado_pago"]
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          fecha_inicio_periodo: string
+          fecha_fin_periodo: string
+          fecha_pago: string
+          salario_base_calculado: number
+          total_adiciones?: number
+          total_deducciones?: number
+          monto_final_a_pagar: number
+          estado?: Database["public"]["Enums"]["estado_pago"]
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          fecha_inicio_periodo?: string
+          fecha_fin_periodo?: string
+          fecha_pago?: string
+          salario_base_calculado?: number
+          total_adiciones?: number
+          total_deducciones?: number
+          monto_final_a_pagar?: number
+          estado?: Database["public"]["Enums"]["estado_pago"]
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "periodos_pago_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -508,6 +648,8 @@ export interface Database {
       mission_difficulty: "Bajo" | "Medio" | "Alto"
       mission_status: "Solicitada" | "Pendiente" | "En Progreso" | "Completada"
       role: "tecnico" | "administrador"
+      tipo_evento_nomina: "HORA_EXTRA" | "BONO" | "FALTA" | "TARDANZA" | "APERCIBIMIENTO"
+      estado_pago: "CALCULADO" | "PAGADO"
     }
     CompositeTypes: {
       [_ in never]: never

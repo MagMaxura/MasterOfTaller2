@@ -14,10 +14,11 @@ import MissionCalendar from './MissionCalendar';
 import ChatView from './ChatView';
 import KnowledgeBase from './knowledge/KnowledgeBase';
 import TechnicianSuppliesView from './technician/TechnicianSuppliesView';
+import PaymentsView from './technician/payments/PaymentsView';
 import { hasSupplyAdminBadge } from '../utils/ranks';
 
 
-import { TasksIcon, UserIcon, ChartIcon, HallOfFameIcon, CalendarIcon, ChatIcon, BookOpenIcon, BoxIcon } from './Icons';
+import { TasksIcon, UserIcon, ChartIcon, HallOfFameIcon, CalendarIcon, ChatIcon, BookOpenIcon, BoxIcon, CurrencyDollarIcon } from './Icons';
 
 
 // --- MAIN UI COMPONENT ---
@@ -66,13 +67,14 @@ const TechnicianUI: React.FC<TechnicianUIProps> = ({ user, isAdminViewing = fals
         const baseTabs = [
             { id: 'missions', label: 'Misiones', icon: <TasksIcon className="w-6 h-6" /> },
             { id: 'profile', label: 'Perfil', icon: <UserIcon className="w-6 h-6" /> },
+            { id: 'payments', label: 'Pagos', icon: <CurrencyDollarIcon className="w-6 h-6" /> },
             { id: 'knowledge', label: 'Saber', icon: <BookOpenIcon className="w-6 h-6" /> },
             { id: 'chat', label: 'Chat', icon: <ChatIcon className="w-6 h-6" />, notification: unreadMessagesCount > 0 },
             { id: 'leaderboard', label: 'Top', icon: <ChartIcon className="w-6 h-6" /> },
         ];
 
         if (userHasSupplyBadge && !isAdminViewing) {
-            baseTabs.splice(2, 0, { id: 'supplies', label: 'Insumos', icon: <BoxIcon className="w-6 h-6" />, notification: false });
+            baseTabs.splice(3, 0, { id: 'supplies', label: 'Insumos', icon: <BoxIcon className="w-6 h-6" />, notification: false });
         }
         
         // Add less critical tabs for larger screens
@@ -93,6 +95,7 @@ const TechnicianUI: React.FC<TechnicianUIProps> = ({ user, isAdminViewing = fals
         switch(activeTab) {
             case 'missions': return <MissionsDashboard user={user} onOpenMission={setSelectedMission} />;
             case 'profile': return <ProfileView user={user} isAdminViewing={isAdminViewing} />;
+            case 'payments': return <PaymentsView />;
             case 'supplies': return <TechnicianSuppliesView />;
             case 'knowledge': return <KnowledgeBase />;
             case 'chat': return <ChatView currentUser={user} />;

@@ -29,6 +29,19 @@ export enum EquipmentSlot {
     ACCESSORY = 'accessory'
 }
 
+export enum PayrollEventType {
+    OVERTIME = 'HORA_EXTRA',
+    BONUS = 'BONO',
+    ABSENCE = 'FALTA',
+    TARDINESS = 'TARDANZA',
+    PENALTY = 'APERCIBIMIENTO'
+}
+
+export enum PaymentStatus {
+    CALCULATED = 'CALCULADO',
+    PAID = 'PAGADO'
+}
+
 export interface InventoryItem {
     id: string;
     name: string;
@@ -91,6 +104,7 @@ export interface Mission {
   progressPhoto?: string; // base64
   completedDate?: string;
   bonusXp?: number;
+  bonusMonetario?: number;
   visibleTo: string[] | null; // User IDs
 }
 
@@ -149,4 +163,38 @@ export interface MissionSupply {
   quantity_assigned: number;
   quantity_used: number;
   supplies: Supply; // This will be populated after fetch
+}
+
+export interface Salary {
+    id: string;
+    user_id: string;
+    monto_base_quincenal: number;
+    created_at: string;
+}
+
+export interface PayrollEvent {
+    id: string;
+    user_id: string;
+    tipo: PayrollEventType;
+    descripcion: string;
+    monto: number;
+    fecha_evento: string;
+    periodo_pago_id: string | null;
+    mission_id: string | null;
+    created_at: string;
+}
+
+export interface PaymentPeriod {
+    id: string;
+    user_id: string;
+    fecha_inicio_periodo: string;
+    fecha_fin_periodo: string;
+    fecha_pago: string;
+    salario_base_calculado: number;
+    total_adiciones: number;
+    total_deducciones: number;
+    monto_final_a_pagar: number;
+    estado: PaymentStatus;
+    created_at: string;
+    events: PayrollEvent[];
 }

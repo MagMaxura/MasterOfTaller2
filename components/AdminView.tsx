@@ -1,4 +1,5 @@
 
+
 import React, { useState, useMemo } from 'react';
 import { User, Mission, MissionStatus } from '../types';
 import { useData } from '../contexts/DataContext';
@@ -22,8 +23,10 @@ import KnowledgeBase from './knowledge/KnowledgeBase';
 import SuppliesManagement from './admin/supplies/SuppliesManagement';
 import Leaderboard from './common/Leaderboard';
 import HallOfFame from './common/HallOfFame';
+import PayrollManagement from './admin/payroll/PayrollManagement';
+import SetSalaryModal from './admin/payroll/SetSalaryModal';
 
-import { PlusIcon, BoxIcon, CalendarIcon, MapPinIcon, UserIcon, ChatIcon, TasksIcon, BookOpenIcon, LogoutIcon, MenuIcon, ChartIcon, HallOfFameIcon } from './Icons';
+import { PlusIcon, BoxIcon, CalendarIcon, MapPinIcon, UserIcon, ChatIcon, TasksIcon, BookOpenIcon, LogoutIcon, MenuIcon, ChartIcon, HallOfFameIcon, CurrencyDollarIcon } from './Icons';
 
 // --- MAIN COMPONENT ---
 const AdminView: React.FC = () => {
@@ -33,6 +36,7 @@ const AdminView: React.FC = () => {
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const [managingInventoryFor, setManagingInventoryFor] = useState<User | null>(null);
     const [managingBadgesFor, setManagingBadgesFor] = useState<User | null>(null);
+    const [settingSalaryFor, setSettingSalaryFor] = useState<User | null>(null);
     const [isCreateItemModalOpen, setIsCreateItemModalOpen] = useState(false);
     const [notifyingUser, setNotifyingUser] = useState<User | null>(null);
     const [editingMission, setEditingMission] = useState<Mission | null>(null);
@@ -42,6 +46,7 @@ const AdminView: React.FC = () => {
 
     const TABS = [
         { id: 'manage', label: 'Gestionar', icon: <UserIcon /> },
+        { id: 'payroll', label: 'Nómina', icon: <CurrencyDollarIcon /> },
         { id: 'missions', label: 'Misiones', icon: <TasksIcon /> },
         { id: 'requests', label: 'Solicitudes', icon: <TasksIcon />, notification: missionRequestsCount > 0 },
         { id: 'leaderboard', label: 'Clasificación', icon: <ChartIcon /> },
@@ -123,7 +128,10 @@ const AdminView: React.FC = () => {
             <div className="flex-1 flex flex-col overflow-hidden">
                 <main className="flex-1 p-4 md:p-8 overflow-y-auto">
                     <div className={activeTab === 'manage' ? 'block' : 'hidden'}>
-                        <UserManagement onManageInventory={setManagingInventoryFor} onManageBadges={setManagingBadgesFor} onNotifyUser={setNotifyingUser} />
+                        <UserManagement onManageInventory={setManagingInventoryFor} onManageBadges={setManagingBadgesFor} onNotifyUser={setNotifyingUser} onSetSalary={setSettingSalaryFor} />
+                    </div>
+                    <div className={activeTab === 'payroll' ? 'block' : 'hidden'}>
+                        <PayrollManagement />
                     </div>
                     <div className={activeTab === 'missions' ? 'block' : 'hidden'}>
                         <MissionsManager onOpenMission={setSelectedMission} onEditMission={setEditingMission} />
@@ -164,6 +172,7 @@ const AdminView: React.FC = () => {
             {isCreateItemModalOpen && <CreateItemModal onClose={() => setIsCreateItemModalOpen(false)} />}
             {managingInventoryFor && <InventoryManagementModal user={managingInventoryFor} onClose={() => setManagingInventoryFor(null)} />}
             {managingBadgesFor && <BadgeManagementModal user={managingBadgesFor} onClose={() => setManagingBadgesFor(null)} />}
+            {settingSalaryFor && <SetSalaryModal user={settingSalaryFor} onClose={() => setSettingSalaryFor(null)} />}
             {notifyingUser && <NotificationModal user={notifyingUser} onClose={() => setNotifyingUser(null)} />}
             {editingMission && <ApproveMissionModal mission={editingMission} onClose={() => setEditingMission(null)} />}
             {selectedMission && <MissionDetailsModal mission={selectedMission} user={currentUser} onClose={() => setSelectedMission(null)} isAdminViewing={true} />}

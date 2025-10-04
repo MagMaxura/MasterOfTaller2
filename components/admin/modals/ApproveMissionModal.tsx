@@ -11,7 +11,7 @@ interface ApproveMissionModalProps {
 const ApproveMissionModal: React.FC<ApproveMissionModalProps> = ({ mission, onClose }) => {
     const { users, updateMission } = useData();
     const { showToast } = useToast();
-    const [missionData, setMissionData] = useState<Mission>(mission);
+    const [missionData, setMissionData] = useState<Mission>({...mission, bonusMonetario: mission.bonusMonetario || 0});
     const [isLoading, setIsLoading] = useState(false);
 
     const technicians = users.filter(u => u.role === Role.TECHNICIAN);
@@ -37,7 +37,8 @@ const ApproveMissionModal: React.FC<ApproveMissionModalProps> = ({ mission, onCl
     
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
-        setMissionData(prev => ({ ...prev, [name]: name === 'xp' ? parseInt(value, 10) : value }));
+        const isNumeric = ['xp', 'bonusMonetario'].includes(name);
+        setMissionData(prev => ({ ...prev, [name]: isNumeric ? parseInt(value, 10) || 0 : value }));
     };
 
     const handleVisibilityChange = (technicianId: string) => {
@@ -65,11 +66,12 @@ const ApproveMissionModal: React.FC<ApproveMissionModalProps> = ({ mission, onCl
                         <label className="block text-sm font-medium text-brand-light mb-1">Descripción</label>
                         <textarea name="description" value={missionData.description} onChange={handleChange} className="w-full bg-brand-primary p-3 rounded border border-brand-accent h-24" required />
                     </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-4">
                         <div><label className="block text-sm font-medium text-brand-light mb-1">Inicio</label><input type="date" name="startDate" value={missionData.startDate} onChange={handleChange} className="w-full bg-brand-primary p-2.5 rounded border border-brand-accent" required /></div>
                         <div><label className="block text-sm font-medium text-brand-light mb-1">Límite</label><input type="date" name="deadline" value={missionData.deadline} onChange={handleChange} className="w-full bg-brand-primary p-2.5 rounded border border-brand-accent" required /></div>
                         <div><label className="block text-sm font-medium text-brand-light mb-1">Dificultad</label><select name="difficulty" value={missionData.difficulty} onChange={handleChange} className="w-full bg-brand-primary p-3 rounded border border-brand-accent"><option value={MissionDifficulty.LOW}>Bajo</option><option value={MissionDifficulty.MEDIUM}>Medio</option><option value={MissionDifficulty.HIGH}>Alto</option></select></div>
                         <div><label className="block text-sm font-medium text-brand-light mb-1">XP</label><input type="number" name="xp" value={missionData.xp} onChange={handleChange} min="0" className="w-full bg-brand-primary p-2.5 rounded border border-brand-accent" required /></div>
+                         <div><label className="block text-sm font-medium text-brand-light mb-1">Bono ($)</label><input type="number" name="bonusMonetario" value={missionData.bonusMonetario || 0} onChange={handleChange} min="0" className="w-full bg-brand-primary p-2.5 rounded border border-brand-accent" /></div>
                     </div>
                      <div>
                         <label className="block text-sm font-medium text-brand-light mb-1">Visible para</label>
