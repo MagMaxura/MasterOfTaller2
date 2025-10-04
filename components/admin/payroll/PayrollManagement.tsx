@@ -1,17 +1,164 @@
-import React from 'react';
+import React, { useState, useMemo } from 'react';
+import { useData } from '../../../contexts/DataContext';
+import { User, Role, PaymentPeriod, PayrollEvent, PayrollEventType, PaymentStatus } from '../../../types';
+import { ArrowUpIcon, ArrowDownIcon } from '../../Icons';
 
-const PayrollManagement: React.FC = () => {
-    // This component will be expanded with state and logic.
-    // For now, it's a placeholder.
+const formatCurrency = (amount: number) => {
+    return `$${amount.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+};
+
+const EventRow: React.FC<{ event: PayrollEvent }> = ({ event }) => {
+    const isPositive = event.monto > 0;
+    const eventTypeMap: Record<PayrollEventType, string> = {
+        [PayrollEventType.BONUS]: 'Bono',
+        [PayrollEventType.OVERTIME]: 'Hora Extra',
+        [PayrollEventType.PENALTY]: 'Apercibimiento',
+        [PayrollEventType.ABSENCE]: 'Falta',
+        [PayrollEventType.TARDINESS]: 'Tardanza',
+    };
+    return (
+        <div className="flex justify-between items-center py-2 border-b border-brand-accent/50 text-sm">
+            <div>
+                <p className="font-semibold">{eventTypeMap[event.tipo]}</p>
+                <p className="text-xs text-brand-light italic">{event.descripcion}</p>
+            </div>
+            <p className={`font-bold ${isPositive ? 'text-brand-green' : 'text-brand-red'}`}>
+                {formatCurrency(event.monto)}
+            </p>
+        </div>
+    );
+};
+
+
+const TechnicianPayRow: React.FC<{
+    user: User;
+    period: PaymentPeriod | undefined;
+    onAddEvent: (user: User) => void;
+}> = ({ user, period, onAddEvent }) => {
+    const [isExpanded, setIsExpanded] = useState(false);
+
+    return (
+        <div className="bg-brand-primary rounded-lg">
+            <div onClick={() => setIsExpanded(!isExpanded)} className="flex items-center p-4 cursor-pointer hover:bg-brand-accent/20">
+                <img src={user.avatar} alt={user.name} className="w-10 h-10 rounded-full mr-4" />
+                <div className="flex-grow">
+                    <p className="font-bold">{user.name}</p>
+                    <p className="text-xs text-brand-light">
+                        {period ? `Período: ${new Date(period.fecha_pago + 'T00:00:00').toLocaleDateString()}` : 'Sin pago calculado'}
+                    </p>
+                </div>
+                {period && (
+                    <span className={`px-3 py-1 text-xs font-bold rounded-full mr-4 ${period.estado === PaymentStatus.PAID ? 'bg-brand-green/20 text-brand-green' : 'bg-brand-orange/20 text-brand-orange'}`}>
+                        {period.estado}
+                    </span>
+                )}
+                <div className="font-bold text-lg mr-4">{period ? formatCurrency(period.monto_final_a_pagar) : '-'}</div>
+                <button onClick={(e) => { e.stopPropagation(); onAddEvent(user); }} className="bg-brand-blue text-white text-xs font-semibold py-1 px-3 rounded hover:bg-blue-700">Añadir Evento</button>
+            </div>
+            {isExpanded && period && (
+                <div className="p-4 border-t border-brand-accent/50">
+                     <div className="space-y-3">
+                        <div className="flex justify-between items-center p-3 bg-brand-secondary rounded-lg text-sm">
+                            <p>Salario Base</p>
+                            <p className="font-bold">{formatCurrency(period.salario_base_calculado)}</p>
+                        </div>
+                        {period.events.map(event => <EventRow key={event.id} event={event} />)}
+                    </div>
+                    <div className="border-t border-brand-accent mt-4 pt-4 space-y-2">
+                         <div className="flex justify-between text-sm">
+                            <p className="text-brand-green flex items-center gap-1"><ArrowUpIcon className="w-4 h-4" /> Total Adiciones</p>
+                            <p className="font-semibold text-brand-green">+{formatCurrency(period.total_adiciones)}</p>
+                        </div>
+                        <div className="flex justify-between text-sm">
+                            <p className="text-brand-red flex items-center gap-1"><ArrowDownIcon className="w-4 h-4" /> Total Deducciones</p>
+                            <p className="font-semibold text-brand-red">-{formatCurrency(Math.abs(period.total_deducciones))}</p>
+                        </div>
+                        <div className="flex justify-between text-lg font-bold pt-2">
+                            <p>TOTAL</p>
+                            <p>{formatCurrency(period.monto_final_a_pagar)}</p>
+                        </div>
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+};
+
+interface PayrollManagementProps {
+    onAddEvent: (user: User) => void;
+}
+
+const PayrollManagement: React.FC<PayrollManagementProps> = ({ onAddEvent }) => {
+    const { users, paymentPeriods, calculatePayPeriods, markPeriodAsPaid } = useData();
+    const [isLoading, setIsLoading] = useState<'calculating' | 'paying' | null>(null);
+
+    const technicians = useMemo(() => users.filter(u => u.role === Role.TECHNICIAN), [users]);
+    
+    const calculatedPeriods = useMemo(() => paymentPeriods.filter(p => p.estado === PaymentStatus.CALCULATED), [paymentPeriods]);
+    
+    const nextPayDate = useMemo(() => {
+        const today = new Date();
+        const day = today.getDate();
+        const month = today.getMonth();
+        const year = today.getFullYear();
+        if (day <= 5) return new Date(year, month, 5);
+        if (day <= 20) return new Date(year, month, 20);
+        return new Date(year, month + 1, 5);
+    }, []);
+
+    const handleCalculate = async () => {
+        setIsLoading('calculating');
+        try {
+            await calculatePayPeriods();
+        } catch (error) {
+            console.error(error);
+        } finally {
+            setIsLoading(false);
+        }
+    }
+    
+    const handleMarkAllAsPaid = async () => {
+        if (calculatedPeriods.length === 0) return;
+        if (!window.confirm(`¿Confirmar el pago de ${calculatedPeriods.length} nóminas? Esta acción es irreversible.`)) return;
+        setIsLoading('paying');
+        try {
+            await Promise.all(calculatedPeriods.map(p => markPeriodAsPaid(p.id)));
+        } catch(error) {
+            console.error(error)
+        } finally {
+            setIsLoading(false);
+        }
+    }
+    
+    const totalToPay = useMemo(() => calculatedPeriods.reduce((sum, p) => sum + p.monto_final_a_pagar, 0), [calculatedPeriods]);
 
     return (
         <div className="bg-brand-secondary p-6 rounded-lg shadow-xl">
-            <h2 className="text-3xl font-bold mb-4 text-center">Gestión de Nómina</h2>
-            <p className="text-center text-brand-light mb-8 max-w-2xl mx-auto">
-                Próximamente aquí podrás calcular, revisar y gestionar los pagos quincenales de todos los técnicos.
-            </p>
-            <div className="bg-brand-primary rounded-lg p-8 text-center">
-                <p className="text-brand-light">Funcionalidad en desarrollo...</p>
+            <h2 className="text-3xl font-bold mb-2 text-center">Gestión de Nómina</h2>
+             <p className="text-center text-brand-light mb-6">Calcula, revisa y gestiona los pagos quincenales.</p>
+            
+            <div className="bg-brand-primary p-4 rounded-lg mb-6 flex flex-col sm:flex-row justify-between items-center gap-4">
+                <div>
+                    <h4 className="font-bold text-lg">Próximo Pago: {nextPayDate.toLocaleDateString()}</h4>
+                    <p className="text-brand-light text-sm">Total calculado a pagar: <span className="font-bold text-brand-orange text-base">{formatCurrency(totalToPay)}</span></p>
+                </div>
+                <div className="flex gap-2">
+                    <button onClick={handleCalculate} disabled={!!isLoading} className="bg-brand-blue text-white font-bold py-2 px-4 rounded-lg flex items-center justify-center gap-2 disabled:bg-brand-accent">
+                         {isLoading === 'calculating' && <div className="w-5 h-5 border-2 border-t-transparent border-white rounded-full animate-spin"></div>}
+                        Calcular Nómina
+                    </button>
+                    <button onClick={handleMarkAllAsPaid} disabled={!!isLoading || calculatedPeriods.length === 0} className="bg-brand-green text-brand-primary font-bold py-2 px-4 rounded-lg flex items-center justify-center gap-2 disabled:bg-brand-accent">
+                        {isLoading === 'paying' && <div className="w-5 h-5 border-2 border-t-transparent border-brand-primary rounded-full animate-spin"></div>}
+                        Marcar como Pagado
+                    </button>
+                </div>
+            </div>
+
+            <div className="space-y-4">
+                {technicians.map(tech => {
+                    const techPeriod = calculatedPeriods.find(p => p.user_id === tech.id);
+                    return <TechnicianPayRow key={tech.id} user={tech} period={techPeriod} onAddEvent={onAddEvent} />
+                })}
             </div>
         </div>
     );

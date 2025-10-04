@@ -10,6 +10,12 @@ type MilestoneInsert = Database['public']['Tables']['mission_milestones']['Inser
 type InventoryItemInsert = Database['public']['Tables']['inventory_items']['Insert'];
 type SupplyInsert = Database['public']['Tables']['supplies']['Insert'];
 type SupplyUpdate = Database['public']['Tables']['supplies']['Update'];
+type SalaryInsert = Database['public']['Tables']['salarios']['Insert'];
+type SalaryUpdate = Database['public']['Tables']['salarios']['Update'];
+type PayrollEventInsert = Database['public']['Tables']['eventos_nomina']['Insert'];
+type PaymentPeriodInsert = Database['public']['Tables']['periodos_pago']['Insert'];
+type PaymentPeriodUpdate = Database['public']['Tables']['periodos_pago']['Update'];
+
 
 export const api = {
   // --- FETCH ---
@@ -17,10 +23,14 @@ export const api = {
     // Using explicit column selections instead of '*' to avoid potential RLS policy issues
     // that can cause "Failed to fetch" errors if a user doesn't have permission for a specific column.
     const profileColumns = 'avatar, id, is_active, lat, level, lng, location_last_update, name, push_subscription, role, xp';
-    const missionColumns = 'id, created_at, title, description, status, difficulty, xp, assigned_to, start_date, deadline, required_skills, progress_photo_url, completed_date, bonus_xp, visible_to';
+    const missionColumns = 'id, created_at, title, description, status, difficulty, xp, bonus_monetario, assigned_to, start_date, deadline, required_skills, progress_photo_url, completed_date, bonus_xp, visible_to';
     const inventoryItemColumns = 'id, name, description, icon_url, slot, quantity';
     const badgeColumns = 'id, name, icon, description';
     const supplyColumns = 'id, created_at, general_category, specific_category, type, model, details, stock_quantity, photo_url';
+    const salaryColumns = 'id, user_id, monto_base_quincenal, created_at';
+    const payrollEventColumns = 'id, user_id, tipo, descripcion, monto, fecha_evento, periodo_pago_id, mission_id, created_at';
+    const paymentPeriodColumns = 'id, user_id, fecha_inicio_periodo, fecha_fin_periodo, fecha_pago, salario_base_calculado, total_adiciones, total_deducciones, monto_final_a_pagar, estado, created_at';
+
 
     return Promise.all([
       supabase.from('profiles').select(profileColumns).eq('is_active', true),
@@ -34,7 +44,10 @@ export const api = {
       supabase.from('chats').select('id, created_at, participant_1, participant_2').or(`participant_1.eq.${userId},participant_2.eq.${userId}`),
       supabase.from('chat_messages').select('id, chat_id, sender_id, content, created_at, is_read').order('created_at', { ascending: true }),
       supabase.from('supplies').select(supplyColumns).order('general_category').order('specific_category'),
-      supabase.from('mission_supplies').select(`id, created_at, mission_id, supply_id, quantity_assigned, quantity_used, supplies(${supplyColumns})`)
+      supabase.from('mission_supplies').select(`id, created_at, mission_id, supply_id, quantity_assigned, quantity_used, supplies(${supplyColumns})`),
+      supabase.from('salarios').select(salaryColumns),
+      supabase.from('eventos_nomina').select(payrollEventColumns).order('fecha_evento', { ascending: false }),
+      supabase.from('periodos_pago').select(paymentPeriodColumns).order('fecha_pago', { ascending: false }),
     ]);
   },
   async getFullProfile(userId: string) {
@@ -52,32 +65,20 @@ export const api = {
     if (error) throw new Error(error.message);
   },
   async deleteMission(missionId: string) {
-    // Primero, eliminar las dependencias para asegurar la integridad referencial
-    // si no está configurado ON DELETE CASCADE en la base de datos.
-    // Nota: Esto requiere que la RLS del admin también permita eliminar de estas tablas.
-    const { error: suppliesError } = await supabase
-      .from('mission_supplies')
-      .delete()
-      .eq('mission_id', missionId);
+    // First, delete dependencies to ensure referential integrity
+    // if ON DELETE CASCADE is not configured.
+    const { error: eventsError } = await supabase.from('eventos_nomina').delete().eq('mission_id', missionId);
+    if (eventsError) throw new Error(`Error deleting associated payroll events: ${eventsError.message}`);
+    
+    const { error: suppliesError } = await supabase.from('mission_supplies').delete().eq('mission_id', missionId);
+    if (suppliesError) throw new Error(`Error deleting associated mission supplies: ${suppliesError.message}`);
 
-    if (suppliesError) {
-      throw new Error(`Error al eliminar insumos asociados a la misión: ${suppliesError.message}`);
-    }
+    const { error: milestonesError } = await supabase.from('mission_milestones').delete().eq('mission_id', missionId);
+    if (milestonesError) throw new Error(`Error deleting associated milestones: ${milestonesError.message}`);
 
-    const { error: milestonesError } = await supabase
-      .from('mission_milestones')
-      .delete()
-      .eq('mission_id', missionId);
-
-    if (milestonesError) {
-      throw new Error(`Error al eliminar hitos asociados a la misión: ${milestonesError.message}`);
-    }
-
-    // Ahora, eliminar la misión principal
     const { error } = await supabase.from('missions').delete().eq('id', missionId);
     if (error) {
        const isRlsError = error.message.includes("violates row-level security policy") || error.code === '42501';
-       // Mensaje de error mejorado para guiar al usuario
        const errorMessage = isRlsError
          ? "Error de Permisos: Para eliminar misiones, el rol 'administrador' debe tener permisos de 'DELETE' en las políticas de seguridad (RLS) de Supabase para las tablas: 'missions', 'mission_supplies' y 'mission_milestones'."
          : `Error final al eliminar la misión: ${error.message}`;
@@ -238,5 +239,28 @@ export const api = {
   async revokeBadge(userId: string, badgeId: string) {
     const { error } = await supabase.from('user_badges').delete().eq('user_id', userId).eq('badge_id', badgeId);
     if (error) throw new Error(error.message);
+  },
+
+  // --- PAYROLL ---
+  async upsertSalary(data: SalaryInsert) {
+      const { error } = await supabase.from('salarios').upsert(data, { onConflict: 'user_id' });
+      if (error) throw new Error(error.message);
+  },
+  async addPayrollEvent(data: PayrollEventInsert) {
+      const { error } = await supabase.from('eventos_nomina').insert(data);
+      if (error) throw new Error(error.message);
+  },
+  async addPaymentPeriod(data: PaymentPeriodInsert) {
+      const { data: newPeriod, error } = await supabase.from('periodos_pago').insert(data).select().single();
+      if (error) throw new Error(error.message);
+      return newPeriod;
+  },
+  async updatePaymentPeriod(id: string, data: PaymentPeriodUpdate) {
+      const { error } = await supabase.from('periodos_pago').update(data).eq('id', id);
+      if (error) throw new Error(error.message);
+  },
+  async linkEventsToPeriod(eventIds: string[], periodId: string) {
+      const { error } = await supabase.from('eventos_nomina').update({ periodo_pago_id: periodId }).in('id', eventIds);
+      if (error) throw new Error(error.message);
   }
 };

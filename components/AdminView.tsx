@@ -25,6 +25,7 @@ import Leaderboard from './common/Leaderboard';
 import HallOfFame from './common/HallOfFame';
 import PayrollManagement from './admin/payroll/PayrollManagement';
 import SetSalaryModal from './admin/payroll/SetSalaryModal';
+import AddPayrollEventModal from './admin/payroll/AddPayrollEventModal';
 
 import { PlusIcon, BoxIcon, CalendarIcon, MapPinIcon, UserIcon, ChatIcon, TasksIcon, BookOpenIcon, LogoutIcon, MenuIcon, ChartIcon, HallOfFameIcon, CurrencyDollarIcon } from './Icons';
 
@@ -37,6 +38,7 @@ const AdminView: React.FC = () => {
     const [managingInventoryFor, setManagingInventoryFor] = useState<User | null>(null);
     const [managingBadgesFor, setManagingBadgesFor] = useState<User | null>(null);
     const [settingSalaryFor, setSettingSalaryFor] = useState<User | null>(null);
+    const [addingPayrollEventFor, setAddingPayrollEventFor] = useState<User | null>(null);
     const [isCreateItemModalOpen, setIsCreateItemModalOpen] = useState(false);
     const [notifyingUser, setNotifyingUser] = useState<User | null>(null);
     const [editingMission, setEditingMission] = useState<Mission | null>(null);
@@ -131,7 +133,7 @@ const AdminView: React.FC = () => {
                         <UserManagement onManageInventory={setManagingInventoryFor} onManageBadges={setManagingBadgesFor} onNotifyUser={setNotifyingUser} onSetSalary={setSettingSalaryFor} />
                     </div>
                     <div className={activeTab === 'payroll' ? 'block' : 'hidden'}>
-                        <PayrollManagement />
+                        <PayrollManagement onAddEvent={setAddingPayrollEventFor} />
                     </div>
                     <div className={activeTab === 'missions' ? 'block' : 'hidden'}>
                         <MissionsManager onOpenMission={setSelectedMission} onEditMission={setEditingMission} />
@@ -173,6 +175,7 @@ const AdminView: React.FC = () => {
             {managingInventoryFor && <InventoryManagementModal user={managingInventoryFor} onClose={() => setManagingInventoryFor(null)} />}
             {managingBadgesFor && <BadgeManagementModal user={managingBadgesFor} onClose={() => setManagingBadgesFor(null)} />}
             {settingSalaryFor && <SetSalaryModal user={settingSalaryFor} onClose={() => setSettingSalaryFor(null)} />}
+            {addingPayrollEventFor && <AddPayrollEventModal user={addingPayrollEventFor} onClose={() => setAddingPayrollEventFor(null)} />}
             {notifyingUser && <NotificationModal user={notifyingUser} onClose={() => setNotifyingUser(null)} />}
             {editingMission && <ApproveMissionModal mission={editingMission} onClose={() => setEditingMission(null)} />}
             {selectedMission && <MissionDetailsModal mission={selectedMission} user={currentUser} onClose={() => setSelectedMission(null)} isAdminViewing={true} />}

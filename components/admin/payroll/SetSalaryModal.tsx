@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { User, Salary } from '../../../types';
+import { User } from '../../../types';
 import { useData } from '../../../contexts/DataContext';
 import { useToast } from '../../../contexts/ToastContext';
 
