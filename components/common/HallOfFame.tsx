@@ -1,9 +1,9 @@
 import React, { useMemo } from 'react';
 import { Mission, User, MissionStatus } from '../../types';
-import { useAuth } from '../../contexts/AuthContext';
+import { useData } from '../../contexts/DataContext';
 
 const HallOfFame: React.FC<{missions: Mission[], users: User[]}> = ({missions, users}) => {
-    const { currentUser } = useAuth();
+    const { currentUser } = useData();
     const completedMissionsWithPhotos = useMemo(() => {
         if (!currentUser) return [];
         return missions.filter(m => 

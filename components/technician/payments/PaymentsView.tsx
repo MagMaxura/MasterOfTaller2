@@ -1,5 +1,4 @@
 import React, { useMemo } from 'react';
-import { useAuth } from '../../../contexts/AuthContext';
 import { useData } from '../../../contexts/DataContext';
 import { PaymentPeriod, PayrollEvent, PayrollEventType } from '../../../types';
 import { ArrowUpIcon, ArrowDownIcon } from '../../Icons';
@@ -66,8 +65,7 @@ const PaymentPeriodCard: React.FC<{ period: PaymentPeriod }> = ({ period }) => {
 };
 
 const PaymentsView: React.FC = () => {
-    const { currentUser } = useAuth();
-    const { paymentPeriods } = useData();
+    const { currentUser, paymentPeriods } = useData();
 
     const userPaymentPeriods = useMemo(() => {
         if (!currentUser) return [];

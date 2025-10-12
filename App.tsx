@@ -8,45 +8,35 @@ import TechnicianView from './components/TechnicianView';
 import AdminView from './components/AdminView';
 import LoadingSpinner from './components/common/LoadingSpinner';
 import { ToastProvider } from './contexts/ToastContext';
-import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { AuthProvider } from './contexts/AuthContext';
 import { DataProvider, useData } from './contexts/DataContext';
 
 // --- MAIN APP CONTENT ---
 const AppContent: React.FC = () => {
-    const { currentUser, loading: authLoading } = useAuth();
-    const { users, viewingProfileOf, setViewingProfileOf, loading: dataLoading } = useData();
+    const { currentUser, users, viewingProfileOf, setViewingProfileOf, loading: dataLoading } = useData();
 
-    // Find the full user object from DataContext once it's loaded.
-    // Fallback to the light currentUser from AuthContext if DataContext is still loading.
-    const fullCurrentUser = useMemo(() => {
-        if (!currentUser) return null;
-        const userFromData = users.find(u => u.id === currentUser.id);
-        return userFromData || currentUser;
-    }, [users, currentUser]);
-
-    // Show a loading screen while auth OR initial data is loading.
-    // The check `users.length === 0` handles the initial state before data is fetched.
-    if (authLoading || (dataLoading && users.length === 0)) {
+    // The single loading state from DataContext now controls the initial render.
+    if (dataLoading) {
         return <LoadingSpinner />;
     }
 
-    // If after all loading, we still don't have a user, something is wrong with auth.
-    if (!fullCurrentUser) {
-        return <LoadingSpinner message="Cargando perfil de usuario..." />;
+    // If after all loading, we still don't have a user, something is wrong with auth or profile fetching.
+    if (!currentUser) {
+        return <LoadingSpinner message="Error al cargar el perfil. Intenta recargar la página." />;
     }
     
-    // Use fullCurrentUser from now on
+    // Use currentUser from DataContext from now on, as it's the full profile.
     if (viewingProfileOf) {
         // We need to find the full profile for the user being viewed as well.
         const fullViewingProfile = users.find(u => u.id === viewingProfileOf.id) || viewingProfileOf;
         return <TechnicianView user={fullViewingProfile} isAdminViewing={true} onBackToAdmin={() => setViewingProfileOf(null)} />;
     }
 
-    if (fullCurrentUser.role === Role.TECHNICIAN) {
-        return <TechnicianView user={fullCurrentUser} />;
+    if (currentUser.role === Role.TECHNICIAN) {
+        return <TechnicianView user={currentUser} />;
     }
 
-    if (fullCurrentUser.role === Role.ADMIN) {
+    if (currentUser.role === Role.ADMIN) {
         return <AdminView />;
     }
 

@@ -1,4 +1,5 @@
 
+
 import { supabase } from '../config';
 import { Database } from '../database.types';
 import { User, Mission, EquipmentSlot, Supply, MissionSupply } from '../types';
@@ -20,8 +21,6 @@ type PaymentPeriodUpdate = Database['public']['Tables']['periodos_pago']['Update
 export const api = {
   // --- FETCH ---
   async getInitialData(userId: string) {
-    // Using explicit column selections instead of '*' to avoid potential RLS policy issues
-    // that can cause "Failed to fetch" errors if a user doesn't have permission for a specific column.
     const profileColumns = 'avatar, id, is_active, lat, level, lng, location_last_update, name, push_subscription, role, xp';
     const missionColumns = 'id, created_at, title, description, status, difficulty, xp, bonus_monetario, assigned_to, start_date, deadline, required_skills, progress_photo_url, completed_date, bonus_xp, visible_to';
     const inventoryItemColumns = 'id, name, description, icon_url, slot, quantity';
@@ -31,12 +30,16 @@ export const api = {
     const payrollEventColumns = 'id, user_id, tipo, descripcion, monto, fecha_evento, periodo_pago_id, mission_id, created_at';
     const paymentPeriodColumns = 'id, user_id, fecha_inicio_periodo, fecha_fin_periodo, fecha_pago, salario_base_calculado, total_adiciones, total_deducciones, monto_final_a_pagar, estado, created_at';
 
+    // NEW: Combined query for profiles using relationships. This is more efficient and robust.
+    const profilesQuery = supabase.from('profiles').select(`
+        ${profileColumns},
+        profile_skills ( level, skills ( id, name ) ),
+        user_badges ( badges ( ${badgeColumns} ) ),
+        user_inventory ( id, assigned_at, inventory_items ( ${inventoryItemColumns} ) )
+    `).eq('is_active', true);
 
     return Promise.all([
-      supabase.from('profiles').select(profileColumns).eq('is_active', true),
-      supabase.from('profile_skills').select('level, user_id, skills(id, name)'),
-      supabase.from('user_badges').select('user_id, badges(id, name, icon, description)'),
-      supabase.from('user_inventory').select(`id, assigned_at, user_id, inventory_items(${inventoryItemColumns})`),
+      profilesQuery, // Replaces separate fetches for profiles, skills, badges, inventory
       supabase.from('missions').select(missionColumns).order('created_at', { ascending: false }),
       supabase.from('inventory_items').select(inventoryItemColumns),
       supabase.from('badges').select(badgeColumns),
@@ -49,10 +52,6 @@ export const api = {
       supabase.from('eventos_nomina').select(payrollEventColumns).order('fecha_evento', { ascending: false }),
       supabase.from('periodos_pago').select(paymentPeriodColumns).order('fecha_pago', { ascending: false }),
     ]);
-  },
-  async getFullProfile(userId: string) {
-    const profileColumns = 'avatar, id, is_active, lat, level, lng, location_last_update, name, push_subscription, role, xp';
-    return supabase.from('profiles').select(profileColumns).eq('id', userId).single();
   },
 
   // --- MUTATIONS ---

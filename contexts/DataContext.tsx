@@ -1,5 +1,7 @@
+
+
 import React, { useState, useCallback, useEffect, useMemo, createContext, useContext } from 'react';
-import { User, Mission, InventoryItem, Chat, ChatMessage, EquipmentSlot, MissionMilestone, MissionStatus, UserInventoryItem, Supply, MissionSupply, Badge } from '../types';
+import { User, Mission, InventoryItem, Chat, ChatMessage, EquipmentSlot, MissionMilestone, MissionStatus, UserInventoryItem, Supply, MissionSupply, Badge, Salary, PayrollEvent, PaymentPeriod } from '../types';
 import { supabase } from '../config';
 import { Database } from '../database.types';
 import { transformSupabaseProfileToUser } from '../utils/dataTransformers';
@@ -9,6 +11,7 @@ import { api } from '../services/api';
 
 // --- CONTEXT INTERFACE ---
 interface DataContextType {
+  currentUser: User | null;
   users: User[];
   missions: Mission[];
   allInventoryItems: InventoryItem[];
@@ -16,6 +19,9 @@ interface DataContextType {
   missionMilestones: MissionMilestone[];
   supplies: Supply[];
   missionSupplies: MissionSupply[];
+  salaries: Salary[];
+  payrollEvents: PayrollEvent[];
+  paymentPeriods: PaymentPeriod[];
   chats: Chat[];
   chatMessages: ChatMessage[];
   loading: boolean;
@@ -55,6 +61,11 @@ interface DataContextType {
   removeSupplyFromMission: (missionSupplyId: string) => Promise<void>;
   assignBadge: (userId: string, badgeId: string) => Promise<void>;
   revokeBadge: (userId: string, badgeId: string) => Promise<void>;
+  setSalary: (userId: string, amount: number, salaryId?: string) => Promise<void>;
+  addPayrollEvent: (eventData: Omit<PayrollEvent, 'id' | 'created_at' | 'periodo_pago_id' | 'mission_id'>) => Promise<void>;
+  createMissionBonusEvent: (userId: string, mission: Mission) => Promise<void>;
+  calculatePayPeriods: () => Promise<void>;
+  markPeriodAsPaid: (periodId: string) => Promise<void>;
 }
 
 // --- CONTEXT CREATION ---
@@ -68,9 +79,10 @@ export const useData = () => {
 
 // --- MAIN DATA PROVIDER COMPONENT ---
 export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { currentUser, session } = useAuth();
+  const { user: authUser } = useAuth();
   const { showToast } = useToast();
   
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [users, setUsers] = useState<User[]>([]);
   const [missions, setMissions] = useState<Mission[]>([]);
   const [allInventoryItems, setAllInventoryItems] = useState<InventoryItem[]>([]);
@@ -78,20 +90,20 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [missionMilestones, setMissionMilestones] = useState<MissionMilestone[]>([]);
   const [supplies, setSupplies] = useState<Supply[]>([]);
   const [missionSupplies, setMissionSupplies] = useState<MissionSupply[]>([]);
+  const [salaries, setSalaries] = useState<Salary[]>([]);
+  const [payrollEvents, setPayrollEvents] = useState<PayrollEvent[]>([]);
+  const [paymentPeriods, setPaymentPeriods] = useState<PaymentPeriod[]>([]);
   const [chats, setChats] = useState<Chat[]>([]);
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [loading, setLoading] = useState(true);
   const [viewingProfileOf, setViewingProfileOf] = useState<User | null>(null);
 
   const fetchData = useCallback(async () => {
-    if (!session?.user?.id) return;
+    if (!authUser?.id) return;
     try {
-      const results = await api.getInitialData(session.user.id);
+      const results = await api.getInitialData(authUser.id);
       const [
         profilesResult,
-        profileSkillsResult,
-        userBadgesResult,
-        userInventoryResult,
         missionsResult,
         inventoryItemsResult,
         badgesResult,
@@ -100,12 +112,12 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         messagesResult,
         suppliesResult,
         missionSuppliesResult,
+        salariesResult,
+        payrollEventsResult,
+        paymentPeriodsResult,
       ] = results;
 
       if (profilesResult.error) throw new Error(`Al cargar perfiles: ${profilesResult.error.message}`);
-      if (profileSkillsResult.error) throw new Error(`Al cargar habilidades de perfil: ${profileSkillsResult.error.message}`);
-      if (userBadgesResult.error) throw new Error(`Al cargar insignias de usuario: ${userBadgesResult.error.message}`);
-      if (userInventoryResult.error) throw new Error(`Al cargar inventario de usuario: ${userInventoryResult.error.message}`);
       if (missionsResult.error) throw new Error(`Al cargar misiones: ${missionsResult.error.message}`);
       if (inventoryItemsResult.error) throw new Error(`Al cargar inventario: ${inventoryItemsResult.error.message}`);
       if (badgesResult.error) throw new Error(`Al cargar insignias: ${badgesResult.error.message}`);
@@ -114,54 +126,54 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (messagesResult.error) throw new Error(`Al cargar mensajes: ${messagesResult.error.message}`);
       if (suppliesResult.error) throw new Error(`Al cargar insumos: ${suppliesResult.error.message}`);
       if (missionSuppliesResult.error) throw new Error(`Al cargar insumos de misión: ${missionSuppliesResult.error.message}`);
+      if (salariesResult.error) throw new Error(`Al cargar salarios: ${salariesResult.error.message}`);
+      if (payrollEventsResult.error) throw new Error(`Al cargar eventos de nómina: ${payrollEventsResult.error.message}`);
+      if (paymentPeriodsResult.error) throw new Error(`Al cargar períodos de pago: ${paymentPeriodsResult.error.message}`);
 
-      // Reconstruct user objects on the client side
+
       const profilesData = profilesResult.data || [];
-      const profileSkillsData = profileSkillsResult.data || [];
-      const userBadgesData = userBadgesResult.data || [];
-      const userInventoryData = userInventoryResult.data || [];
-
-      const combinedUsers = profilesData.map(p => {
-        const userSpecificSkills = profileSkillsData.filter(ps => ps.user_id === p.id);
-        const userSpecificBadges = userBadgesData.filter(ub => ub.user_id === p.id);
-        const userSpecificInventory = userInventoryData.filter(ui => ui.user_id === p.id);
-        
-        // This simulates the shape that the old join query returned for the transformer
-        return transformSupabaseProfileToUser({
-          ...p,
-          profile_skills: userSpecificSkills,
-          user_badges: userSpecificBadges,
-          user_inventory: userSpecificInventory,
-        });
-      });
+      const combinedUsers = profilesData.map(p => transformSupabaseProfileToUser(p));
       setUsers(combinedUsers);
       
-      const transformedMissions = missionsResult.data.map((m: any) => ({ ...m, assignedTo: m.assigned_to, startDate: m.start_date, deadline: m.deadline, skills: m.required_skills, progressPhoto: m.progress_photo_url, completedDate: m.completed_date, bonusXp: m.bonus_xp, visibleTo: m.visible_to, }));
+      const foundUser = combinedUsers.find(u => u.id === authUser.id);
+      setCurrentUser(foundUser || null);
+      if (!foundUser) {
+        console.error("Authenticated user's profile not found in initial data load. Logging out.");
+        showToast('Tu perfil no se encontró. Saliendo de la sesión.', 'error');
+        supabase.auth.signOut();
+      }
+
+      const transformedMissions = (missionsResult.data || []).map((m: any) => ({ ...m, assignedTo: m.assigned_to, startDate: m.start_date, deadline: m.deadline, skills: m.required_skills, progressPhoto: m.progress_photo_url, completedDate: m.completed_date, bonusXp: m.bonus_xp, visibleTo: m.visible_to, }));
       setMissions(transformedMissions);
-      setAllInventoryItems(inventoryItemsResult.data.map((item: any) => ({ ...item, quantity: item.quantity ?? 0 })));
-      setAllBadges(badgesResult.data as Badge[]);
-      setMissionMilestones(milestonesResult.data.map((m: any) => ({ ...m, is_solution: m.is_solution ?? false })) as MissionMilestone[]);
-      setChats(chatsResult.data as Chat[]);
-      setChatMessages(messagesResult.data as ChatMessage[]);
-      setSupplies(suppliesResult.data as Supply[]);
-      setMissionSupplies(missionSuppliesResult.data as MissionSupply[]);
+      setAllInventoryItems((inventoryItemsResult.data || []).map((item: any) => ({ ...item, quantity: item.quantity ?? 0 })));
+      setAllBadges((badgesResult.data || []) as Badge[]);
+      setMissionMilestones((milestonesResult.data || []).map((m: any) => ({ ...m, is_solution: m.is_solution ?? false })) as MissionMilestone[]);
+      setChats((chatsResult.data || []) as Chat[]);
+      setChatMessages((messagesResult.data || []) as ChatMessage[]);
+      setSupplies((suppliesResult.data || []) as Supply[]);
+      setMissionSupplies((missionSuppliesResult.data || []) as MissionSupply[]);
+      setSalaries((salariesResult.data || []) as Salary[]);
+      setPayrollEvents((payrollEventsResult.data || []) as PayrollEvent[]);
+      setPaymentPeriods((paymentPeriodsResult.data || []) as PaymentPeriod[]);
 
     } catch (error) {
       console.error("Error fetching data:", error);
       showToast(error instanceof Error ? error.message : "Error al cargar datos", 'error');
     }
-  }, [session, showToast]);
+  }, [authUser, showToast]);
 
   useEffect(() => {
-    if (session) {
+    if (authUser) {
       setLoading(true);
       fetchData().finally(() => setLoading(false));
+    } else {
+      setLoading(false);
     }
-  }, [session, fetchData]);
+  }, [authUser, fetchData]);
   
   // Realtime subscriptions
   useEffect(() => {
-    if (!session || !supabase) return;
+    if (!authUser || !supabase) return;
     const allChannels = [
         supabase.channel('public:missions').on('postgres_changes', { event: '*', schema: 'public', table: 'missions' }, () => fetchData()).subscribe(),
         supabase.channel('public:profiles').on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, () => fetchData()).subscribe(),
@@ -174,9 +186,12 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         supabase.channel('public:chats').on('postgres_changes', { event: '*', schema: 'public', table: 'chats' }, () => fetchData()).subscribe(),
         supabase.channel('public:user_badges').on('postgres_changes', { event: '*', schema: 'public', table: 'user_badges' }, () => fetchData()).subscribe(),
         supabase.channel('public:profile_skills').on('postgres_changes', { event: '*', schema: 'public', table: 'profile_skills' }, () => fetchData()).subscribe(),
+        supabase.channel('public:salarios').on('postgres_changes', { event: '*', schema: 'public', table: 'salarios' }, () => fetchData()).subscribe(),
+        supabase.channel('public:eventos_nomina').on('postgres_changes', { event: '*', schema: 'public', table: 'eventos_nomina' }, () => fetchData()).subscribe(),
+        supabase.channel('public:periodos_pago').on('postgres_changes', { event: '*', schema: 'public', table: 'periodos_pago' }, () => fetchData()).subscribe(),
     ];
     return () => { allChannels.forEach(channel => supabase.removeChannel(channel)); };
-  }, [session, fetchData]);
+  }, [authUser, fetchData]);
 
 
   const unreadMessagesCount = useMemo(() => {
@@ -297,12 +312,30 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (!currentUser) return Promise.resolve();
     return api.markMessagesAsRead(chatId, currentUser.id);
   };
+  
+  const setSalary = (userId: string, amount: number, salaryId?: string) => api.upsertSalary({ id: salaryId, user_id: userId, monto_base_quincenal: amount });
+  const addPayrollEvent = (eventData: Omit<PayrollEvent, 'id' | 'created_at' | 'periodo_pago_id' | 'mission_id'>) => api.addPayrollEvent(eventData);
+  const createMissionBonusEvent = (userId: string, mission: Mission) => {
+    if (!mission.bonusMonetario || mission.bonusMonetario <= 0) return Promise.resolve();
+    return api.addPayrollEvent({
+      user_id: userId,
+      tipo: 'BONO',
+      monto: mission.bonusMonetario,
+      descripcion: `Bono por misión: ${mission.title}`,
+      fecha_evento: new Date().toISOString().split('T')[0],
+      mission_id: mission.id
+    });
+  }
+
+  const calculatePayPeriods = async () => { /* Logic to be implemented */ showToast('Función no implementada', 'info') };
+  const markPeriodAsPaid = async (periodId: string) => { /* Logic to be implemented */ showToast('Función no implementada', 'info') };
 
   const value = {
-    users, missions, allInventoryItems, allBadges, missionMilestones, supplies, missionSupplies, chats, chatMessages, loading, unreadMessagesCount, viewingProfileOf, setViewingProfileOf,
+    currentUser, users, missions, allInventoryItems, allBadges, missionMilestones, supplies, missionSupplies, salaries, payrollEvents, paymentPeriods, chats, chatMessages, loading, unreadMessagesCount, viewingProfileOf, setViewingProfileOf,
     updateMission, updateUser, deactivateUser, updateUserAvatar, addMission, requestMission, technicianRequestMission, rejectMissionRequest, deleteMission, addMissionMilestone, toggleMilestoneSolution, assignInventoryItem, removeInventoryItem, disposeOfInventoryItem, updateInventoryItemQuantity, addInventoryItem, deleteInventoryItem, savePushSubscription, sendNotification, handleSelectOrCreateChat, handleSendMessage, handleMarkAsRead, requestToJoinMission, approveJoinRequest, rejectJoinRequest,
     addSupply, updateSupply, deleteSupply, assignSupplyToMission, updateMissionSupply, removeSupplyFromMission,
     assignBadge, revokeBadge,
+    setSalary, addPayrollEvent, createMissionBonusEvent, calculatePayPeriods, markPeriodAsPaid
   };
 
   return (

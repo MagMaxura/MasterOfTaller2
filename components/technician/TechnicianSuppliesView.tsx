@@ -1,6 +1,5 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import { useData } from '../../contexts/DataContext';
-import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../../contexts/ToastContext';
 import { Mission, MissionSupply } from '../../types';
 
@@ -73,8 +72,7 @@ const SupplyRow: React.FC<{ missionSupply: MissionSupply }> = ({ missionSupply }
 };
 
 const TechnicianSuppliesView: React.FC = () => {
-    const { currentUser } = useAuth();
-    const { missions, missionSupplies } = useData();
+    const { currentUser, missions, missionSupplies } = useData();
 
     const groupedSupplies = useMemo<GroupedSupplies[]>(() => {
         if (!currentUser) return [];

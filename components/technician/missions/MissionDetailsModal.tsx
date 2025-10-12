@@ -2,7 +2,6 @@ import React, { useState, useMemo, ChangeEvent, useEffect } from 'react';
 import { Mission, User, MissionStatus, MissionMilestone, MissionSupply, Role } from '../../../types';
 import { LEVEL_THRESHOLDS, EARLY_COMPLETION_BONUS_XP } from '../../../config';
 import { useData } from '../../../contexts/DataContext';
-import { useAuth } from '../../../contexts/AuthContext';
 import { useToast } from '../../../contexts/ToastContext';
 import { hasSupplyAdminBadge } from '../../../utils/ranks';
 import { CameraIcon, StarIcon } from '../../Icons';
@@ -94,8 +93,7 @@ const MissionDetailsModal: React.FC<{
     onClose: () => void;
     isAdminViewing?: boolean;
 }> = ({ mission, user, onClose, isAdminViewing }) => {
-    const { currentUser } = useAuth();
-    const { updateUser, missionMilestones, users, addMissionMilestone, updateMission, toggleMilestoneSolution, createMissionBonusEvent } = useData();
+    const { currentUser, updateUser, missionMilestones, users, addMissionMilestone, updateMission, toggleMilestoneSolution, createMissionBonusEvent } = useData();
     const { showToast } = useToast();
     const [isUpdating, setIsUpdating] = useState(false);
     const [isTogglingSolution, setIsTogglingSolution] = useState<string | null>(null);
