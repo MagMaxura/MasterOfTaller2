@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
-import { User, Role, MissionDifficulty, MissionStatus } from '../../types';
+import { User, Role, MissionDifficulty } from '../../types';
 import { useData } from '../../contexts/DataContext';
 import { useToast } from '../../contexts/ToastContext';
+import { generateMissionDetails } from '../../services/geminiService';
+import { AiIcon } from '../Icons';
 
 const MissionCreator: React.FC<{ users: User[] }> = ({ users }) => {
     const { addMission } = useData();
@@ -17,6 +19,9 @@ const MissionCreator: React.FC<{ users: User[] }> = ({ users }) => {
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState('');
     const [visibleTo, setVisibleTo] = useState<string[]>([]);
+    const [aiPrompt, setAiPrompt] = useState('');
+    const [isAiLoading, setIsAiLoading] = useState(false);
+
 
     const technicians = users.filter(u => u.role === Role.TECHNICIAN);
 
@@ -37,6 +42,29 @@ const MissionCreator: React.FC<{ users: User[] }> = ({ users }) => {
                 ? prev.filter(id => id !== technicianId) 
                 : [...prev, technicianId]
         );
+    };
+
+    const handleAiGenerate = async () => {
+        if (!aiPrompt.trim()) {
+            showToast('Por favor, ingresa una descripción para la IA.', 'info');
+            return;
+        }
+        setIsAiLoading(true);
+        try {
+            const result = await generateMissionDetails(aiPrompt);
+            setTitle(result.title || '');
+            setDescription(result.description || '');
+            setDifficulty(result.difficulty || MissionDifficulty.MEDIUM);
+            setXp(result.xp || 50);
+            const today = new Date().toISOString().split('T')[0];
+            setStartDate(today);
+            setDeadline(result.deadline || '');
+            showToast('¡Misión generada por IA! Revisa y ajusta los detalles.', 'success');
+        } catch (err) {
+            showToast(err instanceof Error ? err.message : 'Error desconocido de la IA.', 'error');
+        } finally {
+            setIsAiLoading(false);
+        }
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -75,6 +103,7 @@ const MissionCreator: React.FC<{ users: User[] }> = ({ users }) => {
             setStartDate(new Date().toISOString().split('T')[0]);
             setDeadline('');
             setVisibleTo([]);
+            setAiPrompt('');
         } catch (err) {
             showToast(err instanceof Error ? err.message : 'Error al crear la misión.', 'error');
         } finally {
@@ -87,6 +116,34 @@ const MissionCreator: React.FC<{ users: User[] }> = ({ users }) => {
     return (
         <form onSubmit={handleSubmit} className="bg-brand-secondary p-6 rounded-lg shadow-xl space-y-6">
             <h3 className="text-2xl font-bold text-center">Crear Nueva Misión</h3>
+            
+            {/* AI Generation Section */}
+            <div className="bg-brand-primary p-4 rounded-lg border border-brand-accent">
+                <h4 className="font-bold text-lg mb-2 text-brand-orange">Creación Rápida con IA</h4>
+                <p className="text-sm text-brand-light mb-3">Describe la misión en lenguaje natural y la IA llenará los campos por ti. Ej: "Cambiar aceite y filtros de un VW Amarok 2021, plazo 2 días"</p>
+                <div className="flex gap-2">
+                    <input 
+                        type="text"
+                        value={aiPrompt}
+                        onChange={(e) => setAiPrompt(e.target.value)}
+                        placeholder="Describe la misión aquí..."
+                        className="flex-grow bg-brand-secondary p-2 rounded border border-brand-accent"
+                    />
+                    <button
+                        type="button"
+                        onClick={handleAiGenerate}
+                        disabled={isAiLoading}
+                        className="bg-brand-orange text-brand-primary font-bold py-2 px-4 rounded-lg flex items-center justify-center gap-2 disabled:bg-opacity-50"
+                    >
+                        {isAiLoading 
+                            ? <div className="w-5 h-5 border-2 border-t-transparent border-brand-primary rounded-full animate-spin"></div>
+                            : <AiIcon className="w-5 h-5" />
+                        }
+                        <span>Generar con IA</span>
+                    </button>
+                </div>
+            </div>
+
             {error && <p className="bg-brand-red/20 text-brand-red p-2 rounded-md text-sm">{error}</p>}
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

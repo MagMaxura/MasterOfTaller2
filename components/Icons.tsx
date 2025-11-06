@@ -32,8 +32,12 @@ export const CameraIcon: React.FC<IconProps> = (props) => (
 );
 
 export const AiIcon: React.FC<IconProps> = (props) => (
-  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor" {...props}><path fillRule="evenodd" d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z" clipRule="evenodd" /></svg>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" {...props}>
+        <path d="M11.983 1.904a1 1 0 00-1.13.256l-3.334 4.333A1 1 0 008.667 8H10a1 1 0 01.894.553l.448 1.118a.5.5 0 00.894.224l1.334-1.334a1 1 0 00.256-1.13l-1-2.5a1 1 0 00-.97-.667h-1.5z" />
+        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm.34-11.022a1 1 0 00-1.12.38l-4.013 7.023a1 1 0 00.86 1.505H9a1 1 0 01.894.553l.448 1.118a.5.5 0 00.895.224l.335-.335a1 1 0 00.256-1.13l-1.48-3.702a1 1 0 01.33-1.11l1.333-1.334a.5.5 0 00.224-.894l-1.118-.448A1 1 0 0112 8h-1.333a1 1 0 00-.85-.478L8.683 4.19a1 1 0 00-1.213-.576l-.007.003z" clipRule="evenodd" />
+    </svg>
 );
+
 
 export const ChartIcon: React.FC<IconProps> = (props) => (
   <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" {...props}><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
