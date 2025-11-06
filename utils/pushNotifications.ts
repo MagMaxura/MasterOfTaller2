@@ -1,14 +1,10 @@
 /**
  * Este archivo contiene la lógica para suscribir a un usuario a notificaciones push.
  */
+import { VAPID_PUBLIC_KEY } from '../constants';
 
-// =====================================================================================
-// !! CLAVE VAPID PÚBLICA - ¡SINCRONIZADA! !!
-// =====================================================================================
-// Esta es la clave pública que generaste en tu terminal. Ahora el frontend y el
-// backend usan el mismo par de claves, lo que solucionará los errores de VAPID.
-// =====================================================================================
-const VAPID_PUBLIC_KEY = 'BNwGnpUSIkrptf7RZtl-HTeZ9fimzqTtZMyRwVWj8mLVYcj7Di0-QCUBxCQqSLcy3LyMkQavAzt6WcWJT4oIyEE';
+// La VAPID_PUBLIC_KEY ahora se importa desde el archivo central de constantes,
+// eliminando la necesidad de sincronizarla manualmente con el backend.
 
 /**
  * Convierte una cadena base64 URL-safe a un Uint8Array.

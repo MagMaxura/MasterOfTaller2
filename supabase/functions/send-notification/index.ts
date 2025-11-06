@@ -17,7 +17,7 @@
  * 2. SUPABASE_SERVICE_ROLE_KEY: La clave de servicio (service_role) de tu proyecto.
  *
  * 3. VAPID_PUBLIC_KEY: (La que generaste en tu terminal)
- *    BNwGnpUSIKrptf7RZtl-HTeZ9fimzqTtZMyRwVWj8mLVYcj7Di0-QCUbXCQqSLcy3LyMkQavAzt6wcWJT4oiYEE
+ *    BNwGnpUSIkrptf7RZtl-HTeZ9fimzqTtZMyRwVWj8mLVYcj7Di0-QCUBxCQqSLcy3LyMkQavAzt6wcWJT4oiYEE
  *
  * 4. VAPID_PRIVATE_KEY: (La que generaste en tu terminal)
  *    u9a518AQkNXHq55YKNvJzy2YHZDiF2nVbJOFVFUzD9E

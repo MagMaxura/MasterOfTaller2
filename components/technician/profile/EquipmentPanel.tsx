@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
 import { User, EquipmentSlot, UserInventoryItem } from '../../../types';
 import { BeltIcon } from '../../Icons';
+import { getStorageUrl } from '../../../config';
 
 const ItemTooltip: React.FC<{ items: UserInventoryItem[] }> = ({ items }) => (
   <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 w-64 p-3 bg-brand-primary border border-brand-accent rounded-lg shadow-xl text-sm opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none z-10">
@@ -50,20 +51,18 @@ const EquipmentPanel: React.FC<{ user: User }> = ({ user }) => {
         }
         return slots;
     }, [user.inventory]);
-
-    const iconUrl = (name: string) => `https://npoukowwhminfidgkriq.supabase.co/storage/v1/object/public/iconos-equipamiento/${name}`;
     
     const slotIcons: Record<EquipmentSlot, React.ReactNode> = {
-        [EquipmentSlot.HEAD]: <img src={iconUrl('cazco.png')} alt="Ranura de cabeza" className="w-10 h-10 object-contain opacity-50" />,
-        [EquipmentSlot.FACE]: <img src={iconUrl('protector%20visual.png')} alt="Ranura de rostro" className="w-10 h-10 object-contain opacity-50" />,
-        [EquipmentSlot.EARS]: <img src={iconUrl('protector%20auditivo.png')} alt="Ranura de oídos" className="w-10 h-10 object-contain opacity-50" />,
-        [EquipmentSlot.OUTERWEAR]: <img src={iconUrl('campera%20impermeable.png')} alt="Ranura de ropa exterior" className="w-10 h-10 object-contain opacity-50" />,
-        [EquipmentSlot.SHIRT]: <img src={iconUrl('camisa%20de%20trabajo.png')} alt="Ranura de camisa" className="w-10 h-10 object-contain opacity-50" />,
-        [EquipmentSlot.HANDS]: <img src={iconUrl('guantes%20de%20seguridad.png')} alt="Ranura de manos" className="w-10 h-10 object-contain opacity-50" />,
-        [EquipmentSlot.PANTS]: <img src={iconUrl('pantalon.png')} alt="Ranura de pantalones" className="w-10 h-10 object-contain opacity-50" />,
-        [EquipmentSlot.FEET]: <img src={iconUrl('zapatos%20de%20seguridad.png')} alt="Ranura de pies" className="w-10 h-10 object-contain opacity-50" />,
+        [EquipmentSlot.HEAD]: <img src={getStorageUrl('iconos-equipamiento', 'cazco.png')} alt="Ranura de cabeza" className="w-10 h-10 object-contain opacity-50" />,
+        [EquipmentSlot.FACE]: <img src={getStorageUrl('iconos-equipamiento', 'protector%20visual.png')} alt="Ranura de rostro" className="w-10 h-10 object-contain opacity-50" />,
+        [EquipmentSlot.EARS]: <img src={getStorageUrl('iconos-equipamiento', 'protector%20auditivo.png')} alt="Ranura de oídos" className="w-10 h-10 object-contain opacity-50" />,
+        [EquipmentSlot.OUTERWEAR]: <img src={getStorageUrl('iconos-equipamiento', 'campera%20impermeable.png')} alt="Ranura de ropa exterior" className="w-10 h-10 object-contain opacity-50" />,
+        [EquipmentSlot.SHIRT]: <img src={getStorageUrl('iconos-equipamiento', 'camisa%20de%20trabajo.png')} alt="Ranura de camisa" className="w-10 h-10 object-contain opacity-50" />,
+        [EquipmentSlot.HANDS]: <img src={getStorageUrl('iconos-equipamiento', 'guantes%20de%20seguridad.png')} alt="Ranura de manos" className="w-10 h-10 object-contain opacity-50" />,
+        [EquipmentSlot.PANTS]: <img src={getStorageUrl('iconos-equipamiento', 'pantalon.png')} alt="Ranura de pantalones" className="w-10 h-10 object-contain opacity-50" />,
+        [EquipmentSlot.FEET]: <img src={getStorageUrl('iconos-equipamiento', 'zapatos%20de%20seguridad.png')} alt="Ranura de pies" className="w-10 h-10 object-contain opacity-50" />,
         [EquipmentSlot.BELT]: <BeltIcon className="w-10 h-10 object-contain opacity-50" />,
-        [EquipmentSlot.ACCESSORY]: <img src={iconUrl('pulover.png')} alt="Ranura de accesorio" className="w-10 h-10 object-contain opacity-50" />,
+        [EquipmentSlot.ACCESSORY]: <img src={getStorageUrl('iconos-equipamiento', 'pulover.png')} alt="Ranura de accesorio" className="w-10 h-10 object-contain opacity-50" />,
     };
 
     return (

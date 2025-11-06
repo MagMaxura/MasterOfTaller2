@@ -2,6 +2,10 @@
  * Service Worker for Push Notifications
  */
 
+// ATENCIÓN: La URL del ícono depende de la configuración en constants.tsx. 
+// Si las notificaciones no muestran el ícono, verifica la SUPABASE_URL allí.
+const ICON_URL = 'https://npoukowwhminfidgkriq.supabase.co/storage/v1/object/public/iconos-equipamiento/cazco.png';
+
 // Escucha eventos push del servidor.
 self.addEventListener('push', event => {
   console.log('[Service Worker] Push Received.');
@@ -11,7 +15,7 @@ self.addEventListener('push', event => {
   let notificationData = {
     title: 'Nueva Notificación',
     body: 'Tienes una nueva actualización.',
-    icon: 'https://npoukowwhminfidgkriq.supabase.co/storage/v1/object/public/iconos-equipamiento/cazco.png'
+    icon: ICON_URL
   };
   try {
     const data = event.data.json();
@@ -26,7 +30,7 @@ self.addEventListener('push', event => {
   const options = {
     body: notificationData.body,
     icon: notificationData.icon,
-    badge: 'https://npoukowwhminfidgkriq.supabase.co/storage/v1/object/public/iconos-equipamiento/cazco.png',
+    badge: ICON_URL,
     vibrate: [200, 100, 200], // Patrón de vibración
     tag: 'new-mission-notification', // Agrupa notificaciones
     renotify: true,

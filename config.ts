@@ -1,19 +1,40 @@
 /*
  * Este archivo contiene la configuración para la integración con Supabase.
- * IMPORTANTE: Estos valores están hardcodeados para desarrollo y deben ser
- * reemplazados por variables de entorno seguras en producción.
+ * IMPORTANTE: Estos valores se gestionan ahora centralmente en `constants.ts`.
  */
 
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from './database.types';
+import { SUPABASE_URL, SUPABASE_ANON_KEY } from './constants';
 
-// --- Inicialización Directa (Temporal para Desarrollo) ---
-const supabaseUrl = 'https://npoukowwhminfidgkriq.supabase.co';
-const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5wb3Vrb3d3aG1pbmZpZGdrcmlxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI2MjAyOTEsImV4cCI6MjA2ODE5NjI5MX0.3EbO9Fg3Pj5fgEDixZbIGqe6rriAZhX7CjnrYBSceaM';
+// Se obtienen las credenciales del archivo de constantes.
+const supabaseUrl = SUPABASE_URL;
+const supabaseAnonKey = SUPABASE_ANON_KEY;
 
-// Se inicializa el cliente de Supabase directamente con los valores.
-// Nota: La variable 'supabase' ahora se exporta como 'const' porque ya no necesita ser reinicializada.
+// Verificación para asegurar que las constantes están definidas.
+if (!supabaseUrl || !supabaseAnonKey) {
+    const errorDiv = document.createElement('div');
+    errorDiv.style.cssText = 'background: #ff476f; color: white; padding: 20px; text-align: center; font-family: sans-serif;';
+    errorDiv.innerHTML = '<h1>Error de Configuración</h1><p>Las credenciales de Supabase no están definidas. Por favor, revisa el archivo <code>constants.tsx</code> y asegúrate de que <code>SUPABASE_URL</code> y <code>SUPABASE_ANON_KEY</code> estén correctamente configuradas.</p>';
+    document.body.innerHTML = '';
+    document.body.appendChild(errorDiv);
+    throw new Error("Las credenciales de Supabase no están definidas en constants.tsx");
+}
+
 export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey);
+
+/**
+ * Construye una URL pública para un archivo en Supabase Storage.
+ * @param bucket - El nombre del bucket (ej: 'iconos-equipamiento').
+ * @param path - La ruta del archivo dentro del bucket.
+ * @returns La URL pública completa del archivo.
+ */
+export const getStorageUrl = (bucket: string, path: string): string => {
+    // Asegurarse de que el path no tenga un slash al principio
+    const cleanPath = path.startsWith('/') ? path.substring(1) : path;
+    return `${supabaseUrl}/storage/v1/object/public/${bucket}/${cleanPath}`;
+};
+
 
 // Constantes de gamificación
 export const LEVEL_THRESHOLDS = [0, 100, 250, 500, 800, 1200, 1700, 2300, 3000, 4000, 5000];
