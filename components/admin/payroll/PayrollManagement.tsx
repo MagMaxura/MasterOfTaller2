@@ -7,6 +7,8 @@ const formatCurrency = (amount: number) => {
     return `$${amount.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 };
 
+import UserTimeline from './UserTimeline';
+
 const EventRow: React.FC<{ event: PayrollEvent }> = ({ event }) => {
     const isPositive = event.monto > 0;
     const eventTypeMap: Record<PayrollEventType, string> = {
@@ -17,6 +19,9 @@ const EventRow: React.FC<{ event: PayrollEvent }> = ({ event }) => {
         [PayrollEventType.TARDINESS]: 'Tardanza',
         [PayrollEventType.LOAN]: 'Préstamo',
         [PayrollEventType.EARLY_DEPARTURE]: 'Salida Temprana',
+        [PayrollEventType.VACATION]: 'Vacaciones',
+        [PayrollEventType.SICK_LEAVE]: 'Enfermedad',
+        [PayrollEventType.PERMITTED_LEAVE]: 'Permiso',
     };
     return (
         <div className="flex justify-between items-center py-2 border-b border-brand-accent/50 text-sm">
@@ -102,6 +107,12 @@ const TechnicianPayRow: React.FC<{
 
             {isExpanded && period && summary && (
                 <div className="p-4 border-t border-brand-accent/50 bg-brand-secondary/30 animation-fade-in-down">
+
+                    {/* Timeline Visualization */}
+                    <div className="mb-4 bg-brand-primary/50 p-2 rounded">
+                        <UserTimeline periodStart={period.fecha_inicio_periodo} periodEnd={period.fecha_fin_periodo} events={period.events} />
+                    </div>
+
                     <div className="space-y-2 text-sm">
                         <div className="flex justify-between items-center p-2 rounded hover:bg-white/5">
                             <p className="text-brand-light">Valor Quincena (Base)</p>

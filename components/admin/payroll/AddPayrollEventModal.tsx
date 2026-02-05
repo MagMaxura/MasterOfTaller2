@@ -76,6 +76,11 @@ const AddPayrollEventModal: React.FC<AddPayrollEventModalProps> = ({ user, onClo
                                     <option value={PayrollEventType.LOAN}>Préstamo</option>
                                     <option value={PayrollEventType.PENALTY}>Apercibimiento</option>
                                 </optgroup>
+                                <optgroup label="Novedades (Neutras/Informativas)">
+                                    <option value={PayrollEventType.VACATION}>Vacaciones</option>
+                                    <option value={PayrollEventType.SICK_LEAVE}>Enfermedad</option>
+                                    <option value={PayrollEventType.PERMITTED_LEAVE}>Permiso</option>
+                                </optgroup>
                             </select>
                         </div>
                         <div>

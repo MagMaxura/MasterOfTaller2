@@ -1,0 +1,5 @@
+-- Migration: Add Timeline Event Types (VACACIONES, ENFERMEDAD, PERMISO)
+
+ALTER TYPE tipo_evento_nomina ADD VALUE IF NOT EXISTS 'VACACIONES';
+ALTER TYPE tipo_evento_nomina ADD VALUE IF NOT EXISTS 'ENFERMEDAD';
+ALTER TYPE tipo_evento_nomina ADD VALUE IF NOT EXISTS 'PERMISO';
