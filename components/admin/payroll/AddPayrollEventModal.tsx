@@ -11,14 +11,20 @@ interface AddPayrollEventModalProps {
 const AddPayrollEventModal: React.FC<AddPayrollEventModalProps> = ({ user, onClose }) => {
     const { addPayrollEvent } = useData();
     const { showToast } = useToast();
-    
+
     const [tipo, setTipo] = useState<PayrollEventType>(PayrollEventType.BONUS);
     const [monto, setMonto] = useState<number | ''>('');
     const [descripcion, setDescripcion] = useState('');
     const [fecha, setFecha] = useState(new Date().toISOString().split('T')[0]);
     const [isLoading, setIsLoading] = useState(false);
 
-    const isDeduction = [PayrollEventType.ABSENCE, PayrollEventType.TARDINESS, PayrollEventType.PENALTY].includes(tipo);
+    const isDeduction = [
+        PayrollEventType.ABSENCE,
+        PayrollEventType.TARDINESS,
+        PayrollEventType.PENALTY,
+        PayrollEventType.LOAN,
+        PayrollEventType.EARLY_DEPARTURE
+    ].includes(tipo);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -28,7 +34,7 @@ const AddPayrollEventModal: React.FC<AddPayrollEventModalProps> = ({ user, onClo
         }
 
         const finalAmount = isDeduction ? -Math.abs(monto) : Math.abs(monto);
-        
+
         setIsLoading(true);
         try {
             await addPayrollEvent({
@@ -53,31 +59,37 @@ const AddPayrollEventModal: React.FC<AddPayrollEventModalProps> = ({ user, onClo
                 <button type="button" onClick={onClose} className="absolute top-4 right-4 text-brand-light hover:text-white text-3xl">&times;</button>
                 <h3 className="text-2xl font-bold mb-2">Añadir Evento de Nómina</h3>
                 <p className="text-brand-light mb-6">para {user.name}</p>
-                
+
                 <div className="space-y-4">
                     <div className="grid grid-cols-2 gap-4">
                         <div>
                             <label className="block text-sm font-medium text-brand-light mb-1">Tipo de Evento</label>
                             <select value={tipo} onChange={e => setTipo(e.target.value as PayrollEventType)} className="w-full bg-brand-primary p-3 rounded border border-brand-accent">
-                                <option value={PayrollEventType.BONUS}>Bono (+)</option>
-                                <option value={PayrollEventType.OVERTIME}>Hora Extra (+)</option>
-                                <option value={PayrollEventType.PENALTY}>Apercibimiento (-)</option>
-                                <option value={PayrollEventType.TARDINESS}>Tardanza (-)</option>
-                                <option value={PayrollEventType.ABSENCE}>Falta (-)</option>
+                                <optgroup label="Adiciones (+)">
+                                    <option value={PayrollEventType.BONUS}>Bono</option>
+                                    <option value={PayrollEventType.OVERTIME}>Hora Extra</option>
+                                </optgroup>
+                                <optgroup label="Deducciones (-)">
+                                    <option value={PayrollEventType.ABSENCE}>Falta</option>
+                                    <option value={PayrollEventType.TARDINESS}>Tardanza / Demora</option>
+                                    <option value={PayrollEventType.EARLY_DEPARTURE}>Salida Temprana</option>
+                                    <option value={PayrollEventType.LOAN}>Préstamo</option>
+                                    <option value={PayrollEventType.PENALTY}>Apercibimiento</option>
+                                </optgroup>
                             </select>
                         </div>
                         <div>
                             <label className="block text-sm font-medium text-brand-light mb-1">Monto ($)</label>
-                             <input type="number" value={monto} onChange={e => setMonto(e.target.value === '' ? '' : parseFloat(e.target.value))} placeholder="Ej: 5000" className="w-full bg-brand-primary p-3 rounded border border-brand-accent" required min="0" />
+                            <input type="number" value={monto} onChange={e => setMonto(e.target.value === '' ? '' : parseFloat(e.target.value))} placeholder="Ej: 5000" className="w-full bg-brand-primary p-3 rounded border border-brand-accent" required min="0" />
                         </div>
                     </div>
                     <div>
-                         <label className="block text-sm font-medium text-brand-light mb-1">Descripción</label>
-                         <input type="text" value={descripcion} onChange={e => setDescripcion(e.target.value)} placeholder="Ej: Bono por desempeño excelente" className="w-full bg-brand-primary p-3 rounded border border-brand-accent" required />
+                        <label className="block text-sm font-medium text-brand-light mb-1">Descripción</label>
+                        <input type="text" value={descripcion} onChange={e => setDescripcion(e.target.value)} placeholder="Ej: Bono por desempeño excelente" className="w-full bg-brand-primary p-3 rounded border border-brand-accent" required />
                     </div>
-                     <div>
-                         <label className="block text-sm font-medium text-brand-light mb-1">Fecha del Evento</label>
-                         <input type="date" value={fecha} onChange={e => setFecha(e.target.value)} className="w-full bg-brand-primary p-3 rounded border border-brand-accent" required />
+                    <div>
+                        <label className="block text-sm font-medium text-brand-light mb-1">Fecha del Evento</label>
+                        <input type="date" value={fecha} onChange={e => setFecha(e.target.value)} className="w-full bg-brand-primary p-3 rounded border border-brand-accent" required />
                     </div>
                 </div>
 

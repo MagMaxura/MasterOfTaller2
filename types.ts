@@ -18,44 +18,46 @@ export enum MissionDifficulty {
 }
 
 export enum EquipmentSlot {
-    HEAD = 'head',
-    FACE = 'face',
-    EARS = 'ears',
-    OUTERWEAR = 'outerwear',
-    SHIRT = 'shirt',
-    HANDS = 'hands',
-    BELT = 'belt',
-    PANTS = 'pants',
-    FEET = 'feet',
-    ACCESSORY = 'accessory'
+  HEAD = 'head',
+  FACE = 'face',
+  EARS = 'ears',
+  OUTERWEAR = 'outerwear',
+  SHIRT = 'shirt',
+  HANDS = 'hands',
+  BELT = 'belt',
+  PANTS = 'pants',
+  FEET = 'feet',
+  ACCESSORY = 'accessory'
 }
 
 export enum PayrollEventType {
-    OVERTIME = 'HORA_EXTRA',
-    BONUS = 'BONO',
-    ABSENCE = 'FALTA',
-    TARDINESS = 'TARDANZA',
-    PENALTY = 'APERCIBIMIENTO'
+  OVERTIME = 'HORA_EXTRA',
+  BONUS = 'BONO',
+  ABSENCE = 'FALTA',
+  TARDINESS = 'TARDANZA',
+  PENALTY = 'APERCIBIMIENTO',
+  LOAN = 'PRESTAMO',
+  EARLY_DEPARTURE = 'SALIDA_TEMPRANA'
 }
 
 export enum PaymentStatus {
-    CALCULATED = 'CALCULADO',
-    PAID = 'PAGADO'
+  CALCULATED = 'CALCULADO',
+  PAID = 'PAGADO'
 }
 
 export interface InventoryItem {
-    id: string;
-    name: string;
-    description: string;
-    slot: EquipmentSlot;
-    icon_url: string;
-    quantity: number;
+  id: string;
+  name: string;
+  description: string;
+  slot: EquipmentSlot;
+  icon_url: string;
+  quantity: number;
 }
 
 export interface UserInventoryItem {
-    id: string; // This is the ID of the user_inventory row
-    assigned_at: string;
-    item: InventoryItem;
+  id: string; // This is the ID of the user_inventory row
+  assigned_at: string;
+  item: InventoryItem;
 }
 
 export interface Skill {
@@ -168,35 +170,35 @@ export interface MissionSupply {
 }
 
 export interface Salary {
-    id: string;
-    user_id: string;
-    monto_base_quincenal: number;
-    created_at: string;
+  id: string;
+  user_id: string;
+  monto_base_quincenal: number;
+  created_at: string;
 }
 
 export interface PayrollEvent {
-    id: string;
-    user_id: string;
-    tipo: PayrollEventType;
-    descripcion: string;
-    monto: number;
-    fecha_evento: string;
-    periodo_pago_id: string | null;
-    mission_id: string | null;
-    created_at: string;
+  id: string;
+  user_id: string;
+  tipo: PayrollEventType;
+  descripcion: string;
+  monto: number;
+  fecha_evento: string;
+  periodo_pago_id: string | null;
+  mission_id: string | null;
+  created_at: string;
 }
 
 export interface PaymentPeriod {
-    id: string;
-    user_id: string;
-    fecha_inicio_periodo: string;
-    fecha_fin_periodo: string;
-    fecha_pago: string;
-    salario_base_calculado: number;
-    total_adiciones: number;
-    total_deducciones: number;
-    monto_final_a_pagar: number;
-    estado: PaymentStatus;
-    created_at: string;
-    events: PayrollEvent[];
+  id: string;
+  user_id: string;
+  fecha_inicio_periodo: string;
+  fecha_fin_periodo: string;
+  fecha_pago: string;
+  salario_base_calculado: number;
+  total_adiciones: number;
+  total_deducciones: number;
+  monto_final_a_pagar: number;
+  estado: PaymentStatus;
+  created_at: string;
+  events: PayrollEvent[];
 }
