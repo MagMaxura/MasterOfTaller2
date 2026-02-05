@@ -594,7 +594,17 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       showToast((e as Error).message, 'error');
     }
   };
-  const markPeriodAsPaid = async (periodId: string) => { /* Logic to be implemented */ showToast('Función no implementada', 'info') };
+  const markPeriodAsPaid = async (periodId: string) => {
+    if (currentUser?.id.startsWith('demo-')) { showToast('Acción simulada en modo demo.', 'success'); return; }
+    try {
+      await api.updatePaymentPeriod(periodId, { estado: 'PAGADO', fecha_pago: new Date().toISOString() });
+      showToast('Nómina marcada como PAGADA.', 'success');
+      fetchData();
+    } catch (e) {
+      console.error(e);
+      showToast((e as Error).message, 'error');
+    }
+  };
 
   const value = {
     currentUser, users, missions, allInventoryItems, allBadges, missionMilestones, supplies, missionSupplies, salaries, payrollEvents, paymentPeriods, chats, chatMessages, loading, unreadMessagesCount, viewingProfileOf, setViewingProfileOf,

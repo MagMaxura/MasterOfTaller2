@@ -48,12 +48,14 @@ const EventRow: React.FC<{ event: PayrollEvent }> = ({ event }) => {
 };
 
 
+
 const TechnicianPayRow: React.FC<{
     user: User;
     period: PaymentPeriod | undefined;
     onAddEvent: (user: User, date?: string) => void;
     onEditEvent?: (event: PayrollEvent) => void;
-}> = ({ user, period, onAddEvent, onEditEvent }) => {
+    onMarkAsPaid: (periodId: string) => void;
+}> = ({ user, period, onAddEvent, onEditEvent, onMarkAsPaid }) => {
     const [isExpanded, setIsExpanded] = useState(false);
 
     // Group events for summary
@@ -114,7 +116,21 @@ const TechnicianPayRow: React.FC<{
                     </span>
                 )}
                 <div className="font-bold text-lg mr-4">{period ? formatCurrency(period.monto_final_a_pagar) : '-'}</div>
-                <button onClick={(e) => { e.stopPropagation(); onAddEvent(user); }} className="bg-brand-blue text-white text-xs font-semibold py-1 px-3 rounded hover:bg-blue-700">Añadir Evento</button>
+
+                <div className="flex gap-2">
+                    {period?.estado === PaymentStatus.CALCULATED && (
+                        <button
+                            onClick={(e) => { e.stopPropagation(); onMarkAsPaid(period.id); }}
+                            className="bg-brand-green text-brand-primary text-xs font-bold py-1 px-3 rounded hover:bg-green-400 border border-brand-green/50"
+                            title="Marcar como Pagado"
+                        >
+                            Pagar
+                        </button>
+                    )}
+                    {period?.estado !== PaymentStatus.PAID && (
+                        <button onClick={(e) => { e.stopPropagation(); onAddEvent(user); }} className="bg-brand-blue text-white text-xs font-semibold py-1 px-3 rounded hover:bg-blue-700">Añadir Evento</button>
+                    )}
+                </div>
             </div>
 
             {isExpanded && period && summary && (
@@ -224,12 +240,11 @@ const PayrollManagement: React.FC<PayrollManagementProps> = ({ onAddEvent, onEdi
         }
     }
 
-    const handleMarkAllAsPaid = async () => {
-        if (calculatedPeriods.length === 0) return;
-        if (!window.confirm(`¿Confirmar el pago de ${calculatedPeriods.length} nóminas? Esta acción es irreversible.`)) return;
+    const handleMarkSingleAsPaid = async (periodId: string) => {
+        if (!window.confirm('¿Confirmar que este monto ha sido pagado?')) return;
         setIsLoading('paying');
         try {
-            await Promise.all(calculatedPeriods.map(p => markPeriodAsPaid(p.id)));
+            await markPeriodAsPaid(periodId);
         } catch (error) {
             console.error(error)
         } finally {
@@ -239,68 +254,137 @@ const PayrollManagement: React.FC<PayrollManagementProps> = ({ onAddEvent, onEdi
 
     const totalToPay = useMemo(() => calculatedPeriods.reduce((sum, p) => sum + p.monto_final_a_pagar, 0), [calculatedPeriods]);
 
+    const [showHistory, setShowHistory] = useState(false);
+    const paidPeriods = useMemo(() => paymentPeriods.filter(p => p.estado === PaymentStatus.PAID), [paymentPeriods]);
+
+    const historyGroups = useMemo(() => {
+        const groups: Record<string, PaymentPeriod[]> = {};
+        paidPeriods.forEach(p => {
+            const date = p.fecha_pago ? p.fecha_pago.split('T')[0] : p.fecha_fin_periodo;
+            if (!groups[date]) groups[date] = [];
+            groups[date].push(p);
+        });
+        return Object.entries(groups).sort((a, b) => new Date(b[0]).getTime() - new Date(a[0]).getTime());
+    }, [paidPeriods]);
+
     return (
         <div className="bg-brand-secondary p-6 rounded-lg shadow-xl">
-            <h2 className="text-3xl font-bold mb-2 text-center">Gestión de Nómina</h2>
-            <p className="text-center text-brand-light mb-6">Calcula, revisa y gestiona los pagos quincenales.</p>
-
-            <div className="bg-brand-primary p-4 rounded-lg mb-6 flex flex-col sm:flex-row justify-between items-center gap-4">
+            <div className="flex justify-between items-center mb-6">
                 <div>
-                    <h4 className="font-bold text-lg">Próximo Pago: {nextPayDate.toLocaleDateString()}</h4>
-                    <p className="text-brand-light text-sm">Total calculado a pagar: <span className="font-bold text-brand-orange text-base">{formatCurrency(totalToPay)}</span></p>
+                    <h2 className="text-3xl font-bold text-center sm:text-left">Gestión de Nómina</h2>
+                    <p className="text-brand-light">Calcula, revisa y gestiona los pagos quincenales.</p>
                 </div>
-                <div className="flex gap-2">
-                    <button onClick={handleCalculate} disabled={!!isLoading} className="bg-brand-blue text-white font-bold py-2 px-4 rounded-lg flex items-center justify-center gap-2 disabled:bg-brand-accent">
-                        {isLoading === 'calculating' && <div className="w-5 h-5 border-2 border-t-transparent border-white rounded-full animate-spin"></div>}
-                        Calcular Nómina
+                <div className="flex bg-brand-primary p-1 rounded-lg">
+                    <button
+                        onClick={() => setShowHistory(false)}
+                        className={`px-4 py-2 rounded-md transition-all ${!showHistory ? 'bg-brand-blue text-white shadow' : 'text-brand-light hover:text-white'}`}
+                    >
+                        Pendientes
                     </button>
-                    <button onClick={handleMarkAllAsPaid} disabled={!!isLoading || calculatedPeriods.length === 0} className="bg-brand-green text-brand-primary font-bold py-2 px-4 rounded-lg flex items-center justify-center gap-2 disabled:bg-brand-accent">
-                        {isLoading === 'paying' && <div className="w-5 h-5 border-2 border-t-transparent border-brand-primary rounded-full animate-spin"></div>}
-                        Marcar como Pagado
+                    <button
+                        onClick={() => setShowHistory(true)}
+                        className={`px-4 py-2 rounded-md transition-all ${showHistory ? 'bg-brand-blue text-white shadow' : 'text-brand-light hover:text-white'}`}
+                    >
+                        Historial
                     </button>
                 </div>
             </div>
 
-            {/* ERROR REPAIR UTILITY */}
-            <div className="bg-brand-secondary/50 p-2 mb-4 rounded border border-brand-accent/30 text-xs text-brand-light flex justify-between items-center">
-                <span>¿Los totales siguen sumando en lugar de restar? Ejecuta esta corrección rápida:</span>
-                <button
-                    onClick={async () => {
-                        if (!confirm('Esto buscará y corregirá eventos con valores negativos en la base de datos. ¿Continuar?')) return;
-                        setIsLoading('calculating');
-                        try {
-                            // 1. Fetch negative events
-                            const { data: negEvents } = await supabase.from('eventos_nomina').select('*').lt('monto', 0);
-                            if (!negEvents || negEvents.length === 0) {
-                                alert('No se encontraron eventos con error.');
-                            } else {
-                                // 2. Fix them
-                                await Promise.all(negEvents.map(ev =>
-                                    supabase.from('eventos_nomina').update({ monto: Math.abs(ev.monto) }).eq('id', ev.id)
-                                ));
-                                alert(`Se corrigieron ${negEvents.length} eventos. Recalculando...`);
-                                await calculatePayPeriods();
-                            }
-                        } catch (e) {
-                            console.error(e);
-                            alert('Error al corregir datos');
-                        } finally {
-                            setIsLoading(null);
-                        }
-                    }}
-                    disabled={!!isLoading}
-                    className="bg-brand-red text-white py-1 px-3 rounded hover:bg-red-700 transition"
-                >
-                    Reparar Datos
-                </button>
-            </div>
+            {!showHistory ? (
+                <>
+                    <div className="bg-brand-primary p-4 rounded-lg mb-6 flex flex-col sm:flex-row justify-between items-center gap-4">
+                        <div>
+                            <h4 className="font-bold text-lg">Próximo Pago: {nextPayDate.toLocaleDateString()}</h4>
+                            <p className="text-brand-light text-sm">Total calculado a pagar: <span className="font-bold text-brand-orange text-base">{formatCurrency(totalToPay)}</span></p>
+                        </div>
+                        <div className="flex gap-2">
+                            <button onClick={handleCalculate} disabled={!!isLoading} className="bg-brand-blue text-white font-bold py-2 px-4 rounded-lg flex items-center justify-center gap-2 disabled:bg-brand-accent">
+                                {isLoading === 'calculating' && <div className="w-5 h-5 border-2 border-t-transparent border-white rounded-full animate-spin"></div>}
+                                Calcular Nómina
+                            </button>
+                        </div>
+                    </div>
 
-            <div className="space-y-4">
-                {technicians.map(tech => {
-                    const techPeriod = calculatedPeriods.find(p => p.user_id === tech.id);
-                    return <TechnicianPayRow key={tech.id} user={tech} period={techPeriod} onAddEvent={onAddEvent} onEditEvent={onEditEvent} />
-                })}
-            </div>
+                    {/* ERROR REPAIR UTILITY */}
+                    <div className="bg-brand-secondary/50 p-2 mb-4 rounded border border-brand-accent/30 text-xs text-brand-light flex justify-between items-center">
+                        <span>¿Los totales siguen sumando en lugar de restar? Ejecuta esta corrección rápida:</span>
+                        <button
+                            onClick={async () => {
+                                if (!confirm('Esto buscará y corregirá eventos con valores negativos en la base de datos. ¿Continuar?')) return;
+                                setIsLoading('calculating');
+                                try {
+                                    // 1. Fetch negative events
+                                    const { data: negEvents } = await supabase.from('eventos_nomina').select('*').lt('monto', 0);
+                                    if (!negEvents || negEvents.length === 0) {
+                                        alert('No se encontraron eventos con error.');
+                                    } else {
+                                        // 2. Fix them
+                                        await Promise.all(negEvents.map(ev =>
+                                            supabase.from('eventos_nomina').update({ monto: Math.abs(ev.monto) }).eq('id', ev.id)
+                                        ));
+                                        alert(`Se corrigieron ${negEvents.length} eventos. Recalculando...`);
+                                        await calculatePayPeriods();
+                                    }
+                                } catch (e) {
+                                    console.error(e);
+                                    alert('Error al corregir datos');
+                                } finally {
+                                    setIsLoading(null);
+                                }
+                            }}
+                            disabled={!!isLoading}
+                            className="bg-brand-red text-white py-1 px-3 rounded hover:bg-red-700 transition"
+                        >
+                            Reparar Datos
+                        </button>
+                    </div>
+
+                    <div className="space-y-4">
+                        {technicians.map(tech => {
+                            const techPeriod = calculatedPeriods.find(p => p.user_id === tech.id);
+                            return <TechnicianPayRow
+                                key={tech.id}
+                                user={tech}
+                                period={techPeriod}
+                                onAddEvent={onAddEvent}
+                                onEditEvent={onEditEvent}
+                                onMarkAsPaid={handleMarkSingleAsPaid}
+                            />
+                        })}
+                    </div>
+                </>
+            ) : (
+                <div className="space-y-8 animation-fade-in">
+                    {historyGroups.map(([date, periods]) => (
+                        <div key={date}>
+                            <h3 className="text-xl font-bold text-brand-light mb-4 border-b border-brand-accent pb-2">
+                                Pago: {new Date(date + 'T00:00:00').toLocaleDateString()}
+                            </h3>
+                            <div className="space-y-4">
+                                {periods.map(period => {
+                                    const tech = users.find(u => u.id === period.user_id);
+                                    if (!tech) return null;
+                                    return (
+                                        <TechnicianPayRow
+                                            key={period.id}
+                                            user={tech}
+                                            period={period}
+                                            onAddEvent={() => { }} // No-op for history
+                                            onEditEvent={() => { }} // No-op for history
+                                            onMarkAsPaid={() => { }} // No-op
+                                        />
+                                    );
+                                })}
+                            </div>
+                        </div>
+                    ))}
+                    {historyGroups.length === 0 && (
+                        <div className="text-center py-10 bg-brand-primary rounded-lg text-brand-light italic">
+                            No hay historial de pagos registrado.
+                        </div>
+                    )}
+                </div>
+            )}
         </div>
     );
 };
