@@ -1,5 +1,5 @@
 
-import React, { useMemo } from 'react';
+import React from 'react';
 import { User, MissionStatus, Role } from '../../types';
 import { useData } from '../../contexts/DataContext';
 import { useToast } from '../../contexts/ToastContext';
@@ -27,68 +27,112 @@ const UserManagement: React.FC<{
     };
 
     const handleDeactivate = async (userToDeactivate: User) => {
-        if (window.confirm(`¿Estás seguro de que quieres desactivar a ${userToDeactivate.name}? El técnico ya no aparecerá en la aplicación, pero su historial de misiones se conservará. Esta acción se puede revertir desde la base de datos.`)) {
+        if (window.confirm(`¿Estás seguro de que quieres desactivar a ${userToDeactivate.name}?`)) {
             try {
                 await deactivateUser(userToDeactivate.id);
                 showToast(`${userToDeactivate.name} ha sido desactivado.`, 'success');
             } catch (error) {
-                showToast(error instanceof Error ? error.message : "Error al desactivar el técnico.", 'error');
+                showToast(error instanceof Error ? error.message : "Error al desactivar.", 'error');
             }
         }
     };
     
     return (
-        <div className="bg-brand-secondary p-6 rounded-lg">
-            <h3 className="text-xl font-bold mb-6">Gestión de Técnicos</h3>
-            <div className="space-y-4">
-                {technicians.length === 0 && <p className="text-brand-light italic text-center p-8">No hay técnicos registrados.</p>}
-                {technicians.map(user => {
-                    const userMissions = missions.filter(m => m.assignedTo?.includes(user.id));
-                    const completed = userMissions.filter(m => m.status === MissionStatus.COMPLETED).length;
-                    const inProgress = userMissions.filter(m => m.status === MissionStatus.IN_PROGRESS).length;
-                    const salary = salaries.find(s => s.user_id === user.id);
+        <div className="bg-brand-secondary p-6 rounded-lg shadow-lg">
+            <h3 className="text-xl font-bold mb-6 text-brand-highlight">Gestión de Técnicos</h3>
+            <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse">
+                    <thead>
+                        <tr className="border-b-2 border-brand-accent text-sm text-brand-light uppercase tracking-wider">
+                            <th className="p-4 font-semibold">Técnico</th>
+                            <th className="p-4 font-semibold text-center">Nivel / XP</th>
+                            <th className="p-4 font-semibold text-center">Misiones</th>
+                            <th className="p-4 font-semibold text-right">Salario Base</th>
+                            <th className="p-4 font-semibold text-right">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody className="divide-y divide-brand-accent">
+                        {technicians.length === 0 && (
+                            <tr>
+                                <td colSpan={5} className="p-8 text-center text-brand-light italic">No hay técnicos registrados.</td>
+                            </tr>
+                        )}
+                        {technicians.map(user => {
+                            const userMissions = missions.filter(m => m.assignedTo?.includes(user.id));
+                            const completed = userMissions.filter(m => m.status === MissionStatus.COMPLETED).length;
+                            const inProgress = userMissions.filter(m => m.status === MissionStatus.IN_PROGRESS).length;
+                            const salary = salaries.find(s => s.user_id === user.id);
 
-                    return (
-                        <div key={user.id} className="bg-brand-primary rounded-lg shadow-sm border border-brand-accent p-4 flex flex-col lg:flex-row items-start lg:items-center gap-6 transition-all hover:shadow-md">
-                            {/* Perfil */}
-                            <div className="flex items-center gap-4 min-w-[250px]">
-                                <img src={user.avatar} alt={user.name} className="w-14 h-14 rounded-full border-2 border-brand-blue object-cover" />
-                                <div>
-                                    <h4 className="font-bold text-lg text-brand-highlight">{user.name}</h4>
-                                    <p className="text-sm text-brand-light">Nivel {user.level} - {user.xp} XP</p>
-                                </div>
-                            </div>
-
-                            {/* Estadísticas y Salario */}
-                            <div className="flex-1 grid grid-cols-2 sm:grid-cols-4 gap-4 w-full lg:w-auto border-t lg:border-t-0 lg:border-l border-brand-accent pt-4 lg:pt-0 lg:pl-6 text-sm">
-                                <div>
-                                    <p className="text-brand-light text-xs uppercase font-bold">Completadas</p>
-                                    <p className="font-semibold text-brand-highlight">{completed}</p>
-                                </div>
-                                <div>
-                                    <p className="text-brand-light text-xs uppercase font-bold">En Progreso</p>
-                                    <p className="font-semibold text-brand-highlight">{inProgress}</p>
-                                </div>
-                                <div className="sm:col-span-2">
-                                    <p className="text-brand-light text-xs uppercase font-bold">Salario Base (Qincenal)</p>
-                                    <p className={`font-bold ${salary ? 'text-brand-green' : 'text-brand-orange'}`}>
-                                        {salary ? formatCurrency(salary.monto_base_quincenal) : 'No definido'}
-                                    </p>
-                                </div>
-                            </div>
-
-                            {/* Acciones */}
-                            <div className="flex flex-wrap gap-2 w-full lg:w-auto justify-start lg:justify-end mt-2 lg:mt-0">
-                                <button onClick={() => setViewingProfileOf(user)} className="bg-brand-light/10 text-brand-highlight text-xs font-semibold py-2 px-3 rounded hover:bg-brand-light/20 transition-colors border border-brand-accent">Perfil</button>
-                                <button onClick={() => onManageInventory(user)} className="bg-brand-light/10 text-brand-highlight text-xs font-semibold py-2 px-3 rounded hover:bg-brand-light/20 transition-colors border border-brand-accent">Inventario</button>
-                                <button onClick={() => onManageBadges(user)} className="bg-brand-light/10 text-brand-highlight text-xs font-semibold py-2 px-3 rounded hover:bg-brand-light/20 transition-colors border border-brand-accent">Insignias</button>
-                                <button onClick={() => onSetSalary(user)} className="bg-brand-blue text-white text-xs font-semibold py-2 px-3 rounded hover:bg-blue-600 transition-colors">Salario</button>
-                                <button onClick={() => handleNotifyClick(user)} className="bg-brand-orange text-white text-xs font-semibold py-2 px-3 rounded hover:bg-orange-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed" disabled={!user.pushSubscription}>Notificar</button>
-                                <button onClick={() => handleDeactivate(user)} className="bg-brand-red/10 text-brand-red text-xs font-semibold py-2 px-3 rounded hover:bg-brand-red/20 transition-colors">Desactivar</button>
-                            </div>
-                        </div>
-                    );
-                })}
+                            return (
+                                <tr key={user.id} className="hover:bg-brand-primary transition-colors group bg-white md:bg-transparent rounded-lg md:rounded-none mb-4 md:mb-0 block md:table-row shadow md:shadow-none border md:border-0 border-brand-accent">
+                                    <td className="p-4 block md:table-cell">
+                                        <div className="flex items-center gap-3">
+                                            <img src={user.avatar} alt={user.name} className="w-10 h-10 rounded-full border border-brand-accent object-cover" />
+                                            <div>
+                                                <h4 className="font-bold text-brand-highlight">{user.name}</h4>
+                                                <button onClick={() => setViewingProfileOf(user)} className="text-xs text-brand-blue hover:underline">Ver Perfil</button>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td className="p-4 text-center block md:table-cell border-t md:border-t-0 border-brand-accent/20">
+                                        <div className="flex md:flex-col items-center justify-between md:justify-center">
+                                            <span className="md:hidden text-xs font-bold text-brand-light uppercase">Nivel</span>
+                                            <div>
+                                                <span className="font-bold text-brand-highlight block">Lvl {user.level}</span>
+                                                <span className="text-xs text-brand-light">{user.xp} XP</span>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td className="p-4 text-center block md:table-cell border-t md:border-t-0 border-brand-accent/20">
+                                        <div className="flex md:flex-col items-center justify-between md:justify-center">
+                                            <span className="md:hidden text-xs font-bold text-brand-light uppercase">Misiones</span>
+                                            <div className="flex justify-center gap-3 text-sm">
+                                                <div title="Completadas">
+                                                    <span className="text-brand-green font-bold">{completed}</span>
+                                                    <span className="text-brand-light ml-1">✓</span>
+                                                </div>
+                                                <div title="En Progreso">
+                                                    <span className="text-brand-blue font-bold">{inProgress}</span>
+                                                    <span className="text-brand-light ml-1">↻</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td className="p-4 text-right block md:table-cell border-t md:border-t-0 border-brand-accent/20">
+                                         <div className="flex md:flex-col items-center justify-between md:justify-end">
+                                            <span className="md:hidden text-xs font-bold text-brand-light uppercase">Salario</span>
+                                            <div>
+                                                <p className={`font-bold ${salary ? 'text-brand-green' : 'text-brand-orange'}`}>
+                                                    {salary ? formatCurrency(salary.monto_base_quincenal) : 'No definido'}
+                                                </p>
+                                                <p className="text-[10px] text-brand-light uppercase hidden md:block">Quincenal</p>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td className="p-4 text-right block md:table-cell border-t md:border-t-0 border-brand-accent/20">
+                                        <div className="flex justify-end gap-2 flex-wrap max-w-full md:max-w-[200px] ml-auto">
+                                            <button onClick={() => onSetSalary(user)} className="p-2 text-brand-light hover:text-brand-green bg-brand-secondary hover:bg-green-50 rounded border border-brand-accent transition-colors" title="Definir Salario">
+                                                💲
+                                            </button>
+                                            <button onClick={() => onManageInventory(user)} className="p-2 text-brand-light hover:text-brand-blue bg-brand-secondary hover:bg-blue-50 rounded border border-brand-accent transition-colors" title="Inventario">
+                                                📦
+                                            </button>
+                                            <button onClick={() => onManageBadges(user)} className="p-2 text-brand-light hover:text-brand-orange bg-brand-secondary hover:bg-orange-50 rounded border border-brand-accent transition-colors" title="Insignias">
+                                                🏅
+                                            </button>
+                                            <button onClick={() => handleNotifyClick(user)} disabled={!user.pushSubscription} className="p-2 text-brand-light hover:text-brand-blue bg-brand-secondary hover:bg-blue-50 rounded border border-brand-accent transition-colors disabled:opacity-30" title="Notificar">
+                                                🔔
+                                            </button>
+                                            <button onClick={() => handleDeactivate(user)} className="p-2 text-brand-light hover:text-brand-red bg-brand-secondary hover:bg-red-50 rounded border border-brand-accent transition-colors" title="Desactivar">
+                                                🚫
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            );
+                        })}
+                    </tbody>
+                </table>
             </div>
         </div>
     );

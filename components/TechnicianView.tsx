@@ -33,15 +33,9 @@ const TechnicianUI: React.FC<TechnicianUIProps> = ({ user, isAdminViewing = fals
     const { missions, users, unreadMessagesCount } = useData();
     const [activeTab, setActiveTab] = useState('missions');
     const [selectedMission, setSelectedMission] = useState<Mission | null>(null);
-    const [version, setVersion] = useState('');
     const userHasSupplyBadge = useMemo(() => hasSupplyAdminBadge(user), [user]);
 
-    useEffect(() => {
-        fetch('/package.json')
-            .then(res => res.json())
-            .then(data => setVersion(data.version))
-            .catch(error => console.error('Error fetching version:', error));
-    }, []);
+    // Removed package.json fetch to avoid 404 errors
 
     // Geolocation tracking
     useEffect(() => {
@@ -135,7 +129,7 @@ const TechnicianUI: React.FC<TechnicianUIProps> = ({ user, isAdminViewing = fals
             <main className="p-4 md:p-8 max-w-7xl mx-auto">
                 {renderContent()}
                 <footer className="text-center text-xs text-brand-light pt-8 pb-4">
-                    {version ? `Maestros del Taller v${version}` : ''}
+                    Maestros del Taller
                 </footer>
             </main>
 

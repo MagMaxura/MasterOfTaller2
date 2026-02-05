@@ -42,14 +42,8 @@ const AdminView: React.FC = () => {
     const [notifyingUser, setNotifyingUser] = useState<User | null>(null);
     const [editingMission, setEditingMission] = useState<Mission | null>(null);
     const [selectedMission, setSelectedMission] = useState<Mission | null>(null);
-    const [version, setVersion] = useState('');
-
-    useEffect(() => {
-        fetch('/package.json')
-            .then(res => res.json())
-            .then(data => setVersion(data.version))
-            .catch(error => console.error('Error fetching version:', error));
-    }, []);
+    
+    // Removed package.json fetch to avoid 404 errors in production
     
     const missionRequestsCount = useMemo(() => missions.filter(m => m.status === MissionStatus.REQUESTED).length, [missions]);
 
@@ -179,7 +173,7 @@ const AdminView: React.FC = () => {
                     </div>
                 </main>
                 <footer className="flex-shrink-0 bg-white border-t border-brand-accent p-3 text-center text-xs text-brand-light">
-                    {version ? `Maestros del Taller v${version}` : 'Cargando versión...'}
+                    Maestros del Taller
                 </footer>
             </div>
             
