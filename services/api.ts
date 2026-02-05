@@ -249,6 +249,10 @@ export const api = {
     const { error } = await supabase.from('eventos_nomina').insert(data);
     if (error) throw new Error(error.message);
   },
+  async updatePayrollEvent(id: string, data: Partial<PayrollEventInsert>) {
+    const { error } = await supabase.from('eventos_nomina').update(data).eq('id', id);
+    if (error) throw new Error(error.message);
+  },
   async addPaymentPeriod(data: PaymentPeriodInsert) {
     const { data: newPeriod, error } = await supabase.from('periodos_pago').insert(data).select().single();
     if (error) throw new Error(error.message);

@@ -41,7 +41,8 @@ const TechnicianPayRow: React.FC<{
     user: User;
     period: PaymentPeriod | undefined;
     onAddEvent: (user: User, date?: string) => void;
-}> = ({ user, period, onAddEvent }) => {
+    onEditEvent?: (event: PayrollEvent) => void;
+}> = ({ user, period, onAddEvent, onEditEvent }) => {
     const [isExpanded, setIsExpanded] = useState(false);
 
     // Group events for summary
@@ -111,10 +112,10 @@ const TechnicianPayRow: React.FC<{
                     {/* Timeline Visualization */}
                     <div className="mb-4 bg-brand-primary/50 p-2 rounded">
                         <UserTimeline
-                            periodStart={period.fecha_inicio_periodo}
                             periodEnd={period.fecha_fin_periodo}
                             events={period.events || []}
                             onDayClick={(date) => onAddEvent(user, date.toISOString().split('T')[0])}
+                            onEventClick={onEditEvent}
                         />
                     </div>
 
@@ -179,9 +180,10 @@ const TechnicianPayRow: React.FC<{
 
 interface PayrollManagementProps {
     onAddEvent: (user: User, date?: string) => void;
+    onEditEvent?: (event: PayrollEvent) => void;
 }
 
-const PayrollManagement: React.FC<PayrollManagementProps> = ({ onAddEvent }) => {
+const PayrollManagement: React.FC<PayrollManagementProps> = ({ onAddEvent, onEditEvent }) => {
     const { users, paymentPeriods, calculatePayPeriods, markPeriodAsPaid } = useData();
     const [isLoading, setIsLoading] = useState<'calculating' | 'paying' | null>(null);
 
@@ -250,7 +252,7 @@ const PayrollManagement: React.FC<PayrollManagementProps> = ({ onAddEvent }) => 
             <div className="space-y-4">
                 {technicians.map(tech => {
                     const techPeriod = calculatedPeriods.find(p => p.user_id === tech.id);
-                    return <TechnicianPayRow key={tech.id} user={tech} period={techPeriod} onAddEvent={onAddEvent} />
+                    return <TechnicianPayRow key={tech.id} user={tech} period={techPeriod} onAddEvent={onAddEvent} onEditEvent={onEditEvent} />
                 })}
             </div>
         </div>

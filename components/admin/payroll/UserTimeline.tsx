@@ -6,9 +6,10 @@ interface UserTimelineProps {
     periodEnd: string;
     events: PayrollEvent[];
     onDayClick?: (date: Date) => void;
+    onEventClick?: (event: PayrollEvent) => void;
 }
 
-const UserTimeline: React.FC<UserTimelineProps> = ({ periodStart, periodEnd, events, onDayClick }) => {
+const UserTimeline: React.FC<UserTimelineProps> = ({ periodStart, periodEnd, events, onDayClick, onEventClick }) => {
 
     // Generate array of days for the period
     const days = useMemo(() => {
@@ -107,7 +108,15 @@ const UserTimeline: React.FC<UserTimelineProps> = ({ periodStart, periodEnd, eve
                             <div className="space-y-1">
                                 {dayEvents.length > 0 ? (
                                     dayEvents.map(ev => (
-                                        <div key={ev.id} className={`w-6 h-6 rounded-full flex items-center justify-center text-xs shadow-sm ${getEventStyle(ev.tipo)}`} title={`${ev.tipo}: ${ev.descripcion}`}>
+                                        <div
+                                            key={ev.id}
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                onEventClick && onEventClick(ev);
+                                            }}
+                                            className={`w-6 h-6 rounded-full flex items-center justify-center text-xs shadow-sm hover:scale-110 transition-transform ${getEventStyle(ev.tipo)}`}
+                                            title={`${ev.tipo}: ${ev.descripcion}`}
+                                        >
                                             {getEventIcon(ev.tipo)}
                                         </div>
                                     ))

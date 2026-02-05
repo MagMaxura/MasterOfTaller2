@@ -1,6 +1,6 @@
 
 import React, { useState, useMemo } from 'react';
-import { User, Mission, MissionStatus } from '../../types';
+import { User, Mission, MissionStatus, PayrollEvent } from '../../types';
 import { useData } from '../../contexts/DataContext';
 import { useAuth } from '../../contexts/AuthContext';
 
@@ -22,13 +22,15 @@ import KnowledgeBase from '../knowledge/KnowledgeBase';
 import SuppliesManagement from './supplies/SuppliesManagement';
 import Leaderboard from '../common/Leaderboard';
 import HallOfFame from '../common/HallOfFame';
+import AddPayrollEventModal from './payroll/AddPayrollEventModal';
+import PayrollManagement from './payroll/PayrollManagement';
 
 import { PlusIcon, BoxIcon, CalendarIcon, MapPinIcon, UserIcon, ChatIcon, TasksIcon, BookOpenIcon, LogoutIcon, MenuIcon, ChartIcon, HallOfFameIcon } from '../Icons';
 
 // --- MAIN COMPONENT ---
 const AdminView: React.FC = () => {
     const { currentUser, handleLogout } = useAuth();
-    const { missions, users, unreadMessagesCount } = useData();
+    const { missions, users, unreadMessagesCount, payrollEvents } = useData();
     const [activeTab, setActiveTab] = useState('manage');
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const [managingInventoryFor, setManagingInventoryFor] = useState<User | null>(null);
@@ -37,13 +39,17 @@ const AdminView: React.FC = () => {
     const [notifyingUser, setNotifyingUser] = useState<User | null>(null);
     const [editingMission, setEditingMission] = useState<Mission | null>(null);
     const [selectedMission, setSelectedMission] = useState<Mission | null>(null);
-    
+    const [editingPayrollEvent, setEditingPayrollEvent] = useState<PayrollEvent | null>(null);
+    const [addingPayrollEventFor, setAddingPayrollEventFor] = useState<User | null>(null);
+    const [selectedDateForEvent, setSelectedDateForEvent] = useState<string | undefined>(undefined);
+
     const missionRequestsCount = useMemo(() => missions.filter(m => m.status === MissionStatus.REQUESTED).length, [missions]);
 
     const TABS = [
         { id: 'manage', label: 'Gestionar', icon: <UserIcon /> },
         { id: 'missions', label: 'Misiones', icon: <TasksIcon /> },
         { id: 'requests', label: 'Solicitudes', icon: <TasksIcon />, notification: missionRequestsCount > 0 },
+        { id: 'payroll', label: 'Nómina', icon: <ChartIcon /> },
         { id: 'leaderboard', label: 'Clasificación', icon: <ChartIcon /> },
         { id: 'hall_of_fame', label: 'Muro de la Fama', icon: <HallOfFameIcon /> },
         { id: 'create', label: 'Crear Misión', icon: <PlusIcon /> },
@@ -54,7 +60,7 @@ const AdminView: React.FC = () => {
         { id: 'calendar', label: 'Calendario', icon: <CalendarIcon /> },
         { id: 'live_map', label: 'Mapa', icon: <MapPinIcon /> },
     ];
-    
+
     const activeTabLabel = useMemo(() => TABS.find(tab => tab.id === activeTab)?.label || 'Panel de Administrador', [activeTab]);
 
     if (!currentUser) return null;
@@ -70,19 +76,19 @@ const AdminView: React.FC = () => {
             </div>
             <nav className="flex-grow flex flex-col space-y-2">
                 {TABS.map(tab => (
-                    <button 
-                        key={tab.id} 
+                    <button
+                        key={tab.id}
                         onClick={() => {
                             setActiveTab(tab.id);
                             setIsSidebarOpen(false); // Close on mobile
-                        }} 
+                        }}
                         className={`relative flex items-center gap-4 w-full px-4 py-2.5 rounded-md text-sm font-medium transition-colors text-left ${activeTab === tab.id ? 'bg-brand-blue text-white' : 'text-brand-light hover:bg-brand-accent hover:text-white'}`}
                     >
                         {React.cloneElement(tab.icon, { className: "w-5 h-5 flex-shrink-0" })}
                         <span>{tab.label}</span>
-                        {tab.id === 'requests' && tab.notification && missionRequestsCount > 0 && 
+                        {tab.id === 'requests' && tab.notification && missionRequestsCount > 0 &&
                             <span className="ml-auto h-5 min-w-[1.25rem] px-1.5 text-xs flex items-center justify-center rounded-full bg-brand-red text-white font-bold">{missionRequestsCount}</span>}
-                        {tab.id === 'chat' && tab.notification && unreadMessagesCount > 0 && 
+                        {tab.id === 'chat' && tab.notification && unreadMessagesCount > 0 &&
                             <span className="ml-auto block h-2.5 w-2.5 rounded-full bg-brand-red ring-2 ring-brand-secondary" />}
                     </button>
                 ))}
@@ -98,7 +104,7 @@ const AdminView: React.FC = () => {
 
     return (
         <div className="relative min-h-screen bg-brand-primary md:flex">
-             {/* Mobile header */}
+            {/* Mobile header */}
             <header className="sticky top-0 z-10 flex items-center justify-between bg-brand-secondary p-4 text-white md:hidden">
                 <button onClick={() => setIsSidebarOpen(true)} className="p-2 -ml-2">
                     <MenuIcon className="h-6 w-6" />
@@ -116,12 +122,22 @@ const AdminView: React.FC = () => {
             )}
 
             {/* Sidebar */}
-            <aside className={`fixed inset-y-0 left-0 z-30 w-64 transform bg-brand-secondary p-4 flex flex-col text-white transition-transform duration-300 ease-in-out md:relative md:translate-x-0 md:flex-shrink-0 ${ isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+            <aside className={`fixed inset-y-0 left-0 z-30 w-64 transform bg-brand-secondary p-4 flex flex-col text-white transition-transform duration-300 ease-in-out md:relative md:translate-x-0 md:flex-shrink-0 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
                 {sidebarContent}
             </aside>
-            
+
             <div className="flex-1 flex flex-col overflow-hidden">
                 <main className="flex-1 p-4 md:p-8 overflow-y-auto">
+
+                    <div className={activeTab === 'payroll' ? 'block' : 'hidden'}>
+                        <PayrollManagement
+                            onAddEvent={(user, date) => {
+                                setAddingPayrollEventFor(user);
+                                setSelectedDateForEvent(date);
+                            }}
+                            onEditEvent={setEditingPayrollEvent}
+                        />
+                    </div>
                     <div className={activeTab === 'manage' ? 'block' : 'hidden'}>
                         <UserManagement onManageInventory={setManagingInventoryFor} onManageBadges={setManagingBadgesFor} onNotifyUser={setNotifyingUser} />
                     </div>
@@ -153,20 +169,43 @@ const AdminView: React.FC = () => {
                         <KnowledgeBase />
                     </div>
                     <div className={activeTab === 'calendar' ? 'block' : 'hidden'}>
-                        <MissionCalendar missions={missions} users={users} onOpenMission={setSelectedMission} />
+                        <MissionCalendar
+                            missions={missions}
+                            users={users}
+                            payrollEvents={payrollEvents}
+                            onOpenMission={setSelectedMission}
+                            onEditPayrollEvent={setEditingPayrollEvent}
+                        />
                     </div>
                     <div className={activeTab === 'live_map' ? 'block' : 'hidden'}>
                         <LiveLocationMap users={users} isVisible={activeTab === 'live_map'} />
                     </div>
                 </main>
             </div>
-            
+
             {isCreateItemModalOpen && <CreateItemModal onClose={() => setIsCreateItemModalOpen(false)} />}
             {managingInventoryFor && <InventoryManagementModal user={managingInventoryFor} onClose={() => setManagingInventoryFor(null)} />}
             {managingBadgesFor && <BadgeManagementModal user={managingBadgesFor} onClose={() => setManagingBadgesFor(null)} />}
             {notifyingUser && <NotificationModal user={notifyingUser} onClose={() => setNotifyingUser(null)} />}
             {editingMission && <ApproveMissionModal mission={editingMission} onClose={() => setEditingMission(null)} />}
             {selectedMission && <MissionDetailsModal mission={selectedMission} user={currentUser} onClose={() => setSelectedMission(null)} isAdminViewing={true} />}
+            {editingPayrollEvent && (
+                <AddPayrollEventModal
+                    user={users.find(u => u.id === editingPayrollEvent.user_id)!}
+                    existingEvent={editingPayrollEvent}
+                    onClose={() => setEditingPayrollEvent(null)}
+                />
+            )}
+            {addingPayrollEventFor && (
+                <AddPayrollEventModal
+                    user={addingPayrollEventFor}
+                    initialDate={selectedDateForEvent}
+                    onClose={() => {
+                        setAddingPayrollEventFor(null);
+                        setSelectedDateForEvent(undefined);
+                    }}
+                />
+            )}
         </div>
     );
 };

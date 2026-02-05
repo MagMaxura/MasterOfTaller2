@@ -61,6 +61,7 @@ interface DataContextType {
   revokeBadge: (userId: string, badgeId: string) => Promise<void>;
   setSalary: (userId: string, amount: number, salaryId?: string) => Promise<void>;
   addPayrollEvent: (eventData: Omit<PayrollEvent, 'id' | 'created_at' | 'periodo_pago_id' | 'mission_id'>) => Promise<void>;
+  updatePayrollEvent: (id: string, eventData: Partial<PayrollEvent>) => Promise<void>;
   createMissionBonusEvent: (userId: string, mission: Mission) => Promise<void>;
   calculatePayPeriods: () => Promise<void>;
   markPeriodAsPaid: (periodId: string) => Promise<void>;
@@ -521,6 +522,10 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (currentUser?.id.startsWith('demo-')) { showToast('Acción simulada en modo demo.', 'success'); return Promise.resolve(); }
     return api.addPayrollEvent(eventData);
   }
+  const updatePayrollEvent = (id: string, eventData: Partial<PayrollEvent>) => {
+    if (currentUser?.id.startsWith('demo-')) { showToast('Acción simulada en modo demo.', 'success'); return Promise.resolve(); }
+    return api.updatePayrollEvent(id, eventData);
+  }
   const createMissionBonusEvent = (userId: string, mission: Mission) => {
     if (currentUser?.id.startsWith('demo-')) { return Promise.resolve(); }
     if (!mission.bonusMonetario || mission.bonusMonetario <= 0) return Promise.resolve();
@@ -596,7 +601,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     updateMission, updateUser, deactivateUser, updateUserAvatar, addMission, requestMission, technicianRequestMission, rejectMissionRequest, deleteMission, addMissionMilestone, toggleMilestoneSolution, assignInventoryItem, removeInventoryItem, disposeOfInventoryItem, updateInventoryItemQuantity, addInventoryItem, deleteInventoryItem, savePushSubscription, sendNotification, handleSelectOrCreateChat, handleSendMessage, handleMarkAsRead, requestToJoinMission, approveJoinRequest, rejectJoinRequest,
     addSupply, updateSupply, deleteSupply, assignSupplyToMission, updateMissionSupply, removeSupplyFromMission,
     assignBadge, revokeBadge,
-    setSalary, addPayrollEvent, createMissionBonusEvent, calculatePayPeriods, markPeriodAsPaid
+    setSalary, addPayrollEvent, updatePayrollEvent, createMissionBonusEvent, calculatePayPeriods, markPeriodAsPaid
   };
 
   return (
