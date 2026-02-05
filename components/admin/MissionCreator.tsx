@@ -29,17 +29,20 @@ const MissionCreator: React.FC<{ users: User[] }> = ({ users }) => {
         const selectedId = e.target.value;
         if (selectedId && !assignedTo.includes(selectedId)) {
             setAssignedTo([...assignedTo, selectedId]);
+            if (!visibleTo.includes(selectedId)) {
+                setVisibleTo(prev => [...prev, selectedId]);
+            }
         }
     };
 
     const removeAssignee = (id: string) => {
         setAssignedTo(assignedTo.filter(techId => techId !== id));
     };
-    
+
     const handleVisibilityChange = (technicianId: string) => {
-        setVisibleTo(prev => 
-            prev.includes(technicianId) 
-                ? prev.filter(id => id !== technicianId) 
+        setVisibleTo(prev =>
+            prev.includes(technicianId)
+                ? prev.filter(id => id !== technicianId)
                 : [...prev, technicianId]
         );
     };
@@ -110,19 +113,19 @@ const MissionCreator: React.FC<{ users: User[] }> = ({ users }) => {
             setIsLoading(false);
         }
     };
-    
+
     const assignedUsers = assignedTo.map(id => technicians.find(t => t.id === id)).filter(Boolean);
 
     return (
         <form onSubmit={handleSubmit} className="bg-brand-secondary p-6 rounded-lg shadow-xl space-y-6">
             <h3 className="text-2xl font-bold text-center">Crear Nueva Misión</h3>
-            
+
             {/* AI Generation Section */}
             <div className="bg-brand-primary p-4 rounded-lg border border-brand-accent">
                 <h4 className="font-bold text-lg mb-2 text-brand-orange">Creación Rápida con IA</h4>
                 <p className="text-sm text-brand-light mb-3">Describe la misión en lenguaje natural y la IA llenará los campos por ti. Ej: "Cambiar aceite y filtros de un VW Amarok 2021, plazo 2 días"</p>
                 <div className="flex gap-2">
-                    <input 
+                    <input
                         type="text"
                         value={aiPrompt}
                         onChange={(e) => setAiPrompt(e.target.value)}
@@ -135,7 +138,7 @@ const MissionCreator: React.FC<{ users: User[] }> = ({ users }) => {
                         disabled={isAiLoading}
                         className="bg-brand-orange text-brand-primary font-bold py-2 px-4 rounded-lg flex items-center justify-center gap-2 disabled:bg-opacity-50"
                     >
-                        {isAiLoading 
+                        {isAiLoading
                             ? <div className="w-5 h-5 border-2 border-t-transparent border-brand-primary rounded-full animate-spin"></div>
                             : <AiIcon className="w-5 h-5" />
                         }
@@ -147,9 +150,9 @@ const MissionCreator: React.FC<{ users: User[] }> = ({ users }) => {
             {error && <p className="bg-brand-red/20 text-brand-red p-2 rounded-md text-sm">{error}</p>}
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                 <input type="text" placeholder="Título de la Misión" value={title} onChange={e => setTitle(e.target.value)} className="w-full bg-brand-primary p-3 rounded border border-brand-accent" required />
+                <input type="text" placeholder="Título de la Misión" value={title} onChange={e => setTitle(e.target.value)} className="w-full bg-brand-primary p-3 rounded border border-brand-accent" required />
                 <div>
-                     <select onChange={handleAssigneeChange} value="" className="w-full bg-brand-primary p-3 rounded border border-brand-accent mb-2">
+                    <select onChange={handleAssigneeChange} value="" className="w-full bg-brand-primary p-3 rounded border border-brand-accent mb-2">
                         <option value="">Asignar técnico...</option>
                         {technicians.filter(t => !assignedTo.includes(t.id)).map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
                     </select>
@@ -164,7 +167,7 @@ const MissionCreator: React.FC<{ users: User[] }> = ({ users }) => {
                     </div>
                 </div>
             </div>
-            
+
             <textarea placeholder="Descripción detallada de la misión..." value={description} onChange={e => setDescription(e.target.value)} className="w-full bg-brand-primary p-3 rounded border border-brand-accent h-28" required />
 
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-4">
@@ -174,7 +177,7 @@ const MissionCreator: React.FC<{ users: User[] }> = ({ users }) => {
                 <div><label className="block text-sm font-medium text-brand-light mb-1">XP</label><input type="number" value={xp} onChange={e => setXp(parseInt(e.target.value, 10) || 0)} min="0" className="w-full bg-brand-primary p-2.5 rounded border border-brand-accent" required /></div>
                 <div><label className="block text-sm font-medium text-brand-light mb-1">Bono ($)</label><input type="number" value={bonusMonetario} onChange={e => setBonusMonetario(parseInt(e.target.value, 10) || 0)} min="0" className="w-full bg-brand-primary p-2.5 rounded border border-brand-accent" /></div>
             </div>
-            
+
             <div className="col-span-full">
                 <label className="block font-semibold mb-2">Visible para Técnicos</label>
                 <div className="bg-brand-primary p-3 rounded-lg grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">

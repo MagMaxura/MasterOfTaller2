@@ -9,7 +9,7 @@ const AdminMissionCard: React.FC<{ mission: Mission, onOpen: () => void, onEdit:
     const { users, deleteMission } = useData();
     const { showToast } = useToast();
     const [isDeleting, setIsDeleting] = useState(false);
-    
+
     const usersMap = useMemo(() => new Map(users.map(u => [u.id, u])), [users]);
     const assignedUsers = (mission.assignedTo || []).map(id => usersMap.get(id)).filter((u): u is User => !!u);
     const visibleToUsers = (mission.visibleTo || []).map(id => usersMap.get(id)).filter((u): u is User => !!u);
@@ -47,7 +47,7 @@ const AdminMissionCard: React.FC<{ mission: Mission, onOpen: () => void, onEdit:
                 <h4 className="font-bold text-brand-highlight truncate group-hover:text-brand-blue transition-colors">{mission.title}</h4>
                 <p className="text-sm text-brand-light mt-1 h-10 overflow-hidden">{mission.description}</p>
             </div>
-            
+
             <div className="flex items-center gap-2">
                 <span className="text-xs font-semibold text-brand-light">Equipo:</span>
                 {assignedUsers.length > 0 ? (
@@ -61,7 +61,7 @@ const AdminMissionCard: React.FC<{ mission: Mission, onOpen: () => void, onEdit:
                 )}
             </div>
 
-            <div className="flex justify-between items-center text-sm border-t border-brand-accent/50 mt-2 pt-3">
+            <div className="flex justify-between items-center text-sm border-t border-brand-accent/50 mt-2 pt-3 relative z-20">
                 <div>
                     <span className="font-bold text-brand-orange">{mission.xp} XP</span>
                 </div>
