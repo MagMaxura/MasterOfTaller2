@@ -2,6 +2,7 @@ import React, { useMemo } from 'react';
 import { useData } from '../../../contexts/DataContext';
 import { PaymentPeriod, PayrollEvent, PayrollEventType } from '../../../types';
 import { ArrowUpIcon, ArrowDownIcon } from '../../Icons';
+import UserTimeline from '../../admin/payroll/UserTimeline';
 
 const EventRow: React.FC<{ event: PayrollEvent }> = ({ event }) => {
     const isPositive = event.monto > 0;
@@ -11,11 +12,16 @@ const EventRow: React.FC<{ event: PayrollEvent }> = ({ event }) => {
         [PayrollEventType.PENALTY]: 'Apercibimiento',
         [PayrollEventType.ABSENCE]: 'Falta',
         [PayrollEventType.TARDINESS]: 'Tardanza',
+        [PayrollEventType.SICK_LEAVE]: 'Enfermedad',
+        [PayrollEventType.VACATION]: 'Vacaciones',
+        [PayrollEventType.PERMITTED_LEAVE]: 'Licencia',
+        [PayrollEventType.EARLY_DEPARTURE]: 'Salida Temprana',
+        [PayrollEventType.LOAN]: 'Préstamo'
     };
     return (
         <div className="flex justify-between items-center py-2 border-b border-brand-accent/50">
             <div>
-                <p className="font-semibold">{eventTypeMap[event.tipo]}</p>
+                <p className="font-semibold">{eventTypeMap[event.tipo] || event.tipo}</p>
                 <p className="text-xs text-brand-light italic">{event.descripcion}</p>
             </div>
             <p className={`font-bold ${isPositive ? 'text-brand-green' : 'text-brand-red'}`}>
@@ -38,6 +44,14 @@ const PaymentPeriodCard: React.FC<{ period: PaymentPeriod }> = ({ period }) => {
                 </span>
             </div>
 
+            <div className="mb-6">
+                <UserTimeline
+                    periodStart={period.fecha_inicio_periodo}
+                    periodEnd={period.fecha_fin_periodo}
+                    events={period.events}
+                />
+            </div>
+
             <div className="space-y-3">
                 <div className="flex justify-between items-center p-3 bg-brand-secondary rounded-lg">
                     <p>Salario Base</p>
@@ -47,7 +61,7 @@ const PaymentPeriodCard: React.FC<{ period: PaymentPeriod }> = ({ period }) => {
             </div>
 
             <div className="border-t border-brand-accent mt-4 pt-4 space-y-2">
-                 <div className="flex justify-between text-sm">
+                <div className="flex justify-between text-sm">
                     <p className="text-brand-green flex items-center gap-1"><ArrowUpIcon className="w-4 h-4" /> Total Adiciones</p>
                     <p className="font-semibold text-brand-green">+${period.total_adiciones.toLocaleString('es-AR')}</p>
                 </div>
@@ -70,7 +84,7 @@ const PaymentsView: React.FC = () => {
     const userPaymentPeriods = useMemo(() => {
         if (!currentUser) return [];
         return paymentPeriods.filter(p => p.user_id === currentUser.id)
-                             .sort((a, b) => new Date(b.fecha_pago).getTime() - new Date(a.fecha_pago).getTime());
+            .sort((a, b) => new Date(b.fecha_pago).getTime() - new Date(a.fecha_pago).getTime());
     }, [currentUser, paymentPeriods]);
 
     const nextPayment = userPaymentPeriods.find(p => p.estado === 'CALCULADO');
@@ -84,7 +98,7 @@ const PaymentsView: React.FC = () => {
             <p className="text-center text-brand-light mb-8 max-w-2xl mx-auto">
                 Consulta el estado de tu próximo pago y tu historial de quincenas.
             </p>
-            
+
             <div className="space-y-8">
                 <div>
                     <h3 className="text-2xl font-bold mb-4">Próximo Pago</h3>
@@ -100,9 +114,9 @@ const PaymentsView: React.FC = () => {
                 <div>
                     <h3 className="text-2xl font-bold mb-4">Historial de Pagos</h3>
                     {pastPayments.length > 0 ? (
-                         <div className="space-y-6">
+                        <div className="space-y-6">
                             {pastPayments.map(period => <PaymentPeriodCard key={period.id} period={period} />)}
-                         </div>
+                        </div>
                     ) : (
                         <div className="bg-brand-primary p-8 rounded-lg text-center text-brand-light italic">
                             No tienes pagos anteriores registrados.
