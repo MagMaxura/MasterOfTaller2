@@ -79,7 +79,7 @@ const AddPayrollEventModal: React.FC<AddPayrollEventModalProps> = ({ user, onClo
             return;
         }
 
-        const finalAmount = isDeduction ? -Math.abs(monto) : Math.abs(monto);
+        const finalAmount = Math.abs(monto);
 
         setIsLoading(true);
         try {

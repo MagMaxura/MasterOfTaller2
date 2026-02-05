@@ -112,6 +112,7 @@ const TechnicianPayRow: React.FC<{
                     {/* Timeline Visualization */}
                     <div className="mb-4 bg-brand-primary/50 p-2 rounded">
                         <UserTimeline
+                            periodStart={period.fecha_inicio_periodo}
                             periodEnd={period.fecha_fin_periodo}
                             events={period.events || []}
                             onDayClick={(date) => onAddEvent(user, date.toISOString().split('T')[0])}
@@ -208,7 +209,7 @@ const PayrollManagement: React.FC<PayrollManagementProps> = ({ onAddEvent, onEdi
         } catch (error) {
             console.error(error);
         } finally {
-            setIsLoading(false);
+            setIsLoading(null);
         }
     }
 
@@ -221,7 +222,7 @@ const PayrollManagement: React.FC<PayrollManagementProps> = ({ onAddEvent, onEdi
         } catch (error) {
             console.error(error)
         } finally {
-            setIsLoading(false);
+            setIsLoading(null);
         }
     }
 
