@@ -9,7 +9,7 @@ interface AddPayrollEventModalProps {
 }
 
 const AddPayrollEventModal: React.FC<AddPayrollEventModalProps> = ({ user, onClose }) => {
-    const { addPayrollEvent, salaries } = useData();
+    const { addPayrollEvent, salaries, calculatePayPeriods } = useData();
     const { showToast } = useToast();
 
     const [tipo, setTipo] = useState<PayrollEventType>(PayrollEventType.BONUS);
@@ -89,6 +89,15 @@ const AddPayrollEventModal: React.FC<AddPayrollEventModalProps> = ({ user, onClo
                 descripcion: isTimeBased && horas ? `${descripcion} (${horas} hs)` : descripcion,
                 fecha_evento: fecha,
             });
+
+            // Trigger recalculation to link event and update totals
+            try {
+                await calculatePayPeriods();
+            } catch (calcError) {
+                console.error("Auto-recalculation failed:", calcError);
+                // Don't block success message if recalc fails, but log it.
+            }
+
             showToast('Evento de nómina añadido con éxito.', 'success');
             onClose();
         } catch (error) {

@@ -5,9 +5,10 @@ interface UserTimelineProps {
     periodStart: string;
     periodEnd: string;
     events: PayrollEvent[];
+    onDayClick?: (date: Date) => void;
 }
 
-const UserTimeline: React.FC<UserTimelineProps> = ({ periodStart, periodEnd, events }) => {
+const UserTimeline: React.FC<UserTimelineProps> = ({ periodStart, periodEnd, events, onDayClick }) => {
 
     // Generate array of days for the period
     const days = useMemo(() => {
@@ -69,7 +70,11 @@ const UserTimeline: React.FC<UserTimelineProps> = ({ periodStart, periodEnd, eve
                     const isWeekend = date.getDay() === 0 || date.getDay() === 6; // 0=Sun, 6=Sat
 
                     return (
-                        <div key={index} className={`flex flex-col items-center min-w-[3rem] p-2 rounded border ${isWeekend ? 'bg-brand-secondary/50 border-brand-accent/30' : 'bg-brand-secondary border-brand-accent'}`}>
+                        <div
+                            key={index}
+                            onClick={() => onDayClick && onDayClick(date)}
+                            className={`flex flex-col items-center min-w-[3rem] p-2 rounded border cursor-pointer hover:bg-brand-primary/80 transition-colors ${isWeekend ? 'bg-brand-secondary/50 border-brand-accent/30' : 'bg-brand-secondary border-brand-accent'}`}
+                        >
                             <span className="text-xs text-brand-light mb-1">{date.getDate()}/{date.getMonth() + 1}</span>
                             <span className="text-[10px] uppercase text-brand-light/50 mb-2">{date.toLocaleDateString('es-AR', { weekday: 'short' })}</span>
 
@@ -81,7 +86,7 @@ const UserTimeline: React.FC<UserTimelineProps> = ({ periodStart, periodEnd, eve
                                         </div>
                                     ))
                                 ) : (
-                                    <div className="w-6 h-6 rounded-full bg-white/5 mx-auto"></div>
+                                    <div className="w-6 h-6 rounded-full bg-white/5 mx-auto group-hover:bg-white/10 transition-colors"></div>
                                 )}
                             </div>
                         </div>
