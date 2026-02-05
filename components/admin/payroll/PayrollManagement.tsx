@@ -10,7 +10,17 @@ const formatCurrency = (amount: number) => {
 import UserTimeline from './UserTimeline';
 
 const EventRow: React.FC<{ event: PayrollEvent }> = ({ event }) => {
-    const isPositive = event.monto > 0;
+    const isDeduction = [
+        PayrollEventType.ABSENCE,
+        PayrollEventType.TARDINESS,
+        PayrollEventType.PENALTY,
+        PayrollEventType.LOAN,
+        PayrollEventType.EARLY_DEPARTURE
+    ].includes(event.tipo);
+
+    const isPositiveType = !isDeduction;
+    const amount = Math.abs(event.monto);
+
     const eventTypeMap: Record<PayrollEventType, string> = {
         [PayrollEventType.BONUS]: 'Bono',
         [PayrollEventType.OVERTIME]: 'Hora Extra',
@@ -29,8 +39,8 @@ const EventRow: React.FC<{ event: PayrollEvent }> = ({ event }) => {
                 <p className="font-semibold">{eventTypeMap[event.tipo]}</p>
                 <p className="text-xs text-brand-light italic">{event.descripcion}</p>
             </div>
-            <p className={`font-bold ${isPositive ? 'text-brand-green' : 'text-brand-red'}`}>
-                {formatCurrency(event.monto)}
+            <p className={`font-bold ${isPositiveType ? 'text-brand-green' : 'text-brand-red'}`}>
+                {isPositiveType ? '+' : '-'}{formatCurrency(amount)}
             </p>
         </div>
     );
@@ -59,7 +69,7 @@ const TechnicianPayRow: React.FC<{
         };
 
         (period.events || []).forEach(e => {
-            const m = Number(e.monto);
+            const m = Math.abs(Number(e.monto));
             switch (e.tipo) {
                 case PayrollEventType.LOAN:
                     s.prestamos += m;
