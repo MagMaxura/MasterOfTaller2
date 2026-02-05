@@ -396,7 +396,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const requestMission = async (title: string, description: string) => {
     if (currentUser?.id.startsWith('demo-')) { showToast('Acción simulada en modo demo.', 'success'); return; }
     if (!currentUser) return;
-    await api.addMission({ title: `[PROPUESTA] ${title}`, description, status: 'Solicitada', assigned_to: [currentUser.id], difficulty: 'Medio', xp: 0, start_date: new Date().toISOString().split('T')[0], deadline: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], required_skills: [], visible_to: null });
+    await api.addMission({ title: `[PROPUESTA] ${title}`, description, status: 'Solicitada', assigned_to: [currentUser.id], difficulty: 'Medio', xp: 0, bonus_monetario: 0, start_date: new Date().toISOString().split('T')[0], deadline: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], required_skills: [], visible_to: null });
     showToast('Solicitud de misión enviada para revisión.', 'success');
   };
 
@@ -520,11 +520,11 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }
   const addPayrollEvent = (eventData: Omit<PayrollEvent, 'id' | 'created_at' | 'periodo_pago_id' | 'mission_id'>) => {
     if (currentUser?.id.startsWith('demo-')) { showToast('Acción simulada en modo demo.', 'success'); return Promise.resolve(); }
-    return api.addPayrollEvent(eventData);
+    return api.addPayrollEvent(eventData as any);
   }
   const updatePayrollEvent = (id: string, eventData: Partial<PayrollEvent>) => {
     if (currentUser?.id.startsWith('demo-')) { showToast('Acción simulada en modo demo.', 'success'); return Promise.resolve(); }
-    return api.updatePayrollEvent(id, eventData);
+    return api.updatePayrollEvent(id, eventData as any);
   }
   const createMissionBonusEvent = (userId: string, mission: Mission) => {
     if (currentUser?.id.startsWith('demo-')) { return Promise.resolve(); }

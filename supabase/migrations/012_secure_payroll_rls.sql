@@ -12,9 +12,9 @@ ON periodos_pago
 FOR ALL
 USING (
   EXISTS (
-    SELECT 1 FROM users
-    WHERE users.id = auth.uid()
-    AND users.role = 'administrador'
+    SELECT 1 FROM profiles
+    WHERE profiles.id = auth.uid()
+    AND profiles.role = 'administrador'
   )
 );
 
@@ -36,9 +36,9 @@ ON eventos_nomina
 FOR ALL
 USING (
   EXISTS (
-    SELECT 1 FROM users
-    WHERE users.id = auth.uid()
-    AND users.role = 'administrador'
+    SELECT 1 FROM profiles
+    WHERE profiles.id = auth.uid()
+    AND profiles.role = 'administrador'
   )
 );
 

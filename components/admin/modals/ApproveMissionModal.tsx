@@ -11,7 +11,7 @@ interface ApproveMissionModalProps {
 const ApproveMissionModal: React.FC<ApproveMissionModalProps> = ({ mission, onClose }) => {
     const { users, updateMission } = useData();
     const { showToast } = useToast();
-    const [missionData, setMissionData] = useState<Mission>({...mission, bonusMonetario: mission.bonusMonetario || 0});
+    const [missionData, setMissionData] = useState<Mission>({ ...mission, bonusMonetario: mission.bonusMonetario || 0 });
     const [isLoading, setIsLoading] = useState(false);
 
     const technicians = users.filter(u => u.role === Role.TECHNICIAN);
@@ -19,6 +19,12 @@ const ApproveMissionModal: React.FC<ApproveMissionModalProps> = ({ mission, onCl
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+
+        if (isApprovalMode && (missionData.xp || 0) <= 0) {
+            showToast('Debes asignar un valor de XP mayor a 0 para aprobar la misión.', 'error');
+            return;
+        }
+
         setIsLoading(true);
         try {
             const finalStatus = isApprovalMode ? MissionStatus.PENDING : missionData.status;
@@ -34,7 +40,7 @@ const ApproveMissionModal: React.FC<ApproveMissionModalProps> = ({ mission, onCl
             setIsLoading(false);
         }
     };
-    
+
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
         const isNumeric = ['xp', 'bonusMonetario'].includes(name);
@@ -56,7 +62,7 @@ const ApproveMissionModal: React.FC<ApproveMissionModalProps> = ({ mission, onCl
             <form onSubmit={handleSubmit} className="bg-brand-secondary rounded-lg max-w-2xl w-full p-6 relative">
                 <button type="button" onClick={onClose} className="absolute top-4 right-4 text-brand-light hover:text-white text-3xl">&times;</button>
                 <h3 className="text-2xl font-bold mb-6">{isApprovalMode ? 'Revisar y Aprobar Misión' : 'Editar Misión'}</h3>
-                
+
                 <div className="space-y-4">
                     <div>
                         <label className="block text-sm font-medium text-brand-light mb-1">Título</label>
@@ -71,9 +77,43 @@ const ApproveMissionModal: React.FC<ApproveMissionModalProps> = ({ mission, onCl
                         <div><label className="block text-sm font-medium text-brand-light mb-1">Límite</label><input type="date" name="deadline" value={missionData.deadline} onChange={handleChange} className="w-full bg-brand-primary p-2.5 rounded border border-brand-accent" required /></div>
                         <div><label className="block text-sm font-medium text-brand-light mb-1">Dificultad</label><select name="difficulty" value={missionData.difficulty} onChange={handleChange} className="w-full bg-brand-primary p-3 rounded border border-brand-accent"><option value={MissionDifficulty.LOW}>Bajo</option><option value={MissionDifficulty.MEDIUM}>Medio</option><option value={MissionDifficulty.HIGH}>Alto</option></select></div>
                         <div><label className="block text-sm font-medium text-brand-light mb-1">XP</label><input type="number" name="xp" value={missionData.xp} onChange={handleChange} min="0" className="w-full bg-brand-primary p-2.5 rounded border border-brand-accent" required /></div>
-                         <div><label className="block text-sm font-medium text-brand-light mb-1">Bono ($)</label><input type="number" name="bonusMonetario" value={missionData.bonusMonetario || 0} onChange={handleChange} min="0" className="w-full bg-brand-primary p-2.5 rounded border border-brand-accent" /></div>
+                        <div><label className="block text-sm font-medium text-brand-light mb-1">Bono ($)</label><input type="number" name="bonusMonetario" value={missionData.bonusMonetario || 0} onChange={handleChange} min="0" className="w-full bg-brand-primary p-2.5 rounded border border-brand-accent" /></div>
                     </div>
-                     <div>
+                    <div>
+                        <label className="block text-sm font-medium text-brand-light mb-1">Estado</label>
+                        <select name="status" value={missionData.status} onChange={handleChange} className="w-full bg-brand-primary p-3 rounded border border-brand-accent">
+                            {Object.values(MissionStatus).map(s => <option key={s} value={s}>{s}</option>)}
+                        </select>
+                    </div>
+
+                    <div>
+                        <label className="block text-sm font-medium text-brand-light mb-1">Asignada a</label>
+                        <div className="bg-brand-primary p-3 rounded-lg grid grid-cols-2 sm:grid-cols-3 gap-3 max-h-48 overflow-y-auto mb-4">
+                            {technicians.map(tech => (
+                                <div key={tech.id} className="flex items-center gap-2">
+                                    <input
+                                        type="checkbox"
+                                        id={`modal-assign-${tech.id}`}
+                                        checked={missionData.assignedTo?.includes(tech.id) ?? false}
+                                        onChange={() => setMissionData(prev => {
+                                            const current = prev.assignedTo || [];
+                                            const newAssigned = current.includes(tech.id)
+                                                ? current.filter(id => id !== tech.id)
+                                                : [...current, tech.id];
+                                            return { ...prev, assignedTo: newAssigned };
+                                        })}
+                                        className="h-5 w-5 rounded bg-brand-secondary border-brand-accent text-brand-orange focus:ring-brand-orange"
+                                    />
+                                    <label htmlFor={`modal-assign-${tech.id}`} className="flex items-center gap-2 text-brand-light select-none cursor-pointer">
+                                        <img src={tech.avatar} alt={tech.name} className="w-6 h-6 rounded-full" />
+                                        <span>{tech.name}</span>
+                                    </label>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+
+                    <div>
                         <label className="block text-sm font-medium text-brand-light mb-1">Visible para</label>
                         <div className="bg-brand-primary p-3 rounded-lg grid grid-cols-2 sm:grid-cols-3 gap-3 max-h-48 overflow-y-auto">
                             {technicians.map(tech => (
