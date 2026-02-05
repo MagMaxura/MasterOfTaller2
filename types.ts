@@ -1,3 +1,4 @@
+
 export enum Role {
   TECHNICIAN = 'tecnico',
   ADMIN = 'administrador',
@@ -106,6 +107,7 @@ export interface Mission {
   bonusXp?: number;
   bonusMonetario?: number;
   visibleTo: string[] | null; // User IDs
+  created_at?: string;
 }
 
 export interface MissionMilestone {

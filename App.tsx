@@ -1,5 +1,6 @@
 
 
+
 import React, { useState, useEffect, useMemo } from 'react';
 import { Role } from './types';
 import { supabase } from './config';
@@ -79,12 +80,26 @@ const AuthenticatedApp: React.FC = () => {
     return () => authListener.subscription?.unsubscribe();
   }, []);
 
+  const handleBypass = (role: 'admin' | 'technician') => {
+      const mockSession = {
+          access_token: 'mock-token',
+          token_type: 'bearer',
+          user: {
+              id: role === 'admin' ? 'demo-admin' : 'demo-technician',
+              email: role === 'admin' ? 'admin@demo.com' : 'tech@demo.com',
+              aud: 'authenticated',
+              created_at: new Date().toISOString(),
+          }
+      };
+      setSession(mockSession);
+  };
+
   if (loading) return <LoadingSpinner message="Verificando sesión..." />;
   
   return (
     <ToastProvider>
       {!session ? (
-        <LoginScreen authError={authError} />
+        <LoginScreen authError={authError} onBypass={handleBypass} />
       ) : (
         <AuthProvider session={session}>
           <DataProvider>

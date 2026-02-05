@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
   <head>
@@ -6,7 +7,7 @@
     <!-- ATENCIÓN: Esta URL depende de la configuración en constants.tsx. Si la app no carga el ícono, verifica la SUPABASE_URL allí. -->
     <link rel="icon" type="image/png" href="https://npoukowwhminfidgkriq.supabase.co/storage/v1/object/public/iconos-equipamiento/cazco.png" />
     <link rel="apple-touch-icon" href="https://npoukowwhminfidgkriq.supabase.co/storage/v1/object/public/iconos-equipamiento/cazco.png" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <title>Maestros del Taller</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
@@ -15,20 +16,46 @@
         theme: {
           extend: {
             colors: {
-              'brand-primary': '#0D1B2A',
-              'brand-secondary': '#1B263B',
-              'brand-accent': '#415A77',
-              'brand-light': '#778DA9',
-              'brand-highlight': '#E0E1DD',
-              'brand-blue': '#3A86FF',
-              'brand-orange': '#FFBE0B',
-              'brand-green': '#06D6A0',
-              'brand-red': '#EF476F',
+              'brand-primary': '#FFFFFF',       /* Fondo Principal: Blanco */
+              'brand-secondary': '#F1F5F9',     /* Fondo Secundario (Tarjetas): Slate 100 */
+              'brand-accent': '#CBD5E1',        /* Bordes y detalles: Slate 300 */
+              'brand-light': '#64748B',         /* Texto secundario: Slate 500 */
+              'brand-highlight': '#0F172A',     /* Texto principal: Slate 900 */
+              'brand-blue': '#2563EB',          /* Azul vibrante */
+              'brand-orange': '#D97706',        /* Naranja oscurecido para contraste */
+              'brand-green': '#16A34A',         /* Verde éxito */
+              'brand-red': '#DC2626',           /* Rojo error */
             },
+            fontFamily: {
+              sans: ['Inter', 'system-ui', 'sans-serif'],
+            },
+            boxShadow: {
+              'soft': '0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03)',
+            }
           }
         }
       }
     </script>
+    <style>
+      /* Mejoras para scroll en móviles */
+      body {
+        -webkit-tap-highlight-color: transparent;
+      }
+      ::-webkit-scrollbar {
+        width: 8px;
+        height: 8px;
+      }
+      ::-webkit-scrollbar-track {
+        background: #f1f5f9;
+      }
+      ::-webkit-scrollbar-thumb {
+        background: #cbd5e1;
+        border-radius: 4px;
+      }
+      ::-webkit-scrollbar-thumb:hover {
+        background: #94a3b8;
+      }
+    </style>
   <script type="importmap">
 {
   "imports": {
@@ -44,7 +71,7 @@
 }
 </script>
 </head>
-  <body class="bg-brand-primary text-brand-highlight">
+  <body class="bg-brand-primary text-brand-highlight font-sans antialiased selection:bg-brand-blue selection:text-white">
     <div id="root"></div>
     <script>
       if ('serviceWorker' in navigator) {

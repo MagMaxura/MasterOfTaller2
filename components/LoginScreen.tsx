@@ -5,9 +5,10 @@ import { supabase } from '../config';
 
 interface LoginScreenProps {
   authError?: string | null;
+  onBypass?: (role: 'admin' | 'technician') => void;
 }
 
-const LoginScreen: React.FC<LoginScreenProps> = ({ authError }) => {
+const LoginScreen: React.FC<LoginScreenProps> = ({ authError, onBypass }) => {
   const [loading, setLoading] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -27,10 +28,8 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ authError }) => {
             throw new Error("Cliente Supabase no inicializado.");
         }
         if (activeTab === 'login') {
-            // FIX: Corrected to use signInWithPassword for Supabase v2 compatibility. The old `signIn` is deprecated.
             const { error } = await supabase.auth.signInWithPassword({ email, password });
             if (error) throw error;
-            // On success, the onAuthStateChange listener in App.tsx will handle the session.
         } else {
             const { data, error } = await supabase.auth.signUp({ 
                 email, 
@@ -38,7 +37,6 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ authError }) => {
             });
             if (error) throw error;
             
-            // Handle case where user needs to confirm their email
             if (data.user && data.user.identities?.length === 0) {
                  setMessageType('error');
                  setFormMessage('Este correo ya está registrado a través de un proveedor como Google. Por favor, inicia sesión con Google.');
@@ -63,7 +61,6 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ authError }) => {
       if (!supabase) {
           throw new Error("Cliente Supabase no inicializado.");
       }
-      // FIX: Corrected to use signInWithOAuth for Supabase v2 compatibility. The old `signIn` with a provider is deprecated.
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
@@ -86,24 +83,22 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ authError }) => {
   };
 
   return (
-    <div className="min-h-screen bg-brand-primary flex flex-col items-center justify-center p-4 text-center">
+    <div className="min-h-screen bg-brand-secondary flex flex-col items-center justify-center p-4 text-center">
       <div className="w-full max-w-sm">
-        <div className="inline-block bg-brand-blue p-4 rounded-full mb-4">
+        <div className="inline-block bg-brand-blue p-4 rounded-full mb-6 shadow-lg shadow-brand-blue/30">
           <WrenchIcon className="w-12 h-12 text-white" />
         </div>
-        <h1 className="text-4xl md:text-5xl font-bold text-brand-highlight tracking-tight">Maestros del Taller</h1>
-        <p className="text-brand-light mt-2 text-lg mb-8">La plataforma para los héroes del taller.</p>
+        <h1 className="text-4xl font-extrabold text-brand-highlight tracking-tight mb-2">Maestros del Taller</h1>
+        <p className="text-brand-light text-lg mb-8">Gestión profesional y gamificada.</p>
         
-        {/* IMPORTANT: Add a note about enabling the email provider */}
-        {!authError?.includes('Google') && <p className="text-xs text-brand-accent mb-4">Asegúrate de habilitar el proveedor "Email" en la configuración de autenticación de tu proyecto Supabase.</p>}
+        {!authError?.includes('Google') && <p className="text-xs text-brand-light/70 mb-4 px-4">Asegúrate de habilitar el proveedor "Email" en la configuración de autenticación de Supabase.</p>}
 
-
-        <div className="bg-brand-secondary shadow-2xl rounded-lg p-8">
+        <div className="bg-white shadow-xl shadow-gray-200/50 rounded-2xl p-8 border border-brand-accent/50">
           <div className="flex border-b border-brand-accent mb-6">
-            <button onClick={() => handleTabChange('login')} className={`flex-1 font-semibold py-2 transition-colors ${activeTab === 'login' ? 'text-brand-blue border-b-2 border-brand-blue' : 'text-brand-light hover:text-white'}`}>
+            <button onClick={() => handleTabChange('login')} className={`flex-1 font-semibold py-3 text-sm transition-all ${activeTab === 'login' ? 'text-brand-blue border-b-2 border-brand-blue' : 'text-brand-light hover:text-brand-highlight'}`}>
               Iniciar Sesión
             </button>
-            <button onClick={() => handleTabChange('signup')} className={`flex-1 font-semibold py-2 transition-colors ${activeTab === 'signup' ? 'text-brand-blue border-b-2 border-brand-blue' : 'text-brand-light hover:text-white'}`}>
+            <button onClick={() => handleTabChange('signup')} className={`flex-1 font-semibold py-3 text-sm transition-all ${activeTab === 'signup' ? 'text-brand-blue border-b-2 border-brand-blue' : 'text-brand-light hover:text-brand-highlight'}`}>
               Registrarse
             </button>
           </div>
@@ -115,7 +110,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ authError }) => {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
-                className="w-full bg-brand-primary p-3 rounded border border-brand-accent focus:outline-none focus:ring-2 focus:ring-brand-blue"
+                className="w-full bg-brand-secondary p-3 rounded-lg border border-brand-accent focus:outline-none focus:ring-2 focus:ring-brand-blue transition-all"
               />
               <input 
                 type="password"
@@ -123,12 +118,12 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ authError }) => {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
-                className="w-full bg-brand-primary p-3 rounded border border-brand-accent focus:outline-none focus:ring-2 focus:ring-brand-blue"
+                className="w-full bg-brand-secondary p-3 rounded-lg border border-brand-accent focus:outline-none focus:ring-2 focus:ring-brand-blue transition-all"
               />
               <button 
                 type="submit"
                 disabled={loading}
-                className="w-full bg-brand-blue text-white font-bold py-3 px-4 rounded-lg flex items-center justify-center gap-2 disabled:bg-brand-accent"
+                className="w-full bg-brand-blue text-white font-bold py-3 px-4 rounded-lg flex items-center justify-center gap-2 disabled:bg-brand-accent shadow-md shadow-brand-blue/20 hover:shadow-lg hover:shadow-brand-blue/30 transition-all hover:-translate-y-0.5 active:translate-y-0"
               >
                 {loading && <div className="w-5 h-5 border-2 border-t-transparent border-white rounded-full animate-spin"></div>}
                 {activeTab === 'login' ? 'Iniciar Sesión' : 'Crear Cuenta'}
@@ -136,7 +131,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ authError }) => {
           </form>
 
           {formMessage && (
-            <p className={`text-center text-sm mt-4 ${messageType === 'error' ? 'text-brand-red' : 'text-brand-green'}`}>
+            <p className={`text-center text-sm mt-4 p-2 rounded ${messageType === 'error' ? 'bg-red-50 text-brand-red border border-red-100' : 'bg-green-50 text-brand-green border border-green-100'}`}>
                 {formMessage}
             </p>
           )}
@@ -146,17 +141,17 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ authError }) => {
               <div className="w-full border-t border-brand-accent"></div>
             </div>
             <div className="relative flex justify-center text-sm">
-              <span className="px-2 bg-brand-secondary text-brand-light">O</span>
+              <span className="px-2 bg-white text-brand-light">O continúa con</span>
             </div>
           </div>
           
           <button
             onClick={handleGoogleLogin}
             disabled={loading}
-            className="w-full bg-white text-gray-700 font-semibold py-3 px-4 rounded-lg flex items-center justify-center gap-3 transition-all hover:bg-gray-200 disabled:bg-gray-400"
+            className="w-full bg-white border border-brand-accent text-gray-700 font-semibold py-3 px-4 rounded-lg flex items-center justify-center gap-3 transition-all hover:bg-gray-50 hover:border-gray-300 disabled:bg-gray-100"
           >
             {loading ? (
-              <div className="w-6 h-6 border-2 border-t-transparent border-blue-600 rounded-full animate-spin"></div>
+              <div className="w-6 h-6 border-2 border-t-transparent border-brand-blue rounded-full animate-spin"></div>
             ) : (
               <svg className="w-6 h-6" viewBox="0 0 48 48">
                 <path fill="#FFC107" d="M43.611 20.083H42V20H24v8h11.303c-1.649 4.657-6.08 8-11.303 8c-6.627 0-12-5.373-12-12s5.373-12 12-12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.046 6.053 29.268 4 24 4C12.955 4 4 12.955 4 24s8.955 20 20 20s20-8.955 20-20c0-1.341-.138-2.65-.389-3.917z" />
@@ -165,8 +160,20 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ authError }) => {
                 <path fill="#1976D2" d="M43.611 20.083H42V20H24v8h11.303c-.792 2.237-2.231 4.166-4.087 5.571l6.19 5.238C42.012 35.846 44 30.228 44 24c0-1.341-.138-2.65-.389-3.917z" />
               </svg>
             )}
-            Continuar con Google
+            Google
           </button>
+          
+          <div className="mt-8 pt-6 border-t border-brand-accent/30 w-full">
+            <p className="text-[10px] text-brand-light uppercase tracking-widest font-bold mb-3">Acceso Rápido (Desarrollo)</p>
+            <div className="flex gap-3">
+                <button onClick={() => onBypass && onBypass('admin')} className="flex-1 bg-brand-secondary border border-brand-accent hover:bg-brand-accent/50 text-brand-light hover:text-brand-highlight py-2 px-3 rounded text-xs transition-colors">
+                    Admin
+                </button>
+                <button onClick={() => onBypass && onBypass('technician')} className="flex-1 bg-brand-secondary border border-brand-accent hover:bg-brand-accent/50 text-brand-light hover:text-brand-highlight py-2 px-3 rounded text-xs transition-colors">
+                    Técnico
+                </button>
+            </div>
+          </div>
         </div>
       </div>
     </div>
