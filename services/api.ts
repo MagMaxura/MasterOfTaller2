@@ -50,7 +50,7 @@ export const api = {
       supabase.from('mission_supplies').select(`id, created_at, mission_id, supply_id, quantity_assigned, quantity_used, supplies(${supplyColumns})`),
       supabase.from('salarios').select(salaryColumns),
       supabase.from('eventos_nomina').select(payrollEventColumns).order('fecha_evento', { ascending: false }),
-      supabase.from('periodos_pago').select(paymentPeriodColumns).order('fecha_pago', { ascending: false }),
+      supabase.from('periodos_pago').select(`${paymentPeriodColumns}, events:eventos_nomina(*)`).order('fecha_pago', { ascending: false }),
     ]);
   },
 

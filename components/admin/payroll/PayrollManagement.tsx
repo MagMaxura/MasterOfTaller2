@@ -57,7 +57,7 @@ const TechnicianPayRow: React.FC<{
             otros_descuentos: 0
         };
 
-        period.events.forEach(e => {
+        (period.events || []).forEach(e => {
             const m = Number(e.monto);
             switch (e.tipo) {
                 case PayrollEventType.LOAN:
@@ -110,7 +110,7 @@ const TechnicianPayRow: React.FC<{
 
                     {/* Timeline Visualization */}
                     <div className="mb-4 bg-brand-primary/50 p-2 rounded">
-                        <UserTimeline periodStart={period.fecha_inicio_periodo} periodEnd={period.fecha_fin_periodo} events={period.events} />
+                        <UserTimeline periodStart={period.fecha_inicio_periodo} periodEnd={period.fecha_fin_periodo} events={period.events || []} />
                     </div>
 
                     <div className="space-y-2 text-sm">
