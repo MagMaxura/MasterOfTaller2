@@ -19,7 +19,11 @@ const EventRow: React.FC<{ event: PayrollEvent }> = ({ event }) => {
         PayrollEventType.EARLY_DEPARTURE
     ].includes(event.tipo);
 
-    const isPositiveType = !isDeduction;
+    const isAddition = [
+        PayrollEventType.BONUS,
+        PayrollEventType.OVERTIME
+    ].includes(event.tipo);
+
     const amount = Math.abs(event.monto);
 
     const eventTypeMap: Record<PayrollEventType, string> = {
@@ -37,11 +41,11 @@ const EventRow: React.FC<{ event: PayrollEvent }> = ({ event }) => {
     return (
         <div className="flex justify-between items-center py-2 border-b border-brand-accent/50 text-sm">
             <div>
-                <p className="font-semibold">{eventTypeMap[event.tipo]}</p>
+                <p className="font-semibold">{eventTypeMap[event.tipo] || event.tipo}</p>
                 <p className="text-xs text-brand-light italic">{event.descripcion}</p>
             </div>
-            <p className={`font-bold ${isPositiveType ? 'text-brand-green' : 'text-brand-red'}`}>
-                {isPositiveType ? '+' : '-'}{formatCurrency(amount)}
+            <p className={`font-bold ${isAddition ? 'text-brand-green' : isDeduction ? 'text-brand-red' : 'text-brand-light'}`}>
+                {isAddition ? '+' : isDeduction ? '-' : ''}{formatCurrency(amount)}
             </p>
         </div>
     );

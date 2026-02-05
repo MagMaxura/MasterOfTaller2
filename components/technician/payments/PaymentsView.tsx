@@ -5,7 +5,19 @@ import { ArrowUpIcon, ArrowDownIcon } from '../../Icons';
 import UserTimeline from '../../admin/payroll/UserTimeline';
 
 const EventRow: React.FC<{ event: PayrollEvent }> = ({ event }) => {
-    const isPositive = event.monto > 0;
+    const isDeduction = [
+        PayrollEventType.ABSENCE,
+        PayrollEventType.TARDINESS,
+        PayrollEventType.PENALTY,
+        PayrollEventType.LOAN,
+        PayrollEventType.EARLY_DEPARTURE
+    ].includes(event.tipo);
+
+    const isAddition = [
+        PayrollEventType.BONUS,
+        PayrollEventType.OVERTIME
+    ].includes(event.tipo);
+
     const eventTypeMap: Record<PayrollEventType, string> = {
         [PayrollEventType.BONUS]: 'Bono',
         [PayrollEventType.OVERTIME]: 'Hora Extra',
@@ -18,14 +30,17 @@ const EventRow: React.FC<{ event: PayrollEvent }> = ({ event }) => {
         [PayrollEventType.EARLY_DEPARTURE]: 'Salida Temprana',
         [PayrollEventType.LOAN]: 'Préstamo'
     };
+
+    const amount = Math.abs(event.monto);
+
     return (
         <div className="flex justify-between items-center py-2 border-b border-brand-accent/50">
             <div>
                 <p className="font-semibold">{eventTypeMap[event.tipo] || event.tipo}</p>
                 <p className="text-xs text-brand-light italic">{event.descripcion}</p>
             </div>
-            <p className={`font-bold ${isPositive ? 'text-brand-green' : 'text-brand-red'}`}>
-                {isPositive ? '+' : ''}${event.monto.toLocaleString('es-AR')}
+            <p className={`font-bold ${isAddition ? 'text-brand-green' : isDeduction ? 'text-brand-red' : 'text-brand-light'}`}>
+                {isAddition ? '+' : isDeduction ? '-' : ''}${amount.toLocaleString('es-AR')}
             </p>
         </div>
     );
