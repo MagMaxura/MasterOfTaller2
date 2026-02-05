@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { useData } from '../../../contexts/DataContext';
 import { User, Role, PaymentPeriod, PayrollEvent, PayrollEventType, PaymentStatus } from '../../../types';
 import { ArrowUpIcon, ArrowDownIcon } from '../../Icons';
+import { supabase } from '../../../config';
 
 const formatCurrency = (amount: number) => {
     return `$${amount.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -258,6 +259,40 @@ const PayrollManagement: React.FC<PayrollManagementProps> = ({ onAddEvent, onEdi
                         Marcar como Pagado
                     </button>
                 </div>
+            </div>
+
+            {/* ERROR REPAIR UTILITY */}
+            <div className="bg-brand-secondary/50 p-2 mb-4 rounded border border-brand-accent/30 text-xs text-brand-light flex justify-between items-center">
+                <span>¿Los totales siguen sumando en lugar de restar? Ejecuta esta corrección rápida:</span>
+                <button
+                    onClick={async () => {
+                        if (!confirm('Esto buscará y corregirá eventos con valores negativos en la base de datos. ¿Continuar?')) return;
+                        setIsLoading('calculating');
+                        try {
+                            // 1. Fetch negative events
+                            const { data: negEvents } = await supabase.from('eventos_nomina').select('*').lt('monto', 0);
+                            if (!negEvents || negEvents.length === 0) {
+                                alert('No se encontraron eventos con error.');
+                            } else {
+                                // 2. Fix them
+                                await Promise.all(negEvents.map(ev =>
+                                    supabase.from('eventos_nomina').update({ monto: Math.abs(ev.monto) }).eq('id', ev.id)
+                                ));
+                                alert(`Se corrigieron ${negEvents.length} eventos. Recalculando...`);
+                                await calculatePayPeriods();
+                            }
+                        } catch (e) {
+                            console.error(e);
+                            alert('Error al corregir datos');
+                        } finally {
+                            setIsLoading(null);
+                        }
+                    }}
+                    disabled={!!isLoading}
+                    className="bg-brand-red text-white py-1 px-3 rounded hover:bg-red-700 transition"
+                >
+                    Reparar Datos
+                </button>
             </div>
 
             <div className="space-y-4">
