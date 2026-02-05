@@ -100,9 +100,14 @@ export const api = {
     const { error } = await supabase.from('mission_milestones').update({ is_solution: isSolution }).eq('id', milestoneId);
     if (error) throw new Error(error.message);
   },
-  async assignInventoryItem(userId: string, itemId: string) {
-    const { error } = await supabase.from('user_inventory').insert({ user_id: userId, item_id: itemId });
+  async assignInventoryItem(userId: string, itemId: string, assignedAt?: string) {
+    const { data, error } = await supabase.from('user_inventory').insert({
+      user_id: userId,
+      item_id: itemId,
+      assigned_at: assignedAt || new Date().toISOString()
+    }).select().single();
     if (error) throw new Error(error.message);
+    return data;
   },
   async removeInventoryItem(userInventoryId: string) {
     const { error } = await supabase.from('user_inventory').delete().eq('id', userInventoryId);

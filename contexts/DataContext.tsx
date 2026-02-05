@@ -309,8 +309,21 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const updateMission = async (updatedMission: Partial<Mission>) => {
     if (currentUser?.id.startsWith('demo-')) { showToast('Acción simulada en modo demo.', 'success'); return; }
     if (!updatedMission.id) return;
-    const { id, assignedTo, startDate, deadline, skills, progressPhoto, completedDate, bonusXp, visibleTo, ...rest } = updatedMission;
-    await api.updateMission(id, { ...rest, assigned_to: assignedTo, start_date: startDate, deadline: deadline, required_skills: skills, progress_photo_url: progressPhoto, completed_date: completedDate, bonus_xp: bonusXp, visible_to: visibleTo, });
+    const { id, assignedTo, startDate, deadline, skills, progressPhoto, completedDate, bonusXp, bonusMonetario, visibleTo, ...rest } = updatedMission;
+
+    // Explicitly map all camelCase fields to snake_case for the DB
+    await api.updateMission(id, {
+      ...rest,
+      assigned_to: assignedTo,
+      start_date: startDate,
+      deadline: deadline,
+      required_skills: skills,
+      progress_photo_url: progressPhoto,
+      completed_date: completedDate,
+      bonus_xp: bonusXp,
+      bonus_monetario: bonusMonetario, // Fix: Map this field
+      visible_to: visibleTo,
+    });
   };
 
   const updateUser = async (updatedUser: Partial<User>) => {
@@ -362,10 +375,44 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (currentUser?.id.startsWith('demo-')) { showToast('Acción simulada en modo demo.', 'success'); return Promise.resolve(); }
     return api.addInventoryItem(data, iconFile);
   }
-  const assignInventoryItem = (userId: string, itemId: string) => {
-    if (currentUser?.id.startsWith('demo-')) { showToast('Acción simulada en modo demo.', 'success'); return Promise.resolve(); }
-    return api.assignInventoryItem(userId, itemId);
-  }
+  const assignInventoryItem = async (userId: string, itemId: string) => {
+    if (currentUser?.id.startsWith('demo-')) { showToast('Acción simulada en modo demo.', 'success'); return; }
+
+    // 1. Get the item definition to add to local state
+    const inventoryItem = allInventoryItems.find(i => i.id === itemId);
+    if (!inventoryItem) { showToast('Ítem de inventario no encontrado.', 'error'); return; }
+
+    try {
+      // 2. Call API (returns the new DB row)
+      const assignedAt = new Date().toISOString();
+      const newDbRow = await api.assignInventoryItem(userId, itemId, assignedAt);
+
+      // 3. Create the object for local state (UserInventoryItem)
+      const newUserInventoryItem: UserInventoryItem = {
+        id: newDbRow?.id || `temp-${Date.now()}`,
+        assigned_at: assignedAt,
+        item: inventoryItem
+      };
+
+      // 4. Helper to update a user object
+      const updateUserState = (u: User) => {
+        if (u.id !== userId) return u;
+        return {
+          ...u,
+          inventory: [...u.inventory, newUserInventoryItem]
+        };
+      };
+
+      // 5. Update all relevant states
+      setUsers(prev => prev.map(updateUserState));
+      if (currentUser?.id === userId) setCurrentUser(prev => prev ? updateUserState(prev) : null);
+      if (viewingProfileOf?.id === userId) setViewingProfileOf(prev => prev ? updateUserState(prev) : null);
+
+    } catch (error) {
+      console.error("Error assigning inventory:", error);
+      throw error; // Re-throw so the modal can handle it (show toast etc)
+    }
+  };
   const toggleMilestoneSolution = (milestoneId: string, isSolution: boolean) => {
     if (currentUser?.id.startsWith('demo-')) { showToast('Acción simulada en modo demo.', 'success'); return Promise.resolve(); }
     return api.toggleMilestoneSolution(milestoneId, isSolution);
