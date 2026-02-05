@@ -69,9 +69,9 @@ interface DataContextType {
 // --- CONTEXT CREATION ---
 const DataContext = createContext<DataContextType | null>(null);
 export const useData = () => {
-    const context = useContext(DataContext);
-    if (!context) throw new Error("useData must be used within a DataProvider");
-    return context;
+  const context = useContext(DataContext);
+  if (!context) throw new Error("useData must be used within a DataProvider");
+  return context;
 };
 
 
@@ -79,7 +79,7 @@ export const useData = () => {
 export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user: authUser } = useAuth();
   const { showToast } = useToast();
-  
+
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [users, setUsers] = useState<User[]>([]);
   const [missions, setMissions] = useState<Mission[]>([]);
@@ -101,106 +101,106 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     // --- DEMO MODE BYPASS ---
     if (authUser.id.startsWith('demo-')) {
-        console.log("Loading Demo Data...");
-        
-        const mockAdmin: User = {
-            id: 'demo-admin',
-            name: 'Admin Demo',
-            role: Role.ADMIN,
-            avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Admin',
-            xp: 9999,
-            level: 100,
-            skills: [],
-            badges: [],
-            inventory: [],
-            pushSubscription: null
-        };
-        const mockTech: User = {
-            id: 'demo-technician',
-            name: 'Técnico Demo',
-            role: Role.TECHNICIAN,
-            avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Felix',
-            xp: 2450,
-            level: 8,
-            skills: [{ id: 's1', name: 'Mecánica', level: 75 }, { id: 's2', name: 'Electrónica', level: 40 }],
-            badges: [],
-            inventory: [],
-            pushSubscription: null,
-            location: { lat: -34.6037, lng: -58.3816, lastUpdate: new Date().toISOString() }
-        };
-        
-        const current = authUser.id === 'demo-admin' ? mockAdmin : mockTech;
-        setCurrentUser(current);
-        setUsers([mockAdmin, mockTech]);
-        
-        const mockMissions: Mission[] = [
-            {
-                id: 'm1',
-                title: 'Reparación Motor V8',
-                description: 'Desarmar y rectificar culata de Ford Mustang.',
-                status: MissionStatus.IN_PROGRESS,
-                difficulty: MissionDifficulty.HIGH,
-                xp: 500,
-                assignedTo: ['demo-technician'],
-                startDate: new Date().toISOString(),
-                deadline: new Date(Date.now() + 86400000).toISOString(),
-                skills: ['Mecánica'],
-                visibleTo: ['demo-technician'],
-                created_at: new Date().toISOString(),
-                bonusMonetario: 50000
-            },
-            {
-                id: 'm2',
-                title: 'Cambio de Aceite',
-                description: 'Mantenimiento de rutina Ford Ranger.',
-                status: MissionStatus.PENDING,
-                difficulty: MissionDifficulty.LOW,
-                xp: 100,
-                assignedTo: ['demo-technician'],
-                startDate: new Date().toISOString(),
-                deadline: new Date(Date.now() + 86400000 * 2).toISOString(),
-                skills: [],
-                visibleTo: ['demo-technician'],
-                created_at: new Date().toISOString(),
-            },
-             {
-                id: 'm3',
-                title: 'Diagnóstico Electrónico',
-                description: 'Escanear fallas en ECU de Toyota Hilux.',
-                status: MissionStatus.COMPLETED,
-                difficulty: MissionDifficulty.MEDIUM,
-                xp: 250,
-                assignedTo: ['demo-technician'],
-                startDate: new Date(Date.now() - 86400000 * 5).toISOString(),
-                deadline: new Date(Date.now() - 86400000 * 4).toISOString(),
-                completedDate: new Date(Date.now() - 86400000 * 4).toISOString(),
-                skills: ['Electrónica'],
-                visibleTo: ['demo-technician'],
-                created_at: new Date(Date.now() - 86400000 * 6).toISOString(),
-                progressPhoto: 'https://images.unsplash.com/photo-1487754180451-c456f719a1fc?auto=format&fit=crop&q=80&w=300&h=200'
-            }
-        ];
-        setMissions(mockMissions);
-        
-        const mockSupplies: Supply[] = [
-            { id: 'sup1', created_at: new Date().toISOString(), general_category: 'Lubricantes', specific_category: 'Aceite Motor', type: 'Sintético', model: '5W-30', details: 'Bidón 4L', stock_quantity: 20, photo_url: null },
-            { id: 'sup2', created_at: new Date().toISOString(), general_category: 'Filtros', specific_category: 'Aire', type: 'Cartucho', model: 'F-100', details: 'Original', stock_quantity: 5, photo_url: null }
-        ];
-        setSupplies(mockSupplies);
-        
-        // Populate other lists with empty arrays to prevent crashes in UI
-        setAllInventoryItems([]);
-        setAllBadges([]);
-        setMissionMilestones([]);
-        setMissionSupplies([]);
-        setSalaries([]);
-        setPayrollEvents([]);
-        setPaymentPeriods([]);
-        setChats([]);
-        setChatMessages([]);
-        
-        setLoading(false);
-        return;
+      console.log("Loading Demo Data...");
+
+      const mockAdmin: User = {
+        id: 'demo-admin',
+        name: 'Admin Demo',
+        role: Role.ADMIN,
+        avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Admin',
+        xp: 9999,
+        level: 100,
+        skills: [],
+        badges: [],
+        inventory: [],
+        pushSubscription: null
+      };
+      const mockTech: User = {
+        id: 'demo-technician',
+        name: 'Técnico Demo',
+        role: Role.TECHNICIAN,
+        avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Felix',
+        xp: 2450,
+        level: 8,
+        skills: [{ id: 's1', name: 'Mecánica', level: 75 }, { id: 's2', name: 'Electrónica', level: 40 }],
+        badges: [],
+        inventory: [],
+        pushSubscription: null,
+        location: { lat: -34.6037, lng: -58.3816, lastUpdate: new Date().toISOString() }
+      };
+
+      const current = authUser.id === 'demo-admin' ? mockAdmin : mockTech;
+      setCurrentUser(current);
+      setUsers([mockAdmin, mockTech]);
+
+      const mockMissions: Mission[] = [
+        {
+          id: 'm1',
+          title: 'Reparación Motor V8',
+          description: 'Desarmar y rectificar culata de Ford Mustang.',
+          status: MissionStatus.IN_PROGRESS,
+          difficulty: MissionDifficulty.HIGH,
+          xp: 500,
+          assignedTo: ['demo-technician'],
+          startDate: new Date().toISOString(),
+          deadline: new Date(Date.now() + 86400000).toISOString(),
+          skills: ['Mecánica'],
+          visibleTo: ['demo-technician'],
+          created_at: new Date().toISOString(),
+          bonusMonetario: 50000
+        },
+        {
+          id: 'm2',
+          title: 'Cambio de Aceite',
+          description: 'Mantenimiento de rutina Ford Ranger.',
+          status: MissionStatus.PENDING,
+          difficulty: MissionDifficulty.LOW,
+          xp: 100,
+          assignedTo: ['demo-technician'],
+          startDate: new Date().toISOString(),
+          deadline: new Date(Date.now() + 86400000 * 2).toISOString(),
+          skills: [],
+          visibleTo: ['demo-technician'],
+          created_at: new Date().toISOString(),
+        },
+        {
+          id: 'm3',
+          title: 'Diagnóstico Electrónico',
+          description: 'Escanear fallas en ECU de Toyota Hilux.',
+          status: MissionStatus.COMPLETED,
+          difficulty: MissionDifficulty.MEDIUM,
+          xp: 250,
+          assignedTo: ['demo-technician'],
+          startDate: new Date(Date.now() - 86400000 * 5).toISOString(),
+          deadline: new Date(Date.now() - 86400000 * 4).toISOString(),
+          completedDate: new Date(Date.now() - 86400000 * 4).toISOString(),
+          skills: ['Electrónica'],
+          visibleTo: ['demo-technician'],
+          created_at: new Date(Date.now() - 86400000 * 6).toISOString(),
+          progressPhoto: 'https://images.unsplash.com/photo-1487754180451-c456f719a1fc?auto=format&fit=crop&q=80&w=300&h=200'
+        }
+      ];
+      setMissions(mockMissions);
+
+      const mockSupplies: Supply[] = [
+        { id: 'sup1', created_at: new Date().toISOString(), general_category: 'Lubricantes', specific_category: 'Aceite Motor', type: 'Sintético', model: '5W-30', details: 'Bidón 4L', stock_quantity: 20, photo_url: null },
+        { id: 'sup2', created_at: new Date().toISOString(), general_category: 'Filtros', specific_category: 'Aire', type: 'Cartucho', model: 'F-100', details: 'Original', stock_quantity: 5, photo_url: null }
+      ];
+      setSupplies(mockSupplies);
+
+      // Populate other lists with empty arrays to prevent crashes in UI
+      setAllInventoryItems([]);
+      setAllBadges([]);
+      setMissionMilestones([]);
+      setMissionSupplies([]);
+      setSalaries([]);
+      setPayrollEvents([]);
+      setPaymentPeriods([]);
+      setChats([]);
+      setChatMessages([]);
+
+      setLoading(false);
+      return;
     }
     // --- END DEMO MODE ---
 
@@ -238,7 +238,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const profilesData = profilesResult.data || [];
       const combinedUsers = profilesData.map(p => transformSupabaseProfileToUser(p));
       setUsers(combinedUsers);
-      
+
       const foundUser = combinedUsers.find(u => u.id === authUser.id);
       setCurrentUser(foundUser || null);
       if (!foundUser) {
@@ -274,25 +274,25 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setLoading(false);
     }
   }, [authUser, fetchData]);
-  
+
   // Realtime subscriptions
   useEffect(() => {
     if (!authUser || !supabase || authUser.id.startsWith('demo-')) return;
     const allChannels = [
-        supabase.channel('public:missions').on('postgres_changes', { event: '*', schema: 'public', table: 'missions' }, () => fetchData()).subscribe(),
-        supabase.channel('public:profiles').on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, () => fetchData()).subscribe(),
-        supabase.channel('public:user_inventory').on('postgres_changes', { event: '*', schema: 'public', table: 'user_inventory' }, () => fetchData()).subscribe(),
-        supabase.channel('public:inventory_items').on('postgres_changes', { event: '*', schema: 'public', table: 'inventory_items' }, () => fetchData()).subscribe(),
-        supabase.channel('public:mission_milestones').on('postgres_changes', { event: '*', schema: 'public', table: 'mission_milestones' }, () => fetchData()).subscribe(),
-        supabase.channel('public:supplies').on('postgres_changes', { event: '*', schema: 'public', table: 'supplies' }, () => fetchData()).subscribe(),
-        supabase.channel('public:mission_supplies').on('postgres_changes', { event: '*', schema: 'public', table: 'mission_supplies' }, () => fetchData()).subscribe(),
-        supabase.channel('public:chat_messages').on('postgres_changes', { event: '*', schema: 'public', table: 'chat_messages' }, () => fetchData()).subscribe(),
-        supabase.channel('public:chats').on('postgres_changes', { event: '*', schema: 'public', table: 'chats' }, () => fetchData()).subscribe(),
-        supabase.channel('public:user_badges').on('postgres_changes', { event: '*', schema: 'public', table: 'user_badges' }, () => fetchData()).subscribe(),
-        supabase.channel('public:profile_skills').on('postgres_changes', { event: '*', schema: 'public', table: 'profile_skills' }, () => fetchData()).subscribe(),
-        supabase.channel('public:salarios').on('postgres_changes', { event: '*', schema: 'public', table: 'salarios' }, () => fetchData()).subscribe(),
-        supabase.channel('public:eventos_nomina').on('postgres_changes', { event: '*', schema: 'public', table: 'eventos_nomina' }, () => fetchData()).subscribe(),
-        supabase.channel('public:periodos_pago').on('postgres_changes', { event: '*', schema: 'public', table: 'periodos_pago' }, () => fetchData()).subscribe(),
+      supabase.channel('public:missions').on('postgres_changes', { event: '*', schema: 'public', table: 'missions' }, () => fetchData()).subscribe(),
+      supabase.channel('public:profiles').on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, () => fetchData()).subscribe(),
+      supabase.channel('public:user_inventory').on('postgres_changes', { event: '*', schema: 'public', table: 'user_inventory' }, () => fetchData()).subscribe(),
+      supabase.channel('public:inventory_items').on('postgres_changes', { event: '*', schema: 'public', table: 'inventory_items' }, () => fetchData()).subscribe(),
+      supabase.channel('public:mission_milestones').on('postgres_changes', { event: '*', schema: 'public', table: 'mission_milestones' }, () => fetchData()).subscribe(),
+      supabase.channel('public:supplies').on('postgres_changes', { event: '*', schema: 'public', table: 'supplies' }, () => fetchData()).subscribe(),
+      supabase.channel('public:mission_supplies').on('postgres_changes', { event: '*', schema: 'public', table: 'mission_supplies' }, () => fetchData()).subscribe(),
+      supabase.channel('public:chat_messages').on('postgres_changes', { event: '*', schema: 'public', table: 'chat_messages' }, () => fetchData()).subscribe(),
+      supabase.channel('public:chats').on('postgres_changes', { event: '*', schema: 'public', table: 'chats' }, () => fetchData()).subscribe(),
+      supabase.channel('public:user_badges').on('postgres_changes', { event: '*', schema: 'public', table: 'user_badges' }, () => fetchData()).subscribe(),
+      supabase.channel('public:profile_skills').on('postgres_changes', { event: '*', schema: 'public', table: 'profile_skills' }, () => fetchData()).subscribe(),
+      supabase.channel('public:salarios').on('postgres_changes', { event: '*', schema: 'public', table: 'salarios' }, () => fetchData()).subscribe(),
+      supabase.channel('public:eventos_nomina').on('postgres_changes', { event: '*', schema: 'public', table: 'eventos_nomina' }, () => fetchData()).subscribe(),
+      supabase.channel('public:periodos_pago').on('postgres_changes', { event: '*', schema: 'public', table: 'periodos_pago' }, () => fetchData()).subscribe(),
     ];
     return () => { allChannels.forEach(channel => supabase.removeChannel(channel)); };
   }, [authUser, fetchData]);
@@ -313,9 +313,9 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const updateUser = async (updatedUser: Partial<User>) => {
-      if (currentUser?.id.startsWith('demo-')) { showToast('Acción simulada en modo demo.', 'success'); return; }
-      if (!updatedUser.id) return;
-      await api.updateUser(updatedUser.id, { name: updatedUser.name, xp: updatedUser.xp, level: updatedUser.level, push_subscription: updatedUser.pushSubscription });
+    if (currentUser?.id.startsWith('demo-')) { showToast('Acción simulada en modo demo.', 'success'); return; }
+    if (!updatedUser.id) return;
+    await api.updateUser(updatedUser.id, { name: updatedUser.name, xp: updatedUser.xp, level: updatedUser.level, push_subscription: updatedUser.pushSubscription });
   };
 
   const deactivateUser = async (userId: string) => {
@@ -323,51 +323,51 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     await api.deactivateUser(userId);
     fetchData(); // Refresh data to remove the user from the UI
   };
-  
+
   const updateUserAvatar = (userId: string, file: File) => {
-      if (currentUser?.id.startsWith('demo-')) { showToast('Acción simulada en modo demo.', 'success'); return Promise.resolve(); }
-      return api.updateUserAvatar(userId, file);
+    if (currentUser?.id.startsWith('demo-')) { showToast('Acción simulada en modo demo.', 'success'); return Promise.resolve(); }
+    return api.updateUserAvatar(userId, file);
   }
   const deleteMission = (missionId: string) => {
-      if (currentUser?.id.startsWith('demo-')) { showToast('Acción simulada en modo demo.', 'success'); return Promise.resolve(); }
-      return api.deleteMission(missionId);
+    if (currentUser?.id.startsWith('demo-')) { showToast('Acción simulada en modo demo.', 'success'); return Promise.resolve(); }
+    return api.deleteMission(missionId);
   }
   const removeInventoryItem = (userInventoryId: string) => {
-      if (currentUser?.id.startsWith('demo-')) { showToast('Acción simulada en modo demo.', 'success'); return Promise.resolve(); }
-      return api.removeInventoryItem(userInventoryId);
+    if (currentUser?.id.startsWith('demo-')) { showToast('Acción simulada en modo demo.', 'success'); return Promise.resolve(); }
+    return api.removeInventoryItem(userInventoryId);
   }
   const disposeOfInventoryItem = (userInventoryId: string, itemId: string) => {
-      if (currentUser?.id.startsWith('demo-')) { showToast('Acción simulada en modo demo.', 'success'); return Promise.resolve(); }
-      return api.disposeOfInventoryItem(userInventoryId, itemId);
+    if (currentUser?.id.startsWith('demo-')) { showToast('Acción simulada en modo demo.', 'success'); return Promise.resolve(); }
+    return api.disposeOfInventoryItem(userInventoryId, itemId);
   }
   const updateInventoryItemQuantity = (itemId: string, newQuantity: number) => {
-      if (currentUser?.id.startsWith('demo-')) { showToast('Acción simulada en modo demo.', 'success'); return Promise.resolve(); }
-      return api.updateInventoryItemQuantity(itemId, newQuantity);
+    if (currentUser?.id.startsWith('demo-')) { showToast('Acción simulada en modo demo.', 'success'); return Promise.resolve(); }
+    return api.updateInventoryItemQuantity(itemId, newQuantity);
   }
   const deleteInventoryItem = (itemId: string, iconUrl: string) => {
-      if (currentUser?.id.startsWith('demo-')) { showToast('Acción simulada en modo demo.', 'success'); return Promise.resolve(); }
-      return api.deleteInventoryItem(itemId, iconUrl);
+    if (currentUser?.id.startsWith('demo-')) { showToast('Acción simulada en modo demo.', 'success'); return Promise.resolve(); }
+    return api.deleteInventoryItem(itemId, iconUrl);
   }
   const sendNotification = (technicianId: string, title: string, body: string) => {
-      if (currentUser?.id.startsWith('demo-')) { showToast('Acción simulada en modo demo.', 'success'); return Promise.resolve(); }
-      return api.sendNotification(technicianId, title, body);
+    if (currentUser?.id.startsWith('demo-')) { showToast('Acción simulada en modo demo.', 'success'); return Promise.resolve(); }
+    return api.sendNotification(technicianId, title, body);
   }
   const savePushSubscription = async (userId: string, subscription: PushSubscription) => {
     if (currentUser?.id.startsWith('demo-')) { console.log('Simulating push sub save'); return; }
-    try { await api.updateUser(userId, { push_subscription: subscription }); } 
-    catch(e) { console.error("Error saving push subscription:", e); }
+    try { await api.updateUser(userId, { push_subscription: subscription }); }
+    catch (e) { console.error("Error saving push subscription:", e); }
   }
   const addInventoryItem = (data: { name: string; description: string; slot: EquipmentSlot; quantity: number; }, iconFile: File) => {
-      if (currentUser?.id.startsWith('demo-')) { showToast('Acción simulada en modo demo.', 'success'); return Promise.resolve(); }
-      return api.addInventoryItem(data, iconFile);
+    if (currentUser?.id.startsWith('demo-')) { showToast('Acción simulada en modo demo.', 'success'); return Promise.resolve(); }
+    return api.addInventoryItem(data, iconFile);
   }
   const assignInventoryItem = (userId: string, itemId: string) => {
-      if (currentUser?.id.startsWith('demo-')) { showToast('Acción simulada en modo demo.', 'success'); return Promise.resolve(); }
-      return api.assignInventoryItem(userId, itemId);
+    if (currentUser?.id.startsWith('demo-')) { showToast('Acción simulada en modo demo.', 'success'); return Promise.resolve(); }
+    return api.assignInventoryItem(userId, itemId);
   }
   const toggleMilestoneSolution = (milestoneId: string, isSolution: boolean) => {
-      if (currentUser?.id.startsWith('demo-')) { showToast('Acción simulada en modo demo.', 'success'); return Promise.resolve(); }
-      return api.toggleMilestoneSolution(milestoneId, isSolution);
+    if (currentUser?.id.startsWith('demo-')) { showToast('Acción simulada en modo demo.', 'success'); return Promise.resolve(); }
+    return api.toggleMilestoneSolution(milestoneId, isSolution);
   }
 
   const addMission = async (newMission: Omit<Mission, 'id' | 'status'>) => {
@@ -377,21 +377,21 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // Spreading `...newMission` was incorrectly sending the `assignedTo` (camelCase)
     // property, which caused the "column not found" error from PostgREST.
     const missionDataForDb: Database['public']['Tables']['missions']['Insert'] = {
-        title: newMission.title,
-        description: newMission.description,
-        difficulty: newMission.difficulty,
-        xp: newMission.xp,
-        bonus_monetario: newMission.bonusMonetario,
-        assigned_to: newMission.assignedTo || null,
-        start_date: newMission.startDate,
-        deadline: newMission.deadline,
-        required_skills: newMission.skills,
-        visible_to: newMission.visibleTo || null,
-        status: 'Pendiente', // Set default status here
+      title: newMission.title,
+      description: newMission.description,
+      difficulty: newMission.difficulty,
+      xp: newMission.xp,
+      bonus_monetario: newMission.bonusMonetario,
+      assigned_to: newMission.assignedTo || null,
+      start_date: newMission.startDate,
+      deadline: newMission.deadline,
+      required_skills: newMission.skills,
+      visible_to: newMission.visibleTo || null,
+      status: 'Pendiente', // Set default status here
     };
     await api.addMission(missionDataForDb);
   };
-  
+
   const requestMission = async (title: string, description: string) => {
     if (currentUser?.id.startsWith('demo-')) { showToast('Acción simulada en modo demo.', 'success'); return; }
     if (!currentUser) return;
@@ -427,7 +427,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     await deleteMission(requestMission.id);
     showToast('Técnico añadido a la misión.', 'success');
   };
-  
+
   const rejectJoinRequest = async (requestMissionId: string) => {
     if (currentUser?.id.startsWith('demo-')) { showToast('Acción simulada en modo demo.', 'success'); return; }
     await deleteMission(requestMissionId);
@@ -438,7 +438,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (currentUser?.id.startsWith('demo-')) { showToast('Acción simulada en modo demo.', 'success'); return; }
     await api.updateMission(missionId, { assigned_to: [], status: 'Pendiente' });
   };
-  
+
   const addMissionMilestone = async (missionId: string, description: string, imageFile: File | null) => {
     if (currentUser?.id.startsWith('demo-')) { showToast('Acción simulada en modo demo.', 'success'); return; }
     if (!currentUser) throw new Error("User not authenticated");
@@ -446,80 +446,80 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (imageFile) imageUrl = await api.uploadMilestoneImage(currentUser.id, missionId, imageFile);
     await api.addMissionMilestone({ mission_id: missionId, user_id: currentUser.id, description, image_url: imageUrl });
   };
-  
+
   const addSupply = (data: Omit<Supply, 'id' | 'created_at' | 'stock_quantity'>, photoFile: File | null) => {
-      if (currentUser?.id.startsWith('demo-')) { showToast('Acción simulada en modo demo.', 'success'); return Promise.resolve(); }
-      return api.addSupply(data, photoFile);
+    if (currentUser?.id.startsWith('demo-')) { showToast('Acción simulada en modo demo.', 'success'); return Promise.resolve(); }
+    return api.addSupply(data, photoFile);
   }
   const updateSupply = (supplyId: string, data: Partial<Supply>, photoFile: File | null) => {
-      if (currentUser?.id.startsWith('demo-')) { showToast('Acción simulada en modo demo.', 'success'); return Promise.resolve(); }
-      return api.updateSupply(supplyId, data, photoFile);
+    if (currentUser?.id.startsWith('demo-')) { showToast('Acción simulada en modo demo.', 'success'); return Promise.resolve(); }
+    return api.updateSupply(supplyId, data, photoFile);
   }
   const deleteSupply = (supply: Supply) => {
-      if (currentUser?.id.startsWith('demo-')) { showToast('Acción simulada en modo demo.', 'success'); return Promise.resolve(); }
-      return api.deleteSupply(supply);
+    if (currentUser?.id.startsWith('demo-')) { showToast('Acción simulada en modo demo.', 'success'); return Promise.resolve(); }
+    return api.deleteSupply(supply);
   }
   const assignSupplyToMission = (missionId: string, supplyId: string, quantity: number) => {
-      if (currentUser?.id.startsWith('demo-')) { showToast('Acción simulada en modo demo.', 'success'); return Promise.resolve(); }
-      return api.assignSupplyToMission(missionId, supplyId, quantity);
+    if (currentUser?.id.startsWith('demo-')) { showToast('Acción simulada en modo demo.', 'success'); return Promise.resolve(); }
+    return api.assignSupplyToMission(missionId, supplyId, quantity);
   }
   const updateMissionSupply = (missionSupplyId: string, data: Partial<Pick<MissionSupply, 'quantity_assigned' | 'quantity_used'>>) => {
-      if (currentUser?.id.startsWith('demo-')) { showToast('Acción simulada en modo demo.', 'success'); return Promise.resolve(); }
-      return api.updateMissionSupply(missionSupplyId, data);
+    if (currentUser?.id.startsWith('demo-')) { showToast('Acción simulada en modo demo.', 'success'); return Promise.resolve(); }
+    return api.updateMissionSupply(missionSupplyId, data);
   }
   const removeSupplyFromMission = (missionSupplyId: string) => {
-      if (currentUser?.id.startsWith('demo-')) { showToast('Acción simulada en modo demo.', 'success'); return Promise.resolve(); }
-      return api.removeSupplyFromMission(missionSupplyId);
+    if (currentUser?.id.startsWith('demo-')) { showToast('Acción simulada en modo demo.', 'success'); return Promise.resolve(); }
+    return api.removeSupplyFromMission(missionSupplyId);
   }
   const assignBadge = (userId: string, badgeId: string) => {
-      if (currentUser?.id.startsWith('demo-')) { showToast('Acción simulada en modo demo.', 'success'); return Promise.resolve(); }
-      return api.assignBadge(userId, badgeId);
+    if (currentUser?.id.startsWith('demo-')) { showToast('Acción simulada en modo demo.', 'success'); return Promise.resolve(); }
+    return api.assignBadge(userId, badgeId);
   }
   const revokeBadge = (userId: string, badgeId: string) => {
-      if (currentUser?.id.startsWith('demo-')) { showToast('Acción simulada en modo demo.', 'success'); return Promise.resolve(); }
-      return api.revokeBadge(userId, badgeId);
+    if (currentUser?.id.startsWith('demo-')) { showToast('Acción simulada en modo demo.', 'success'); return Promise.resolve(); }
+    return api.revokeBadge(userId, badgeId);
   }
 
   const handleSelectOrCreateChat = async (otherParticipantId: string): Promise<Chat | null> => {
-      if (currentUser?.id.startsWith('demo-')) { 
-          const existing = chats.find(c => (c.participant_1 === currentUser.id && c.participant_2 === otherParticipantId) || (c.participant_1 === otherParticipantId && c.participant_2 === currentUser.id));
-          if (existing) return existing;
-          const newChat: Chat = { id: `chat-${Date.now()}`, participant_1: currentUser.id, participant_2: otherParticipantId, created_at: new Date().toISOString() };
-          setChats(prev => [...prev, newChat]);
-          return newChat;
-      }
-      if (!currentUser) return null;
-      const existingChat = chats.find(c => (c.participant_1 === currentUser.id && c.participant_2 === otherParticipantId) || (c.participant_1 === otherParticipantId && c.participant_2 === currentUser.id));
-      if (existingChat) return existingChat;
-      const { data, error } = await api.createChat(currentUser.id, otherParticipantId);
-      if (error) { showToast(error.message, 'error'); return null; }
-      return data as Chat;
+    if (currentUser?.id.startsWith('demo-')) {
+      const existing = chats.find(c => (c.participant_1 === currentUser.id && c.participant_2 === otherParticipantId) || (c.participant_1 === otherParticipantId && c.participant_2 === currentUser.id));
+      if (existing) return existing;
+      const newChat: Chat = { id: `chat-${Date.now()}`, participant_1: currentUser.id, participant_2: otherParticipantId, created_at: new Date().toISOString() };
+      setChats(prev => [...prev, newChat]);
+      return newChat;
+    }
+    if (!currentUser) return null;
+    const existingChat = chats.find(c => (c.participant_1 === currentUser.id && c.participant_2 === otherParticipantId) || (c.participant_1 === otherParticipantId && c.participant_2 === currentUser.id));
+    if (existingChat) return existingChat;
+    const { data, error } = await api.createChat(currentUser.id, otherParticipantId);
+    if (error) { showToast(error.message, 'error'); return null; }
+    return data as Chat;
   };
-  
+
   const handleSendMessage = async (chatId: string, content: string) => {
     if (!currentUser) return;
     if (currentUser.id.startsWith('demo-')) {
-        const msg: ChatMessage = { id: `msg-${Date.now()}`, chat_id: chatId, sender_id: currentUser.id, content, created_at: new Date().toISOString(), is_read: false };
-        setChatMessages(prev => [...prev, msg]);
-        return;
+      const msg: ChatMessage = { id: `msg-${Date.now()}`, chat_id: chatId, sender_id: currentUser.id, content, created_at: new Date().toISOString(), is_read: false };
+      setChatMessages(prev => [...prev, msg]);
+      return;
     }
-    try { await api.sendMessage(chatId, currentUser.id, content); } 
+    try { await api.sendMessage(chatId, currentUser.id, content); }
     catch (e) { showToast((e as Error).message, 'error'); }
   };
-  
+
   const handleMarkAsRead = (chatId: string) => {
     if (!currentUser) return Promise.resolve();
     if (currentUser.id.startsWith('demo-')) { return Promise.resolve(); }
     return api.markMessagesAsRead(chatId, currentUser.id);
   };
-  
+
   const setSalary = (userId: string, amount: number, salaryId?: string) => {
-      if (currentUser?.id.startsWith('demo-')) { showToast('Acción simulada en modo demo.', 'success'); return Promise.resolve(); }
-      return api.upsertSalary({ id: salaryId, user_id: userId, monto_base_quincenal: amount });
+    if (currentUser?.id.startsWith('demo-')) { showToast('Acción simulada en modo demo.', 'success'); return Promise.resolve(); }
+    return api.upsertSalary({ id: salaryId, user_id: userId, monto_base_quincenal: amount });
   }
   const addPayrollEvent = (eventData: Omit<PayrollEvent, 'id' | 'created_at' | 'periodo_pago_id' | 'mission_id'>) => {
-      if (currentUser?.id.startsWith('demo-')) { showToast('Acción simulada en modo demo.', 'success'); return Promise.resolve(); }
-      return api.addPayrollEvent(eventData);
+    if (currentUser?.id.startsWith('demo-')) { showToast('Acción simulada en modo demo.', 'success'); return Promise.resolve(); }
+    return api.addPayrollEvent(eventData);
   }
   const createMissionBonusEvent = (userId: string, mission: Mission) => {
     if (currentUser?.id.startsWith('demo-')) { return Promise.resolve(); }
@@ -534,7 +534,61 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     });
   }
 
-  const calculatePayPeriods = async () => { /* Logic to be implemented */ showToast('Función no implementada', 'info') };
+  const calculatePayPeriods = async () => {
+    if (currentUser?.id.startsWith('demo-')) { showToast('Acción simulada en modo demo.', 'success'); return; }
+
+    // Determine current period based on user rule:
+    // Period 1: 6th to 20th of current month
+    // Period 2: 21st of current month to 5th of NEXT month (or Prev 21 to Curr 5)
+
+    // Logic: calculate the period that covers "Today" or ends "Today".
+    let startDate: Date;
+    let endDate: Date;
+
+    const today = new Date();
+    const day = today.getDate();
+    const year = today.getFullYear();
+    const month = today.getMonth(); // 0-indexed
+
+    if (day <= 5) {
+      // We are in the end of the "21 to 5" period.
+      // Start: 21st of PREVIOUS month. End: 5th of CURRENT month.
+      startDate = new Date(year, month - 1, 21);
+      endDate = new Date(year, month, 5);
+    } else if (day <= 20) {
+      // We are in the "6 to 20" period.
+      // Start: 6th of CURRENT month. End: 20th of CURRENT month.
+      startDate = new Date(year, month, 6);
+      endDate = new Date(year, month, 20);
+    } else {
+      // We are in the start of the "21 to 5" period (after the 20th).
+      // Start: 21st of CURRENT month. End: 5th of NEXT month.
+      startDate = new Date(year, month, 21);
+      endDate = new Date(year, month + 1, 5);
+    }
+
+    // Format YYYY-MM-DD (local time simple conversion)
+    const formatDate = (d: Date) => {
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      return `${y}-${m}-${day}`;
+    };
+
+    try {
+      const startStr = formatDate(startDate);
+      const endStr = formatDate(endDate);
+
+      await api.calculatePayroll(startStr, endStr);
+      showToast(`Nómina calculada para período ${startStr} al ${endStr}`, 'success');
+
+      // Refresh data to show new periods
+      fetchData();
+    } catch (e) {
+      console.error(e);
+      showToast((e as Error).message, 'error');
+    }
+  };
   const markPeriodAsPaid = async (periodId: string) => { /* Logic to be implemented */ showToast('Función no implementada', 'info') };
 
   const value = {

@@ -68,7 +68,7 @@ export const api = {
     // if ON DELETE CASCADE is not configured.
     const { error: eventsError } = await supabase.from('eventos_nomina').delete().eq('mission_id', missionId);
     if (eventsError) throw new Error(`Error deleting associated payroll events: ${eventsError.message}`);
-    
+
     const { error: suppliesError } = await supabase.from('mission_supplies').delete().eq('mission_id', missionId);
     if (suppliesError) throw new Error(`Error deleting associated mission supplies: ${suppliesError.message}`);
 
@@ -77,18 +77,18 @@ export const api = {
 
     const { error } = await supabase.from('missions').delete().eq('id', missionId);
     if (error) {
-       const isRlsError = error.message.includes("violates row-level security policy") || error.code === '42501';
-       const errorMessage = isRlsError
-         ? "Error de Permisos: Para eliminar misiones, el rol 'administrador' debe tener permisos de 'DELETE' en las políticas de seguridad (RLS) de Supabase para las tablas: 'missions', 'mission_supplies' y 'mission_milestones'."
-         : `Error final al eliminar la misión: ${error.message}`;
-       throw new Error(errorMessage);
+      const isRlsError = error.message.includes("violates row-level security policy") || error.code === '42501';
+      const errorMessage = isRlsError
+        ? "Error de Permisos: Para eliminar misiones, el rol 'administrador' debe tener permisos de 'DELETE' en las políticas de seguridad (RLS) de Supabase para las tablas: 'missions', 'mission_supplies' y 'mission_milestones'."
+        : `Error final al eliminar la misión: ${error.message}`;
+      throw new Error(errorMessage);
     }
   },
   async updateUser(id: string, updateData: ProfileUpdate) {
     const { error } = await supabase.from('profiles').update(updateData).eq('id', id);
     if (error) throw new Error(error.message);
   },
-   async deactivateUser(userId: string) {
+  async deactivateUser(userId: string) {
     const { error } = await supabase.from('profiles').update({ is_active: false }).eq('id', userId);
     if (error) throw new Error(error.message);
   },
@@ -131,37 +131,37 @@ export const api = {
   async deleteInventoryItem(itemId: string, iconUrl: string) {
     const { error: dbError } = await supabase.from('inventory_items').delete().eq('id', itemId);
     if (dbError) throw new Error(dbError.message);
-    
+
     try {
-        const filePath = new URL(iconUrl).pathname.split('/inventory_icons/')[1];
-        if (filePath) await supabase.storage.from('inventory_icons').remove([filePath]);
+      const filePath = new URL(iconUrl).pathname.split('/inventory_icons/')[1];
+      if (filePath) await supabase.storage.from('inventory_icons').remove([filePath]);
     } catch (e) { console.warn("Could not delete storage item, it might not exist:", e); }
   },
   async addSupply(supplyData: Omit<SupplyInsert, 'photo_url'>, photoFile: File | null) {
-      let photoUrl: string | null = null;
-      if (photoFile) {
-        const fileExt = photoFile.name.split('.').pop();
-        const filePath = `supply_photos/${supplyData.model.replace(/\s+/g, '_')}-${Date.now()}.${fileExt}`;
-        const { error: uploadError } = await supabase.storage.from('public-assets').upload(filePath, photoFile);
-        if (uploadError) throw new Error(`Error subiendo foto: ${uploadError.message}`);
-        const { data: urlData } = supabase.storage.from('public-assets').getPublicUrl(filePath);
-        photoUrl = urlData.publicUrl;
-      }
-      const { error } = await supabase.from('supplies').insert({ ...supplyData, photo_url: photoUrl });
-      if (error) throw new Error(error.message);
+    let photoUrl: string | null = null;
+    if (photoFile) {
+      const fileExt = photoFile.name.split('.').pop();
+      const filePath = `supply_photos/${supplyData.model.replace(/\s+/g, '_')}-${Date.now()}.${fileExt}`;
+      const { error: uploadError } = await supabase.storage.from('public-assets').upload(filePath, photoFile);
+      if (uploadError) throw new Error(`Error subiendo foto: ${uploadError.message}`);
+      const { data: urlData } = supabase.storage.from('public-assets').getPublicUrl(filePath);
+      photoUrl = urlData.publicUrl;
+    }
+    const { error } = await supabase.from('supplies').insert({ ...supplyData, photo_url: photoUrl });
+    if (error) throw new Error(error.message);
   },
   async updateSupply(supplyId: string, supplyData: SupplyUpdate, photoFile: File | null) {
-      let photoUrl = supplyData.photo_url;
-      if (photoFile) {
-        const fileExt = photoFile.name.split('.').pop();
-        const filePath = `supply_photos/${supplyData.model?.replace(/\s+/g, '_')}-${Date.now()}.${fileExt}`;
-        const { error: uploadError } = await supabase.storage.from('public-assets').upload(filePath, photoFile, { upsert: true });
-        if (uploadError) throw new Error(`Error subiendo foto: ${uploadError.message}`);
-        const { data: urlData } = supabase.storage.from('public-assets').getPublicUrl(filePath);
-        photoUrl = urlData.publicUrl;
-      }
-      const { error } = await supabase.from('supplies').update({ ...supplyData, photo_url: photoUrl }).eq('id', supplyId);
-      if (error) throw new Error(error.message);
+    let photoUrl = supplyData.photo_url;
+    if (photoFile) {
+      const fileExt = photoFile.name.split('.').pop();
+      const filePath = `supply_photos/${supplyData.model?.replace(/\s+/g, '_')}-${Date.now()}.${fileExt}`;
+      const { error: uploadError } = await supabase.storage.from('public-assets').upload(filePath, photoFile, { upsert: true });
+      if (uploadError) throw new Error(`Error subiendo foto: ${uploadError.message}`);
+      const { data: urlData } = supabase.storage.from('public-assets').getPublicUrl(filePath);
+      photoUrl = urlData.publicUrl;
+    }
+    const { error } = await supabase.from('supplies').update({ ...supplyData, photo_url: photoUrl }).eq('id', supplyId);
+    if (error) throw new Error(error.message);
   },
   async deleteSupply(supply: Supply) {
     const { error } = await supabase.from('supplies').delete().eq('id', supply.id);
@@ -199,33 +199,33 @@ export const api = {
 
   // --- STORAGE ---
   async updateUserAvatar(userId: string, file: File) {
-      const fileExt = file.name.split('.').pop();
-      const filePath = `${userId}/avatar.${fileExt}`;
-      const { error: uploadError } = await supabase.storage.from('avatars').upload(filePath, file, { upsert: true });
-      if (uploadError) throw new Error(`Error al subir avatar: ${uploadError.message}`);
+    const fileExt = file.name.split('.').pop();
+    const filePath = `${userId}/avatar.${fileExt}`;
+    const { error: uploadError } = await supabase.storage.from('avatars').upload(filePath, file, { upsert: true });
+    if (uploadError) throw new Error(`Error al subir avatar: ${uploadError.message}`);
 
-      const { data } = supabase.storage.from('avatars').getPublicUrl(filePath);
-      if (!data.publicUrl) throw new Error("No se pudo obtener la URL pública del avatar.");
-      
-      const uniqueUrl = `${data.publicUrl}?t=${new Date().getTime()}`;
-      const { error: dbError } = await supabase.from('profiles').update({ avatar: uniqueUrl }).eq('id', userId);
-      if (dbError) throw new Error(`Error al actualizar la base de datos: ${dbError.message}`);
+    const { data } = supabase.storage.from('avatars').getPublicUrl(filePath);
+    if (!data.publicUrl) throw new Error("No se pudo obtener la URL pública del avatar.");
+
+    const uniqueUrl = `${data.publicUrl}?t=${new Date().getTime()}`;
+    const { error: dbError } = await supabase.from('profiles').update({ avatar: uniqueUrl }).eq('id', userId);
+    if (dbError) throw new Error(`Error al actualizar la base de datos: ${dbError.message}`);
   },
   async uploadMilestoneImage(userId: string, missionId: string, imageFile: File) {
-      const fileExt = imageFile.name.split('.').pop();
-      const filePath = `${userId}/${missionId}-${Date.now()}.${fileExt}`;
-      const { error: uploadError } = await supabase.storage.from('milestone_photos').upload(filePath, imageFile);
-      if (uploadError) throw new Error(`Error al subir la imagen: ${uploadError.message}`);
-      
-      const { data } = supabase.storage.from('milestone_photos').getPublicUrl(filePath);
-      if (!data.publicUrl) throw new Error("No se pudo obtener la URL pública de la imagen.");
-      return data.publicUrl;
+    const fileExt = imageFile.name.split('.').pop();
+    const filePath = `${userId}/${missionId}-${Date.now()}.${fileExt}`;
+    const { error: uploadError } = await supabase.storage.from('milestone_photos').upload(filePath, imageFile);
+    if (uploadError) throw new Error(`Error al subir la imagen: ${uploadError.message}`);
+
+    const { data } = supabase.storage.from('milestone_photos').getPublicUrl(filePath);
+    if (!data.publicUrl) throw new Error("No se pudo obtener la URL pública de la imagen.");
+    return data.publicUrl;
   },
-  
+
   // --- FUNCTIONS ---
   async sendNotification(technicianId: string, title: string, body: string) {
     const { error } = await supabase.functions.invoke('send-notification', {
-        body: { technician_id: technicianId, title, body }
+      body: { technician_id: technicianId, title, body }
     });
     if (error) throw new Error(error.message);
   },
@@ -242,24 +242,29 @@ export const api = {
 
   // --- PAYROLL ---
   async upsertSalary(data: SalaryInsert) {
-      const { error } = await supabase.from('salarios').upsert(data, { onConflict: 'user_id' });
-      if (error) throw new Error(error.message);
+    const { error } = await supabase.from('salarios').upsert(data, { onConflict: 'user_id' });
+    if (error) throw new Error(error.message);
   },
   async addPayrollEvent(data: PayrollEventInsert) {
-      const { error } = await supabase.from('eventos_nomina').insert(data);
-      if (error) throw new Error(error.message);
+    const { error } = await supabase.from('eventos_nomina').insert(data);
+    if (error) throw new Error(error.message);
   },
   async addPaymentPeriod(data: PaymentPeriodInsert) {
-      const { data: newPeriod, error } = await supabase.from('periodos_pago').insert(data).select().single();
-      if (error) throw new Error(error.message);
-      return newPeriod;
+    const { data: newPeriod, error } = await supabase.from('periodos_pago').insert(data).select().single();
+    if (error) throw new Error(error.message);
+    return newPeriod;
   },
   async updatePaymentPeriod(id: string, data: PaymentPeriodUpdate) {
-      const { error } = await supabase.from('periodos_pago').update(data).eq('id', id);
-      if (error) throw new Error(error.message);
+    const { error } = await supabase.from('periodos_pago').update(data).eq('id', id);
+    if (error) throw new Error(error.message);
   },
   async linkEventsToPeriod(eventIds: string[], periodId: string) {
-      const { error } = await supabase.from('eventos_nomina').update({ periodo_pago_id: periodId }).in('id', eventIds);
-      if (error) throw new Error(error.message);
+    const { error } = await supabase.from('eventos_nomina').update({ periodo_pago_id: periodId }).in('id', eventIds);
+    if (error) throw new Error(error.message);
+  },
+  async calculatePayroll(startDate: string, endDate: string) {
+    const { data, error } = await supabase.rpc('calcular_nomina', { p_fecha_inicio: startDate, p_fecha_fin: endDate });
+    if (error) throw new Error(`Error al calcular nómina: ${error.message}`);
+    return data; // Returns the count of processed users
   }
 };
