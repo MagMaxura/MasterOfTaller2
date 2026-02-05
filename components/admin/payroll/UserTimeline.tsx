@@ -46,6 +46,32 @@ const UserTimeline: React.FC<UserTimelineProps> = ({ periodStart, periodEnd, eve
         }
     };
 
+    const getDayStyle = (events: PayrollEvent[], isWeekend: boolean) => {
+        if (events.length === 0) {
+            return isWeekend
+                ? 'bg-brand-secondary/50 border-brand-accent/30'
+                : 'bg-brand-secondary border-brand-accent';
+        }
+
+        let hasDeduction = false;
+        let hasAddition = false;
+
+        events.forEach(e => {
+            if ([PayrollEventType.ABSENCE, PayrollEventType.TARDINESS, PayrollEventType.EARLY_DEPARTURE, PayrollEventType.PENALTY].includes(e.tipo)) {
+                hasDeduction = true;
+            }
+            if ([PayrollEventType.OVERTIME, PayrollEventType.BONUS].includes(e.tipo)) {
+                hasAddition = true;
+            }
+        });
+
+        if (hasDeduction && hasAddition) return 'bg-brand-primary border-brand-accent'; // Mixed
+        if (hasDeduction) return 'bg-brand-red/10 border-brand-red/30';
+        if (hasAddition) return 'bg-brand-green/10 border-brand-green/30';
+
+        return 'bg-brand-secondary border-brand-accent'; // Neutral events (loan, vacation, etc)
+    };
+
     const getEventIcon = (type: PayrollEventType) => {
         switch (type) {
             case PayrollEventType.ABSENCE: return '❌';
@@ -73,7 +99,7 @@ const UserTimeline: React.FC<UserTimelineProps> = ({ periodStart, periodEnd, eve
                         <div
                             key={index}
                             onClick={() => onDayClick && onDayClick(date)}
-                            className={`flex flex-col items-center min-w-[3rem] p-2 rounded border cursor-pointer hover:bg-brand-primary/80 transition-colors ${isWeekend ? 'bg-brand-secondary/50 border-brand-accent/30' : 'bg-brand-secondary border-brand-accent'}`}
+                            className={`flex flex-col items-center min-w-[3rem] p-2 rounded border cursor-pointer hover:bg-brand-primary/80 transition-colors ${getDayStyle(dayEvents, isWeekend)}`}
                         >
                             <span className="text-xs text-brand-light mb-1">{date.getDate()}/{date.getMonth() + 1}</span>
                             <span className="text-[10px] uppercase text-brand-light/50 mb-2">{date.toLocaleDateString('es-AR', { weekday: 'short' })}</span>
