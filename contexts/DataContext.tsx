@@ -40,7 +40,7 @@ interface DataContextType {
   deleteMission: (missionId: string) => Promise<void>;
   addMissionMilestone: (missionId: string, description: string, imageFile: File | null) => Promise<void>;
   toggleMilestoneSolution: (milestoneId: string, isSolution: boolean) => Promise<void>;
-  assignInventoryItem: (userId: string, itemId: string) => Promise<void>;
+  assignInventoryItem: (userId: string, itemId: string, variantId?: string) => Promise<void>;
   removeInventoryItem: (userInventoryId: string) => Promise<void>;
   disposeOfInventoryItem: (userInventoryId: string, itemId: string) => Promise<void>;
   updateInventoryItemQuantity: (itemId: string, newQuantity: number) => Promise<void>;
@@ -375,7 +375,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (currentUser?.id.startsWith('demo-')) { showToast('Acción simulada en modo demo.', 'success'); return Promise.resolve(); }
     return api.addInventoryItem(data, iconFile);
   }
-  const assignInventoryItem = async (userId: string, itemId: string) => {
+  const assignInventoryItem = async (userId: string, itemId: string, variantId?: string) => {
     if (currentUser?.id.startsWith('demo-')) { showToast('Acción simulada en modo demo.', 'success'); return; }
 
     // 1. Get the item definition to add to local state
@@ -385,13 +385,15 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       // 2. Call API (returns the new DB row)
       const assignedAt = new Date().toISOString();
-      const newDbRow = await api.assignInventoryItem(userId, itemId, assignedAt);
+      const newDbRow = await api.assignInventoryItem(userId, itemId, assignedAt, variantId);
 
       // 3. Create the object for local state (UserInventoryItem)
       const newUserInventoryItem: UserInventoryItem = {
         id: newDbRow?.id || `temp-${Date.now()}`,
         assigned_at: assignedAt,
-        item: inventoryItem
+        item: inventoryItem,
+        variant_id: variantId,
+        variant: variantId ? inventoryItem.variants?.find(v => v.id === variantId) : undefined
       };
 
       // 4. Helper to update a user object

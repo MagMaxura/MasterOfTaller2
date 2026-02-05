@@ -48,6 +48,13 @@ export enum PaymentStatus {
   PAID = 'PAGADO'
 }
 
+export interface InventoryVariant {
+  id: string;
+  item_id: string;
+  size: string;
+  quantity: number;
+}
+
 export interface InventoryItem {
   id: string;
   name: string;
@@ -55,12 +62,15 @@ export interface InventoryItem {
   slot: EquipmentSlot;
   icon_url: string;
   quantity: number;
+  variants?: InventoryVariant[];
 }
 
 export interface UserInventoryItem {
   id: string; // This is the ID of the user_inventory row
   assigned_at: string;
   item: InventoryItem;
+  variant?: InventoryVariant;
+  variant_id?: string;
 }
 
 export interface Skill {

@@ -31,17 +31,18 @@ export const api = {
     const paymentPeriodColumns = 'id, user_id, fecha_inicio_periodo, fecha_fin_periodo, fecha_pago, salario_base_calculado, total_adiciones, total_deducciones, monto_final_a_pagar, estado, created_at';
 
     // NEW: Combined query for profiles using relationships. This is more efficient and robust.
+    // NEW: Combined query for profiles using relationships. This is more efficient and robust.
     const profilesQuery = supabase.from('profiles').select(`
         ${profileColumns},
         profile_skills ( level, skills ( id, name ) ),
         user_badges ( badges ( ${badgeColumns} ) ),
-        user_inventory ( id, assigned_at, inventory_items ( ${inventoryItemColumns} ) )
+        user_inventory ( id, assigned_at, variant_id, inventory_items ( ${inventoryItemColumns} ), variant:inventory_variants ( id, size, quantity ) )
     `).eq('is_active', true);
 
     return Promise.all([
       profilesQuery, // Replaces separate fetches for profiles, skills, badges, inventory
       supabase.from('missions').select(missionColumns).order('created_at', { ascending: false }),
-      supabase.from('inventory_items').select(inventoryItemColumns),
+      supabase.from('inventory_items').select(`${inventoryItemColumns}, variants:inventory_variants(id, item_id, size, quantity)`),
       supabase.from('badges').select(badgeColumns),
       supabase.from('mission_milestones').select('id, mission_id, user_id, description, image_url, created_at, is_solution, mission:missions(title, required_skills)').order('created_at', { ascending: true }),
       supabase.from('chats').select('id, created_at, participant_1, participant_2').or(`participant_1.eq.${userId},participant_2.eq.${userId}`),
@@ -100,11 +101,12 @@ export const api = {
     const { error } = await supabase.from('mission_milestones').update({ is_solution: isSolution }).eq('id', milestoneId);
     if (error) throw new Error(error.message);
   },
-  async assignInventoryItem(userId: string, itemId: string, assignedAt?: string) {
+  async assignInventoryItem(userId: string, itemId: string, assignedAt?: string, variantId?: string) {
     const { data, error } = await supabase.from('user_inventory').insert({
       user_id: userId,
       item_id: itemId,
-      assigned_at: assignedAt || new Date().toISOString()
+      assigned_at: assignedAt || new Date().toISOString(),
+      variant_id: variantId || null
     }).select().single();
     if (error) throw new Error(error.message);
     return data;
