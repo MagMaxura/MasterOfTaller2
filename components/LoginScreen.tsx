@@ -162,18 +162,6 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ authError, onBypass }) => {
             )}
             Google
           </button>
-          
-          <div className="mt-10 pt-6 border-t border-brand-accent/30 w-full">
-            <p className="text-[10px] text-brand-light uppercase tracking-widest font-bold mb-3">Acceso Rápido (Desarrollo)</p>
-            <div className="flex gap-3">
-                <button onClick={() => onBypass && onBypass('admin')} className="flex-1 bg-brand-secondary border border-brand-accent hover:bg-brand-accent text-brand-light hover:text-brand-highlight py-2 px-3 rounded-lg text-xs transition-colors font-medium">
-                    Admin
-                </button>
-                <button onClick={() => onBypass && onBypass('technician')} className="flex-1 bg-brand-secondary border border-brand-accent hover:bg-brand-accent text-brand-light hover:text-brand-highlight py-2 px-3 rounded-lg text-xs transition-colors font-medium">
-                    Técnico
-                </button>
-            </div>
-          </div>
         </div>
       </div>
     </div>
