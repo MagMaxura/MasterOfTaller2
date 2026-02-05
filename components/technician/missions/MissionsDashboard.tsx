@@ -1,3 +1,4 @@
+
 import React, { useMemo, useState } from 'react';
 import { Mission, MissionStatus, User } from '../../../types';
 import { useData } from '../../../contexts/DataContext';
@@ -29,32 +30,32 @@ const AvailableMissionCard: React.FC<{
     const assignedUsers = (mission.assignedTo || []).map(id => usersMap.get(id)).filter(Boolean) as User[];
     
     return (
-        <div className="bg-brand-secondary p-4 rounded-lg shadow-md border-l-4 border-brand-accent flex flex-col gap-3">
+        <div className="bg-white border border-brand-accent p-5 rounded-xl shadow-sm hover:shadow-md transition-all flex flex-col gap-3">
             <div>
-                <h4 className="font-bold">{mission.title}</h4>
+                <h4 className="font-bold text-lg text-brand-highlight">{mission.title}</h4>
                 <p className="text-sm text-brand-light mt-1">{mission.description.substring(0, 80)}...</p>
             </div>
             {assignedUsers.length > 0 && (
                 <div className="flex items-center gap-2 mt-2">
-                    <span className="text-xs font-semibold">Equipo:</span>
+                    <span className="text-xs font-semibold text-brand-light">Equipo:</span>
                     <div className="flex -space-x-2">
                         {assignedUsers.map(u => (
-                            <img key={u.id} src={u.avatar} alt={u.name} title={u.name} className="w-6 h-6 rounded-full ring-2 ring-brand-secondary" />
+                            <img key={u.id} src={u.avatar} alt={u.name} title={u.name} className="w-6 h-6 rounded-full ring-2 ring-white border border-brand-accent" />
                         ))}
                     </div>
                 </div>
             )}
-            <div className="flex justify-between items-center mt-auto pt-2 text-sm">
-                <span className="font-semibold text-brand-orange">{mission.xp} XP</span>
-                <span className="px-2 py-1 bg-brand-primary text-xs rounded-full">{mission.difficulty}</span>
+            <div className="flex justify-between items-center mt-auto pt-2 text-sm border-t border-brand-accent/30">
+                <span className="font-bold text-brand-orange">{mission.xp} XP</span>
+                <span className="px-2 py-1 bg-brand-secondary text-brand-light text-xs rounded-md">{mission.difficulty}</span>
             </div>
              <button
                 onClick={handleRequest}
                 disabled={isLoading}
-                className="w-full bg-brand-blue text-white font-bold py-2 px-3 rounded-lg flex items-center justify-center gap-2 disabled:bg-brand-accent hover:bg-blue-700 transition-colors mt-2"
+                className="w-full bg-brand-blue text-white font-bold py-2.5 px-3 rounded-lg flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-blue-600 active:translate-y-0.5 transition-all mt-2 shadow-sm"
             >
                 {isLoading && <div className="w-5 h-5 border-2 border-t-transparent border-white rounded-full animate-spin"></div>}
-                {isLoading ? 'Enviando...' : (requestType === 'join' ? 'Solicitar Unirse' : 'Solicitar')}
+                {isLoading ? 'Enviando...' : (requestType === 'join' ? 'Solicitar Unirse' : 'Solicitar Misión')}
             </button>
         </div>
     );
@@ -88,16 +89,16 @@ const MissionsDashboard: React.FC<MissionsDashboardProps> = ({ user, onOpenMissi
     }, [missions, user.id]);
 
     return (
-        <div className="space-y-8">
+        <div className="space-y-10">
             <div>
-                <div className="flex justify-between items-center mb-4 flex-wrap gap-2">
-                    <h2 className="text-2xl font-bold">Mis Misiones</h2>
+                <div className="flex justify-between items-center mb-6 flex-wrap gap-4">
+                    <h2 className="text-3xl font-bold text-brand-highlight tracking-tight">Mis Misiones</h2>
                      <button
                         onClick={() => setIsRequestModalOpen(true)}
-                        className="bg-brand-orange text-brand-primary font-bold py-2 px-4 rounded-lg flex items-center gap-2 hover:bg-orange-400 transition-colors"
+                        className="bg-white border border-brand-orange text-brand-orange font-bold py-2 px-4 rounded-lg flex items-center gap-2 hover:bg-brand-orange hover:text-white transition-all shadow-sm hover:shadow-md"
                     >
                         <PlusIcon className="w-5 h-5" />
-                        Solicitar Misión Custom
+                        <span>Solicitar Custom</span>
                     </button>
                 </div>
                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -108,39 +109,29 @@ const MissionsDashboard: React.FC<MissionsDashboardProps> = ({ user, onOpenMissi
                 </div>
             </div>
 
-            <div className="border-t border-brand-accent my-8"></div>
+            {(available.length > 0 || otherInProgress.length > 0) && <div className="border-t border-brand-accent my-8"></div>}
             
-            <div>
-                <h2 className="text-2xl font-bold mb-4">Misiones Disponibles para Solicitar</h2>
-                {available.length > 0 ? (
+            {available.length > 0 && (
+                <div>
+                    <h2 className="text-2xl font-bold mb-4 text-brand-highlight">Disponibles para Tomar</h2>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                         {available.map(mission => (
                             <AvailableMissionCard key={mission.id} mission={mission} onRequest={technicianRequestMission} requestType="take" />
                         ))}
                     </div>
-                ) : (
-                    <div className="bg-brand-secondary p-8 rounded-lg text-center text-brand-light italic">
-                        No hay misiones disponibles en este momento. ¡Vuelve a consultar más tarde!
-                    </div>
-                )}
-            </div>
+                </div>
+            )}
 
-             <div className="border-t border-brand-accent my-8"></div>
-
-            <div>
-                <h2 className="text-2xl font-bold mb-4">Otras Misiones en Progreso</h2>
-                {otherInProgress.length > 0 ? (
+            {otherInProgress.length > 0 && (
+                <div>
+                    <h2 className="text-2xl font-bold mb-4 mt-8 text-brand-highlight">Unirse a Misión en Progreso</h2>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                         {otherInProgress.map(mission => (
                             <AvailableMissionCard key={mission.id} mission={mission} onRequest={requestToJoinMission} requestType="join" />
                         ))}
                     </div>
-                ) : (
-                    <div className="bg-brand-secondary p-8 rounded-lg text-center text-brand-light italic">
-                        No hay otras misiones en progreso en este momento.
-                    </div>
-                )}
-            </div>
+                </div>
+            )}
 
             {isRequestModalOpen && <RequestMissionModal onClose={() => setIsRequestModalOpen(false)} />}
         </div>

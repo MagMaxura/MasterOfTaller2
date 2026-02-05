@@ -75,14 +75,14 @@ const AdminView: React.FC = () => {
 
     const sidebarContent = (
         <>
-            <div className="flex items-center gap-3 mb-8 p-2 border-b border-brand-accent/30 pb-4">
+            <div className="flex items-center gap-3 mb-6 p-4 border-b border-brand-accent/50">
                 <img src={currentUser.avatar} alt={currentUser.name} className="w-12 h-12 rounded-full border-2 border-brand-orange p-0.5" />
                 <div className="overflow-hidden">
                     <h2 className="font-bold text-lg truncate text-brand-highlight">{currentUser.name}</h2>
                     <p className="text-sm text-brand-light truncate">General Supremo</p>
                 </div>
             </div>
-            <nav className="flex-grow flex flex-col space-y-1 overflow-y-auto">
+            <nav className="flex-grow flex flex-col space-y-1 overflow-y-auto px-2">
                 {TABS.map(tab => (
                     <button 
                         key={tab.id} 
@@ -92,7 +92,7 @@ const AdminView: React.FC = () => {
                         }} 
                         className={`relative flex items-center gap-4 w-full px-4 py-3 rounded-lg text-sm font-medium transition-all text-left ${activeTab === tab.id ? 'bg-brand-blue text-white shadow-md' : 'text-brand-light hover:bg-brand-secondary hover:text-brand-highlight'}`}
                     >
-                        {React.cloneElement(tab.icon, { className: "w-5 h-5 flex-shrink-0" })}
+                        {React.cloneElement(tab.icon as React.ReactElement, { className: "w-5 h-5 flex-shrink-0" })}
                         <span className="truncate">{tab.label}</span>
                         {tab.id === 'requests' && tab.notification && missionRequestsCount > 0 && 
                             <span className="ml-auto h-5 min-w-[1.25rem] px-1.5 text-xs flex items-center justify-center rounded-full bg-brand-red text-white font-bold shadow-sm">{missionRequestsCount}</span>}
@@ -101,7 +101,7 @@ const AdminView: React.FC = () => {
                     </button>
                 ))}
             </nav>
-            <div className="mt-auto pt-4 border-t border-brand-accent/30">
+            <div className="mt-auto pt-4 border-t border-brand-accent/50 p-2">
                 <button onClick={handleLogout} className="flex items-center gap-4 w-full px-4 py-3 rounded-lg text-sm font-medium transition-colors text-brand-light hover:bg-brand-red/10 hover:text-brand-red">
                     <LogoutIcon className="w-5 h-5 flex-shrink-0" />
                     <span>Salir</span>
@@ -111,7 +111,7 @@ const AdminView: React.FC = () => {
     );
 
     return (
-        <div className="relative min-h-screen bg-brand-primary md:flex">
+        <div className="relative min-h-screen bg-brand-secondary md:flex">
              {/* Mobile header */}
             <header className="sticky top-0 z-10 flex items-center justify-between bg-white border-b border-brand-accent p-4 text-brand-highlight md:hidden shadow-sm">
                 <button onClick={() => setIsSidebarOpen(true)} className="p-2 -ml-2 text-brand-light hover:text-brand-highlight">
@@ -130,11 +130,11 @@ const AdminView: React.FC = () => {
             )}
 
             {/* Sidebar */}
-            <aside className={`fixed inset-y-0 left-0 z-40 w-72 transform bg-white border-r border-brand-accent p-4 flex flex-col transition-transform duration-300 ease-in-out md:relative md:translate-x-0 md:flex-shrink-0 ${ isSidebarOpen ? 'translate-x-0 shadow-2xl' : '-translate-x-full'}`}>
+            <aside className={`fixed inset-y-0 left-0 z-40 w-72 transform bg-white border-r border-brand-accent flex flex-col transition-transform duration-300 ease-in-out md:relative md:translate-x-0 md:flex-shrink-0 ${ isSidebarOpen ? 'translate-x-0 shadow-2xl' : '-translate-x-full'}`}>
                 {sidebarContent}
             </aside>
             
-            <div className="flex-1 flex flex-col overflow-hidden bg-brand-secondary/30">
+            <div className="flex-1 flex flex-col overflow-hidden">
                 <main className="flex-1 p-4 md:p-8 overflow-y-auto">
                     <div className="max-w-7xl mx-auto">
                         <div className={activeTab === 'manage' ? 'block' : 'hidden'}>

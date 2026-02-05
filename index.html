@@ -16,21 +16,21 @@
         theme: {
           extend: {
             colors: {
-              'brand-primary': '#FFFFFF',       /* Fondo Principal: Blanco */
-              'brand-secondary': '#F1F5F9',     /* Fondo Secundario (Tarjetas): Slate 100 */
-              'brand-accent': '#CBD5E1',        /* Bordes y detalles: Slate 300 */
+              'brand-primary': '#FFFFFF',       /* Fondo Principal: Blanco Puro */
+              'brand-secondary': '#F8FAFC',     /* Fondo Secundario (Muy suave): Slate 50 */
+              'brand-accent': '#E2E8F0',        /* Bordes: Slate 200 */
               'brand-light': '#64748B',         /* Texto secundario: Slate 500 */
               'brand-highlight': '#0F172A',     /* Texto principal: Slate 900 */
               'brand-blue': '#2563EB',          /* Azul vibrante */
-              'brand-orange': '#D97706',        /* Naranja oscurecido para contraste */
-              'brand-green': '#16A34A',         /* Verde éxito */
-              'brand-red': '#DC2626',           /* Rojo error */
+              'brand-orange': '#F59E0B',        /* Naranja vibrante */
+              'brand-green': '#10B981',         /* Verde vibrante */
+              'brand-red': '#EF4444',           /* Rojo vibrante */
             },
             fontFamily: {
               sans: ['Inter', 'system-ui', 'sans-serif'],
             },
             boxShadow: {
-              'soft': '0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03)',
+              'soft': '0 2px 15px -3px rgba(0, 0, 0, 0.07), 0 10px 20px -2px rgba(0, 0, 0, 0.04)',
             }
           }
         }
@@ -41,19 +41,24 @@
       body {
         -webkit-tap-highlight-color: transparent;
       }
+      /* Scrollbar más sutil */
       ::-webkit-scrollbar {
-        width: 8px;
-        height: 8px;
+        width: 6px;
+        height: 6px;
       }
       ::-webkit-scrollbar-track {
-        background: #f1f5f9;
+        background: transparent;
       }
       ::-webkit-scrollbar-thumb {
         background: #cbd5e1;
-        border-radius: 4px;
+        border-radius: 3px;
       }
       ::-webkit-scrollbar-thumb:hover {
         background: #94a3b8;
+      }
+      /* Ajuste para bottom nav en iPhone X+ */
+      .pb-safe {
+        padding-bottom: env(safe-area-inset-bottom);
       }
     </style>
   <script type="importmap">

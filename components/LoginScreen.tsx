@@ -83,17 +83,17 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ authError, onBypass }) => {
   };
 
   return (
-    <div className="min-h-screen bg-brand-secondary flex flex-col items-center justify-center p-4 text-center">
+    <div className="min-h-screen bg-brand-primary flex flex-col items-center justify-center p-4 text-center">
       <div className="w-full max-w-sm">
-        <div className="inline-block bg-brand-blue p-4 rounded-full mb-6 shadow-lg shadow-brand-blue/30">
-          <WrenchIcon className="w-12 h-12 text-white" />
+        <div className="inline-block bg-brand-blue p-5 rounded-3xl mb-8 shadow-xl shadow-brand-blue/20">
+          <WrenchIcon className="w-16 h-16 text-white" />
         </div>
         <h1 className="text-4xl font-extrabold text-brand-highlight tracking-tight mb-2">Maestros del Taller</h1>
-        <p className="text-brand-light text-lg mb-8">Gestión profesional y gamificada.</p>
+        <p className="text-brand-light text-lg mb-10">Gestión profesional y gamificada.</p>
         
         {!authError?.includes('Google') && <p className="text-xs text-brand-light/70 mb-4 px-4">Asegúrate de habilitar el proveedor "Email" en la configuración de autenticación de Supabase.</p>}
 
-        <div className="bg-white shadow-xl shadow-gray-200/50 rounded-2xl p-8 border border-brand-accent/50">
+        <div className="bg-white shadow-soft rounded-3xl p-8 border border-brand-accent/50">
           <div className="flex border-b border-brand-accent mb-6">
             <button onClick={() => handleTabChange('login')} className={`flex-1 font-semibold py-3 text-sm transition-all ${activeTab === 'login' ? 'text-brand-blue border-b-2 border-brand-blue' : 'text-brand-light hover:text-brand-highlight'}`}>
               Iniciar Sesión
@@ -110,7 +110,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ authError, onBypass }) => {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
-                className="w-full bg-brand-secondary p-3 rounded-lg border border-brand-accent focus:outline-none focus:ring-2 focus:ring-brand-blue transition-all"
+                className="w-full bg-brand-secondary p-4 rounded-xl border border-brand-accent/50 focus:outline-none focus:ring-2 focus:ring-brand-blue/50 focus:border-brand-blue transition-all"
               />
               <input 
                 type="password"
@@ -118,37 +118,37 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ authError, onBypass }) => {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
-                className="w-full bg-brand-secondary p-3 rounded-lg border border-brand-accent focus:outline-none focus:ring-2 focus:ring-brand-blue transition-all"
+                className="w-full bg-brand-secondary p-4 rounded-xl border border-brand-accent/50 focus:outline-none focus:ring-2 focus:ring-brand-blue/50 focus:border-brand-blue transition-all"
               />
               <button 
                 type="submit"
                 disabled={loading}
-                className="w-full bg-brand-blue text-white font-bold py-3 px-4 rounded-lg flex items-center justify-center gap-2 disabled:bg-brand-accent shadow-md shadow-brand-blue/20 hover:shadow-lg hover:shadow-brand-blue/30 transition-all hover:-translate-y-0.5 active:translate-y-0"
+                className="w-full bg-brand-highlight text-white font-bold py-4 px-4 rounded-xl flex items-center justify-center gap-2 disabled:bg-brand-light hover:bg-brand-blue transition-all shadow-lg hover:shadow-xl active:translate-y-0.5"
               >
                 {loading && <div className="w-5 h-5 border-2 border-t-transparent border-white rounded-full animate-spin"></div>}
-                {activeTab === 'login' ? 'Iniciar Sesión' : 'Crear Cuenta'}
+                {activeTab === 'login' ? 'Entrar' : 'Crear Cuenta'}
               </button>
           </form>
 
           {formMessage && (
-            <p className={`text-center text-sm mt-4 p-2 rounded ${messageType === 'error' ? 'bg-red-50 text-brand-red border border-red-100' : 'bg-green-50 text-brand-green border border-green-100'}`}>
+            <p className={`text-center text-sm mt-4 p-3 rounded-lg font-medium ${messageType === 'error' ? 'bg-red-50 text-brand-red border border-red-100' : 'bg-green-50 text-brand-green border border-green-100'}`}>
                 {formMessage}
             </p>
           )}
 
-          <div className="relative my-6">
+          <div className="relative my-8">
             <div className="absolute inset-0 flex items-center">
               <div className="w-full border-t border-brand-accent"></div>
             </div>
             <div className="relative flex justify-center text-sm">
-              <span className="px-2 bg-white text-brand-light">O continúa con</span>
+              <span className="px-4 bg-white text-brand-light font-medium">O continúa con</span>
             </div>
           </div>
           
           <button
             onClick={handleGoogleLogin}
             disabled={loading}
-            className="w-full bg-white border border-brand-accent text-gray-700 font-semibold py-3 px-4 rounded-lg flex items-center justify-center gap-3 transition-all hover:bg-gray-50 hover:border-gray-300 disabled:bg-gray-100"
+            className="w-full bg-white border border-brand-accent text-brand-highlight font-bold py-3 px-4 rounded-xl flex items-center justify-center gap-3 transition-all hover:bg-brand-secondary hover:border-brand-light/30 disabled:bg-gray-50"
           >
             {loading ? (
               <div className="w-6 h-6 border-2 border-t-transparent border-brand-blue rounded-full animate-spin"></div>
@@ -163,13 +163,13 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ authError, onBypass }) => {
             Google
           </button>
           
-          <div className="mt-8 pt-6 border-t border-brand-accent/30 w-full">
+          <div className="mt-10 pt-6 border-t border-brand-accent/30 w-full">
             <p className="text-[10px] text-brand-light uppercase tracking-widest font-bold mb-3">Acceso Rápido (Desarrollo)</p>
             <div className="flex gap-3">
-                <button onClick={() => onBypass && onBypass('admin')} className="flex-1 bg-brand-secondary border border-brand-accent hover:bg-brand-accent/50 text-brand-light hover:text-brand-highlight py-2 px-3 rounded text-xs transition-colors">
+                <button onClick={() => onBypass && onBypass('admin')} className="flex-1 bg-brand-secondary border border-brand-accent hover:bg-brand-accent text-brand-light hover:text-brand-highlight py-2 px-3 rounded-lg text-xs transition-colors font-medium">
                     Admin
                 </button>
-                <button onClick={() => onBypass && onBypass('technician')} className="flex-1 bg-brand-secondary border border-brand-accent hover:bg-brand-accent/50 text-brand-light hover:text-brand-highlight py-2 px-3 rounded text-xs transition-colors">
+                <button onClick={() => onBypass && onBypass('technician')} className="flex-1 bg-brand-secondary border border-brand-accent hover:bg-brand-accent text-brand-light hover:text-brand-highlight py-2 px-3 rounded-lg text-xs transition-colors font-medium">
                     Técnico
                 </button>
             </div>

@@ -1,3 +1,4 @@
+
 import React, { useMemo, useState } from 'react';
 import { Mission, User } from '../../../types';
 import { useData } from '../../../contexts/DataContext';
@@ -33,24 +34,26 @@ const AdminMissionCard: React.FC<{ mission: Mission, onOpen: () => void, onEdit:
     };
 
     return (
-        <div onClick={onOpen} className="relative bg-brand-secondary p-4 rounded-lg shadow-md hover:shadow-xl hover:-translate-y-1 transition-all cursor-pointer flex flex-col gap-3">
+        <div onClick={onOpen} className="relative bg-white border border-brand-accent/60 p-4 rounded-xl shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all cursor-pointer flex flex-col gap-3 group">
             {(!mission.visibleTo || mission.visibleTo.length === 0) && (
-                <div className="absolute inset-0 bg-black/60 rounded-lg flex items-center justify-center z-10">
-                    <EyeOffIcon className="w-8 h-8 text-brand-light" />
-                    <span className="ml-2 font-bold text-brand-light">No visible</span>
+                <div className="absolute inset-0 bg-white/80 backdrop-blur-[1px] rounded-xl flex items-center justify-center z-10 border border-brand-accent">
+                    <div className="bg-brand-highlight text-white px-3 py-1 rounded-full flex items-center gap-2 shadow-lg">
+                        <EyeOffIcon className="w-4 h-4" />
+                        <span className="text-xs font-bold">Oculta</span>
+                    </div>
                 </div>
             )}
             <div>
-                <h4 className="font-bold truncate">{mission.title}</h4>
+                <h4 className="font-bold text-brand-highlight truncate group-hover:text-brand-blue transition-colors">{mission.title}</h4>
                 <p className="text-sm text-brand-light mt-1 h-10 overflow-hidden">{mission.description}</p>
             </div>
             
             <div className="flex items-center gap-2">
-                <span className="text-xs font-semibold">Equipo:</span>
+                <span className="text-xs font-semibold text-brand-light">Equipo:</span>
                 {assignedUsers.length > 0 ? (
                     <div className="flex -space-x-2">
                         {assignedUsers.map(u => (
-                            <img key={u.id} src={u.avatar} alt={u.name} title={u.name} className="w-6 h-6 rounded-full ring-2 ring-brand-secondary" />
+                            <img key={u.id} src={u.avatar} alt={u.name} title={u.name} className="w-6 h-6 rounded-full ring-2 ring-white border border-brand-accent" />
                         ))}
                     </div>
                 ) : (
@@ -58,30 +61,16 @@ const AdminMissionCard: React.FC<{ mission: Mission, onOpen: () => void, onEdit:
                 )}
             </div>
 
-            <div className="flex items-center gap-2">
-                <span className="text-xs font-semibold">Visible para:</span>
-                {visibleToUsers.length > 0 ? (
-                    <div className="flex -space-x-2">
-                        {visibleToUsers.map(u => (
-                            <img key={u.id} src={u.avatar} alt={u.name} title={u.name} className="w-6 h-6 rounded-full ring-2 ring-brand-secondary" />
-                        ))}
-                    </div>
-                ) : (
-                    <span className="text-xs italic text-brand-accent">Nadie</span>
-                )}
-            </div>
-            
             <div className="flex justify-between items-center text-sm border-t border-brand-accent/50 mt-2 pt-3">
                 <div>
-                    <span className="font-semibold text-brand-orange">{mission.xp} XP</span>
-                    <span className="ml-3 px-2 py-1 bg-brand-primary text-xs rounded-full">{mission.difficulty}</span>
+                    <span className="font-bold text-brand-orange">{mission.xp} XP</span>
                 </div>
                 <div className="flex gap-2">
-                    <button onClick={handleEdit} className="bg-brand-blue text-white text-xs font-semibold py-1 px-3 rounded hover:bg-blue-700 transition-colors">
+                    <button onClick={handleEdit} className="text-brand-blue bg-blue-50 hover:bg-blue-100 text-xs font-semibold py-1 px-3 rounded transition-colors">
                         Editar
                     </button>
-                    <button onClick={handleDelete} disabled={isDeleting} className="bg-brand-red text-white text-xs font-semibold py-1 px-3 rounded hover:bg-red-700 transition-colors disabled:bg-brand-accent flex items-center gap-1">
-                        {isDeleting && <div className="w-3 h-3 border-2 border-t-transparent border-white rounded-full animate-spin"></div>}
+                    <button onClick={handleDelete} disabled={isDeleting} className="text-brand-red bg-red-50 hover:bg-red-100 text-xs font-semibold py-1 px-3 rounded transition-colors disabled:opacity-50 flex items-center gap-1">
+                        {isDeleting && <div className="w-3 h-3 border-2 border-t-transparent border-brand-red rounded-full animate-spin"></div>}
                         Eliminar
                     </button>
                 </div>
