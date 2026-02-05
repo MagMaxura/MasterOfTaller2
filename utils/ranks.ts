@@ -1,6 +1,7 @@
 import { User } from '../types';
 
 export const SUPPLY_ADMIN_BADGE_NAME = 'Administrador de Insumos';
+export const EQUIPMENT_ADMIN_BADGE_NAME = 'Administrador de EPP';
 
 /**
  * Checks if a user has the specific "Administrador de Insumos" badge.
@@ -12,6 +13,15 @@ export const hasSupplyAdminBadge = (user: User): boolean => {
 };
 
 /**
+ * Checks if a user has the specific "Administrador de EPP" badge.
+ * @param user The user object.
+ * @returns True if the user has the badge, false otherwise.
+ */
+export const hasEquipmentAdminBadge = (user: User): boolean => {
+    return user.badges.some(badge => badge.name === EQUIPMENT_ADMIN_BADGE_NAME);
+};
+
+/**
  * Determines the user's rank based on their role and level.
  * @param user The user object.
  * @returns The rank as a string.
@@ -20,11 +30,11 @@ export const getRank = (user: User): string => {
     if (user.role === 'administrador') {
         return 'General Supremo del Ejército';
     }
-    
+
     // Default to technician ranks
     if (user.level < 10) {
         return 'Técnico Novato';
     }
-    
+
     return 'Técnico Especialista';
 };

@@ -16,7 +16,9 @@ import ChatView from './ChatView';
 import KnowledgeBase from './knowledge/KnowledgeBase';
 import TechnicianSuppliesView from './technician/TechnicianSuppliesView';
 import PaymentsView from './technician/payments/PaymentsView';
-import { hasSupplyAdminBadge } from '../utils/ranks';
+import { hasSupplyAdminBadge, hasEquipmentAdminBadge } from '../utils/ranks';
+import StockManagement from './admin/stock/StockManagement';
+import CreateItemModal from './admin/stock/CreateItemModal';
 
 
 import { TasksIcon, UserIcon, ChartIcon, HallOfFameIcon, CalendarIcon, ChatIcon, BookOpenIcon, BoxIcon, CurrencyDollarIcon } from './Icons';
@@ -33,7 +35,9 @@ const TechnicianUI: React.FC<TechnicianUIProps> = ({ user, isAdminViewing = fals
     const { missions, users, unreadMessagesCount } = useData();
     const [activeTab, setActiveTab] = useState('missions');
     const [selectedMission, setSelectedMission] = useState<Mission | null>(null);
+    const [isCreateStockItemModalOpen, setIsCreateStockItemModalOpen] = useState(false);
     const userHasSupplyBadge = useMemo(() => hasSupplyAdminBadge(user), [user]);
+    const userHasEquipmentBadge = useMemo(() => hasEquipmentAdminBadge(user), [user]);
 
     // Removed package.json fetch to avoid 404 errors
 
@@ -79,27 +83,31 @@ const TechnicianUI: React.FC<TechnicianUIProps> = ({ user, isAdminViewing = fals
         if (userHasSupplyBadge && !isAdminViewing) {
             baseTabs.splice(3, 0, { id: 'supplies', label: 'Insumos', icon: <BoxIcon />, notification: false });
         }
-        
+        if (userHasEquipmentBadge && !isAdminViewing) {
+            baseTabs.splice(3, 0, { id: 'stock', label: 'Stock EPP', icon: <BoxIcon />, notification: false });
+        }
+
         // Add less critical tabs for larger screens
         const desktopTabs = [
             ...baseTabs,
             { id: 'hall_of_fame', label: 'Fama', icon: <HallOfFameIcon /> },
             { id: 'calendar', label: 'Calendario', icon: <CalendarIcon /> }
         ];
-        
+
         // Mobile tabs are more selective - keep max 5-6 items for mobile nav
         const mobileTabs = baseTabs.slice(0, 5); // Show first 5 for better fit, user can access others via specific logic if needed, or scroll
 
         return { mobile: baseTabs, desktop: desktopTabs }; // Using baseTabs for mobile to ensure all are accessible with scroll
 
-    }, [userHasSupplyBadge, unreadMessagesCount, isAdminViewing]);
-    
+    }, [userHasSupplyBadge, userHasEquipmentBadge, unreadMessagesCount, isAdminViewing]);
+
     const renderContent = () => {
-        switch(activeTab) {
+        switch (activeTab) {
             case 'missions': return <MissionsDashboard user={user} onOpenMission={setSelectedMission} />;
             case 'profile': return <ProfileView user={user} isAdminViewing={isAdminViewing} />;
             case 'payments': return <PaymentsView />;
             case 'supplies': return <TechnicianSuppliesView />;
+            case 'stock': return <StockManagement onOpenCreateModal={() => setIsCreateStockItemModalOpen(true)} />;
             case 'knowledge': return <KnowledgeBase />;
             case 'chat': return <ChatView currentUser={user} />;
             case 'leaderboard': return <Leaderboard users={users} />;
@@ -108,22 +116,22 @@ const TechnicianUI: React.FC<TechnicianUIProps> = ({ user, isAdminViewing = fals
             default: return null;
         }
     };
-    
+
     return (
         <div className="min-h-screen bg-brand-primary pb-20 md:pb-0"> {/* Padding bottom for mobile nav */}
             <Header user={user} isAdminViewing={isAdminViewing} onBack={onBackToAdmin} />
 
             {/* Desktop Navigation */}
             <nav className="bg-white border-b border-brand-accent hidden md:block sticky top-16 z-20 shadow-sm">
-              <div className="max-w-7xl mx-auto px-4"><div className="flex items-center justify-center h-14"><div className="flex items-center space-x-2">
-                {TABS.desktop.map(tab => (
-                    <button key={tab.id} onClick={() => setActiveTab(tab.id)} className={`relative flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${activeTab === tab.id ? 'bg-brand-blue text-white shadow-md' : 'text-brand-light hover:bg-brand-secondary hover:text-brand-highlight'}`}>
-                        {React.cloneElement(tab.icon as React.ReactElement, { className: 'w-5 h-5' })}
-                        <span>{tab.label}</span>
-                        {tab.notification && <span className="absolute -top-1 -right-1 block h-3 w-3 rounded-full bg-brand-red border-2 border-white" />}
-                    </button>
-                ))}
-              </div></div></div>
+                <div className="max-w-7xl mx-auto px-4"><div className="flex items-center justify-center h-14"><div className="flex items-center space-x-2">
+                    {TABS.desktop.map(tab => (
+                        <button key={tab.id} onClick={() => setActiveTab(tab.id)} className={`relative flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${activeTab === tab.id ? 'bg-brand-blue text-white shadow-md' : 'text-brand-light hover:bg-brand-secondary hover:text-brand-highlight'}`}>
+                            {React.cloneElement(tab.icon as React.ReactElement, { className: 'w-5 h-5' })}
+                            <span>{tab.label}</span>
+                            {tab.notification && <span className="absolute -top-1 -right-1 block h-3 w-3 rounded-full bg-brand-red border-2 border-white" />}
+                        </button>
+                    ))}
+                </div></div></div>
             </nav>
 
             <main className="p-4 md:p-8 max-w-7xl mx-auto">
@@ -142,13 +150,14 @@ const TechnicianUI: React.FC<TechnicianUIProps> = ({ user, isAdminViewing = fals
                                 {React.cloneElement(tab.icon as React.ReactElement, { className: activeTab === tab.id ? 'w-6 h-6' : 'w-5 h-5' })}
                             </div>
                             <span className="text-[10px] mt-0.5 leading-none">{tab.label}</span>
-                             {tab.notification && <span className="absolute top-2 right-[25%] block h-2 w-2 rounded-full bg-brand-red ring-2 ring-white" />}
+                            {tab.notification && <span className="absolute top-2 right-[25%] block h-2 w-2 rounded-full bg-brand-red ring-2 ring-white" />}
                         </button>
                     ))}
                 </div>
             </nav>
 
             {selectedMission && <MissionDetailsModal mission={selectedMission} user={user} onClose={() => setSelectedMission(null)} isAdminViewing={isAdminViewing} />}
+            {isCreateStockItemModalOpen && <CreateItemModal onClose={() => setIsCreateStockItemModalOpen(false)} />}
         </div>
     );
 };
@@ -156,9 +165,9 @@ const TechnicianUI: React.FC<TechnicianUIProps> = ({ user, isAdminViewing = fals
 
 // --- MAIN TECHNICIAN VIEW COMPONENT WRAPPER ---
 interface TechnicianViewProps {
-  user: User;
-  isAdminViewing?: boolean;
-  onBackToAdmin?: () => void;
+    user: User;
+    isAdminViewing?: boolean;
+    onBackToAdmin?: () => void;
 }
 
 const TechnicianView: React.FC<TechnicianViewProps> = (props) => {
