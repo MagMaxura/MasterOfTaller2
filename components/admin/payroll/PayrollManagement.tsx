@@ -40,7 +40,7 @@ const EventRow: React.FC<{ event: PayrollEvent }> = ({ event }) => {
 const TechnicianPayRow: React.FC<{
     user: User;
     period: PaymentPeriod | undefined;
-    onAddEvent: (user: User) => void;
+    onAddEvent: (user: User, date?: string) => void;
 }> = ({ user, period, onAddEvent }) => {
     const [isExpanded, setIsExpanded] = useState(false);
 
@@ -110,7 +110,12 @@ const TechnicianPayRow: React.FC<{
 
                     {/* Timeline Visualization */}
                     <div className="mb-4 bg-brand-primary/50 p-2 rounded">
-                        <UserTimeline periodStart={period.fecha_inicio_periodo} periodEnd={period.fecha_fin_periodo} events={period.events || []} />
+                        <UserTimeline
+                            periodStart={period.fecha_inicio_periodo}
+                            periodEnd={period.fecha_fin_periodo}
+                            events={period.events || []}
+                            onDayClick={(date) => onAddEvent(user, date.toISOString().split('T')[0])}
+                        />
                     </div>
 
                     <div className="space-y-2 text-sm">
@@ -173,7 +178,7 @@ const TechnicianPayRow: React.FC<{
 };
 
 interface PayrollManagementProps {
-    onAddEvent: (user: User) => void;
+    onAddEvent: (user: User, date?: string) => void;
 }
 
 const PayrollManagement: React.FC<PayrollManagementProps> = ({ onAddEvent }) => {

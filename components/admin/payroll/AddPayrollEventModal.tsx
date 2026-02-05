@@ -6,16 +6,17 @@ import { useToast } from '../../../contexts/ToastContext';
 interface AddPayrollEventModalProps {
     user: User;
     onClose: () => void;
+    initialDate?: string;
 }
 
-const AddPayrollEventModal: React.FC<AddPayrollEventModalProps> = ({ user, onClose }) => {
+const AddPayrollEventModal: React.FC<AddPayrollEventModalProps> = ({ user, onClose, initialDate }) => {
     const { addPayrollEvent, salaries, calculatePayPeriods } = useData();
     const { showToast } = useToast();
 
     const [tipo, setTipo] = useState<PayrollEventType>(PayrollEventType.BONUS);
     const [monto, setMonto] = useState<number | ''>('');
     const [descripcion, setDescripcion] = useState('');
-    const [fecha, setFecha] = useState(new Date().toISOString().split('T')[0]);
+    const [fecha, setFecha] = useState(initialDate || new Date().toISOString().split('T')[0]);
     const [horas, setHoras] = useState<number | ''>('');
     const [isLoading, setIsLoading] = useState(false);
 
