@@ -135,6 +135,35 @@ export interface Database {
         }
         Relationships: []
       }
+      inventory_variants: {
+        Row: {
+          id: string
+          item_id: string
+          size: string
+          quantity: number
+        }
+        Insert: {
+          id?: string
+          item_id: string
+          size: string
+          quantity: number
+        }
+        Update: {
+          id?: string
+          item_id?: string
+          size?: string
+          quantity?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inventory_variants_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_items"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
       mission_milestones: {
         Row: {
           id: string
@@ -635,16 +664,16 @@ export interface Database {
     }
     Enums: {
       equipment_slot:
-        | "head"
-        | "face"
-        | "ears"
-        | "outerwear"
-        | "shirt"
-        | "hands"
-        | "belt"
-        | "pants"
-        | "feet"
-        | "accessory"
+      | "head"
+      | "face"
+      | "ears"
+      | "outerwear"
+      | "shirt"
+      | "hands"
+      | "belt"
+      | "pants"
+      | "feet"
+      | "accessory"
       mission_difficulty: "Bajo" | "Medio" | "Alto"
       mission_status: "Solicitada" | "Pendiente" | "En Progreso" | "Completada"
       role: "tecnico" | "administrador"

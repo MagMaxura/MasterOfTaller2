@@ -123,6 +123,10 @@ export const api = {
     const { error } = await supabase.from('inventory_items').update({ quantity: Math.max(0, newQuantity) }).eq('id', itemId);
     if (error) throw new Error(error.message);
   },
+  async updateInventoryVariantQuantity(variantId: string, newQuantity: number) {
+    const { error } = await supabase.from('inventory_variants').update({ quantity: Math.max(0, newQuantity) }).eq('id', variantId);
+    if (error) throw new Error(error.message);
+  },
   async addInventoryItem(itemData: Omit<InventoryItemInsert, 'icon_url'>, iconFile: File) {
     const fileExt = iconFile.name.split('.').pop();
     const filePath = `public/${itemData.name.replace(/\s+/g, '_')}-${Date.now()}.${fileExt}`;

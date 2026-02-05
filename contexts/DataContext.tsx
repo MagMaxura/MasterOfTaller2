@@ -44,6 +44,7 @@ interface DataContextType {
   removeInventoryItem: (userInventoryId: string) => Promise<void>;
   disposeOfInventoryItem: (userInventoryId: string, itemId: string) => Promise<void>;
   updateInventoryItemQuantity: (itemId: string, newQuantity: number) => Promise<void>;
+  updateInventoryVariantQuantity: (variantId: string, newQuantity: number) => Promise<void>;
   addInventoryItem: (data: { name: string; description: string; slot: EquipmentSlot; quantity: number; }, iconFile: File) => Promise<void>;
   deleteInventoryItem: (itemId: string, iconUrl: string) => Promise<void>;
   savePushSubscription: (userId: string, subscription: PushSubscription) => Promise<void>;
@@ -358,6 +359,10 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (currentUser?.id.startsWith('demo-')) { showToast('Acción simulada en modo demo.', 'success'); return Promise.resolve(); }
     return api.updateInventoryItemQuantity(itemId, newQuantity);
   }
+  const updateInventoryVariantQuantity = (variantId: string, newQuantity: number) => {
+    if (currentUser?.id.startsWith('demo-')) { showToast('Acción simulada en modo demo.', 'success'); return Promise.resolve(); }
+    return api.updateInventoryVariantQuantity(variantId, newQuantity);
+  }
   const deleteInventoryItem = (itemId: string, iconUrl: string) => {
     if (currentUser?.id.startsWith('demo-')) { showToast('Acción simulada en modo demo.', 'success'); return Promise.resolve(); }
     return api.deleteInventoryItem(itemId, iconUrl);
@@ -657,7 +662,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const value = {
     currentUser, users, missions, allInventoryItems, allBadges, missionMilestones, supplies, missionSupplies, salaries, payrollEvents, paymentPeriods, chats, chatMessages, loading, unreadMessagesCount, viewingProfileOf, setViewingProfileOf,
-    updateMission, updateUser, deactivateUser, updateUserAvatar, addMission, requestMission, technicianRequestMission, rejectMissionRequest, deleteMission, addMissionMilestone, toggleMilestoneSolution, assignInventoryItem, removeInventoryItem, disposeOfInventoryItem, updateInventoryItemQuantity, addInventoryItem, deleteInventoryItem, savePushSubscription, sendNotification, handleSelectOrCreateChat, handleSendMessage, handleMarkAsRead, requestToJoinMission, approveJoinRequest, rejectJoinRequest,
+    updateMission, updateUser, deactivateUser, updateUserAvatar, addMission, requestMission, technicianRequestMission, rejectMissionRequest, deleteMission, addMissionMilestone, toggleMilestoneSolution, assignInventoryItem, removeInventoryItem, disposeOfInventoryItem, updateInventoryItemQuantity, updateInventoryVariantQuantity, addInventoryItem, deleteInventoryItem, savePushSubscription, sendNotification, handleSelectOrCreateChat, handleSendMessage, handleMarkAsRead, requestToJoinMission, approveJoinRequest, rejectJoinRequest,
     addSupply, updateSupply, deleteSupply, assignSupplyToMission, updateMissionSupply, removeSupplyFromMission,
     assignBadge, revokeBadge,
     setSalary, addPayrollEvent, updatePayrollEvent, createMissionBonusEvent, calculatePayPeriods, markPeriodAsPaid

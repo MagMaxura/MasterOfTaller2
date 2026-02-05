@@ -4,33 +4,43 @@ import { useData } from '../../../contexts/DataContext';
 import { useToast } from '../../../contexts/ToastContext';
 import { PlusIcon, EditIcon } from '../../Icons';
 
+import StockVariantManagementModal from '../modals/StockVariantManagementModal';
+
 interface StockItemProps {
     item: InventoryItem;
     assignedCount: number;
     onUpdate: (itemId: string, newQuantity: number) => void;
     onDelete: (item: InventoryItem) => void;
+    onManageVariants: (item: InventoryItem) => void;
     isUpdating: boolean;
     isDeleting: boolean;
 }
 
-const StockItem = memo<StockItemProps>(({ item, assignedCount, onUpdate, onDelete, isUpdating, isDeleting }) => {
-    const availableCount = item.quantity - assignedCount;
+const StockItem = memo<StockItemProps>(({ item, assignedCount, onUpdate, onDelete, onManageVariants, isUpdating, isDeleting }) => {
+    const hasVariants = item.variants && item.variants.length > 0;
+
+    // For regular items, quantity is Total. For variants, we sum them up.
+    const totalStock = hasVariants
+        ? (item.variants?.reduce((sum, v) => sum + v.quantity, 0) || 0)
+        : item.quantity;
+
+    const availableCount = totalStock - assignedCount;
 
     const handleDirectUpdate = () => {
         const newQuantityStr = window.prompt(`Actualizar stock total para "${item.name}":`, item.quantity.toString());
         if (newQuantityStr === null) return;
         const newQuantity = parseInt(newQuantityStr, 10);
         if (isNaN(newQuantity) || newQuantity < 0) {
-             alert("Por favor, introduce un número válido y no negativo.");
-             return;
+            alert("Por favor, introduce un número válido y no negativo.");
+            return;
         }
         if (newQuantity < assignedCount) {
-             alert(`No se puede reducir el stock total (${newQuantity}) por debajo del número de insumos ya asignados (${assignedCount}).`);
-             return;
+            alert(`No se puede reducir el stock total (${newQuantity}) por debajo del número de insumos ya asignados (${assignedCount}).`);
+            return;
         }
         if (newQuantity !== item.quantity) onUpdate(item.id, newQuantity);
     };
-    
+
     let stockColor = 'text-brand-highlight';
     if (availableCount <= 0) {
         stockColor = 'text-brand-red';
@@ -41,10 +51,11 @@ const StockItem = memo<StockItemProps>(({ item, assignedCount, onUpdate, onDelet
     return (
         <div className="flex items-center justify-between bg-brand-primary p-3 rounded-lg flex-wrap gap-x-4 gap-y-2">
             <div className="flex items-center gap-4 flex-1 min-w-[200px]">
-                <img src={item.icon_url} alt={item.name} className="w-10 h-10 bg-brand-accent p-1 rounded flex-shrink-0 object-contain"/>
+                <img src={item.icon_url} alt={item.name} className="w-10 h-10 bg-brand-accent p-1 rounded flex-shrink-0 object-contain" />
                 <div className="flex-1 min-w-0">
                     <p className="font-semibold truncate">{item.name}</p>
                     <p className="text-xs text-brand-light truncate">{item.description}</p>
+                    {hasVariants && <span className="text-[10px] bg-brand-accent px-1 rounded text-white inline-block mt-1">Con Talles</span>}
                 </div>
             </div>
             <div className="flex items-center gap-2">
@@ -53,12 +64,22 @@ const StockItem = memo<StockItemProps>(({ item, assignedCount, onUpdate, onDelet
                     <p className="text-xs text-brand-light">Disponibles</p>
                 </div>
                 <div className="text-xs text-center text-brand-light mr-2">
-                    <p>Total: {item.quantity}</p>
+                    <p>Total: {totalStock}</p>
                     <p>Asignados: {assignedCount}</p>
                 </div>
-                <button onClick={() => onUpdate(item.id, item.quantity - 1)} disabled={isUpdating || isDeleting || item.quantity <= assignedCount} className="px-3 py-1 bg-brand-accent rounded hover:bg-brand-light disabled:opacity-50">-</button>
-                <button onClick={() => onUpdate(item.id, item.quantity + 1)} disabled={isUpdating || isDeleting} className="px-3 py-1 bg-brand-accent rounded hover:bg-brand-light disabled:opacity-50">+</button>
-                <button onClick={handleDirectUpdate} disabled={isUpdating || isDeleting} className="p-2 bg-brand-light text-brand-primary rounded hover:bg-brand-highlight disabled:opacity-50" title="Editar stock total"><EditIcon className="w-5 h-5" /></button>
+
+                {!hasVariants ? (
+                    <>
+                        <button onClick={() => onUpdate(item.id, item.quantity - 1)} disabled={isUpdating || isDeleting || item.quantity <= assignedCount} className="px-3 py-1 bg-brand-accent rounded hover:bg-brand-light disabled:opacity-50">-</button>
+                        <button onClick={() => onUpdate(item.id, item.quantity + 1)} disabled={isUpdating || isDeleting} className="px-3 py-1 bg-brand-accent rounded hover:bg-brand-light disabled:opacity-50">+</button>
+                        <button onClick={handleDirectUpdate} disabled={isUpdating || isDeleting} className="p-2 bg-brand-light text-brand-primary rounded hover:bg-brand-highlight disabled:opacity-50" title="Editar stock total"><EditIcon className="w-5 h-5" /></button>
+                    </>
+                ) : (
+                    <button onClick={() => onManageVariants(item)} className="px-3 py-1 bg-brand-blue text-white rounded hover:bg-blue-600 text-sm font-bold">
+                        Gestionar Talles
+                    </button>
+                )}
+
                 {(isUpdating) && <div className="w-5 h-5 border-2 border-t-transparent border-brand-blue rounded-full animate-spin"></div>}
                 <div className="w-px h-6 bg-brand-accent mx-2"></div>
                 <button onClick={() => onDelete(item)} disabled={isDeleting || isUpdating} className="p-2 bg-brand-red text-white rounded hover:bg-red-700 disabled:opacity-50" title="Eliminar Insumo">
@@ -74,6 +95,7 @@ const StockManagement: React.FC<{ onOpenCreateModal: () => void; }> = ({ onOpenC
     const { showToast } = useToast();
     const [updatingIds, setUpdatingIds] = useState<Set<string>>(new Set());
     const [deletingId, setDeletingId] = useState<string | null>(null);
+    const [selectedItemForVariants, setSelectedItemForVariants] = useState<InventoryItem | null>(null);
 
     const assignedCounts = useMemo(() => {
         const counts = new Map<string, number>();
@@ -116,24 +138,33 @@ const StockManagement: React.FC<{ onOpenCreateModal: () => void; }> = ({ onOpenC
 
     return (
         <div className="bg-brand-secondary p-6 rounded-lg">
-             <div className="flex justify-between items-center mb-4">
-                 <h3 className="text-xl font-bold">Gestión de Stock</h3>
-                 <button onClick={onOpenCreateModal} className="bg-brand-green text-brand-primary font-bold py-2 px-4 rounded-lg flex items-center gap-2 hover:bg-green-300"><PlusIcon className="w-5 h-5" />Crear Insumo</button>
+            <div className="flex justify-between items-center mb-4">
+                <h3 className="text-xl font-bold">Gestión de Stock</h3>
+                <button onClick={onOpenCreateModal} className="bg-brand-green text-brand-primary font-bold py-2 px-4 rounded-lg flex items-center gap-2 hover:bg-green-300"><PlusIcon className="w-5 h-5" />Crear Insumo</button>
             </div>
             <div className="space-y-3">
                 {allInventoryItems.length === 0 && <p className="text-brand-light italic text-center p-8">No hay insumos. ¡Crea el primero!</p>}
-                {allInventoryItems.sort((a,b) => a.name.localeCompare(b.name)).map(item => (
-                    <StockItem 
-                        key={item.id} 
-                        item={item} 
+                {allInventoryItems.sort((a, b) => a.name.localeCompare(b.name)).map(item => (
+                    <StockItem
+                        key={item.id}
+                        item={item}
                         assignedCount={assignedCounts.get(item.id) || 0}
-                        onUpdate={handleUpdate} 
-                        onDelete={handleDelete} 
-                        isUpdating={updatingIds.has(item.id)} 
-                        isDeleting={deletingId === item.id} 
+                        onUpdate={handleUpdate}
+                        onDelete={handleDelete}
+                        onManageVariants={setSelectedItemForVariants}
+                        isUpdating={updatingIds.has(item.id)}
+                        isDeleting={deletingId === item.id}
                     />
                 ))}
             </div>
+
+            {selectedItemForVariants && (
+                <StockVariantManagementModal
+                    isOpen={true}
+                    onClose={() => setSelectedItemForVariants(null)}
+                    item={selectedItemForVariants}
+                />
+            )}
         </div>
     );
 };
