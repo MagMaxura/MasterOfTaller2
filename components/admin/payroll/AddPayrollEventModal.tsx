@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { User, PayrollEventType } from '../../../types';
 import { useData } from '../../../contexts/DataContext';
 import { useToast } from '../../../contexts/ToastContext';
@@ -9,13 +9,14 @@ interface AddPayrollEventModalProps {
 }
 
 const AddPayrollEventModal: React.FC<AddPayrollEventModalProps> = ({ user, onClose }) => {
-    const { addPayrollEvent } = useData();
+    const { addPayrollEvent, salaries } = useData();
     const { showToast } = useToast();
 
     const [tipo, setTipo] = useState<PayrollEventType>(PayrollEventType.BONUS);
     const [monto, setMonto] = useState<number | ''>('');
     const [descripcion, setDescripcion] = useState('');
     const [fecha, setFecha] = useState(new Date().toISOString().split('T')[0]);
+    const [horas, setHoras] = useState<number | ''>('');
     const [isLoading, setIsLoading] = useState(false);
 
     const isDeduction = [
@@ -25,6 +26,50 @@ const AddPayrollEventModal: React.FC<AddPayrollEventModalProps> = ({ user, onClo
         PayrollEventType.LOAN,
         PayrollEventType.EARLY_DEPARTURE
     ].includes(tipo);
+
+    const isTimeBased = [
+        PayrollEventType.OVERTIME,
+        PayrollEventType.TARDINESS,
+        PayrollEventType.EARLY_DEPARTURE
+    ].includes(tipo);
+
+    // Get user base salary
+    const userSalary = useMemo(() => {
+        const s = salaries.find(s => s.user_id === user.id);
+        return s ? s.monto_base_quincenal : 0;
+    }, [salaries, user.id]);
+
+    // Hourly Rate Calculation: (Salary / 10) / 9
+    const hourlyRate = useMemo(() => {
+        if (!userSalary) return 0;
+        return (userSalary / 10) / 9;
+    }, [userSalary]);
+
+    // Auto-calculate amount when hours or type changes
+    useEffect(() => {
+        if (!isTimeBased || horas === '' || horas === 0) return;
+
+        let calculated = 0;
+        const h = Number(horas);
+
+        if (tipo === PayrollEventType.OVERTIME) {
+            calculated = hourlyRate * 1.5 * h;
+        } else {
+            // Tardiness or Early Departure
+            calculated = hourlyRate * h;
+        }
+
+        // Round to 2 decimals
+        setMonto(Math.round(calculated * 100) / 100);
+    }, [horas, tipo, hourlyRate, isTimeBased]);
+
+    // Reset formatted hours/amount when type changes out of time-based
+    useEffect(() => {
+        if (!isTimeBased) {
+            setHoras('');
+        }
+    }, [isTimeBased]);
+
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -41,7 +86,7 @@ const AddPayrollEventModal: React.FC<AddPayrollEventModalProps> = ({ user, onClo
                 user_id: user.id,
                 tipo,
                 monto: finalAmount,
-                descripcion,
+                descripcion: isTimeBased && horas ? `${descripcion} (${horas} hs)` : descripcion,
                 fecha_evento: fecha,
             });
             showToast('Evento de nómina añadido con éxito.', 'success');
@@ -58,7 +103,7 @@ const AddPayrollEventModal: React.FC<AddPayrollEventModalProps> = ({ user, onClo
             <form onSubmit={handleSubmit} className="bg-brand-secondary rounded-lg max-w-lg w-full p-6 relative">
                 <button type="button" onClick={onClose} className="absolute top-4 right-4 text-brand-light hover:text-white text-3xl">&times;</button>
                 <h3 className="text-2xl font-bold mb-2">Añadir Evento de Nómina</h3>
-                <p className="text-brand-light mb-6">para {user.name}</p>
+                <p className="text-brand-light mb-6">para {user.name} {userSalary > 0 && <span className="text-xs text-brand-green bg-brand-green/10 px-2 py-1 rounded ml-2">Sueldo Base: ${userSalary}</span>}</p>
 
                 <div className="space-y-4">
                     <div className="grid grid-cols-2 gap-4">
@@ -83,11 +128,33 @@ const AddPayrollEventModal: React.FC<AddPayrollEventModalProps> = ({ user, onClo
                                 </optgroup>
                             </select>
                         </div>
-                        <div>
-                            <label className="block text-sm font-medium text-brand-light mb-1">Monto ($)</label>
-                            <input type="number" value={monto} onChange={e => setMonto(e.target.value === '' ? '' : parseFloat(e.target.value))} placeholder="Ej: 5000" className="w-full bg-brand-primary p-3 rounded border border-brand-accent" required min="0" />
-                        </div>
+
+                        {isTimeBased ? (
+                            <div>
+                                <label className="block text-sm font-medium text-brand-light mb-1">Horas</label>
+                                <input type="number" step="0.5" value={horas} onChange={e => setHoras(e.target.value === '' ? '' : parseFloat(e.target.value))} placeholder="Ej: 1.5" className="w-full bg-brand-primary p-3 rounded border border-brand-accent focus:border-brand-blue" />
+                            </div>
+                        ) : (
+                            <div>
+                                <label className="block text-sm font-medium text-brand-light mb-1">Monto ($)</label>
+                                <input type="number" value={monto} onChange={e => setMonto(e.target.value === '' ? '' : parseFloat(e.target.value))} placeholder="Ej: 5000" className="w-full bg-brand-primary p-3 rounded border border-brand-accent" required min="0" />
+                            </div>
+                        )}
                     </div>
+
+                    {isTimeBased && (
+                        <div>
+                            <label className="block text-sm font-medium text-brand-light mb-1">Monto Calculado ($)</label>
+                            <input type="number" value={monto} onChange={e => setMonto(e.target.value === '' ? '' : parseFloat(e.target.value))} className="w-full bg-brand-primary p-3 rounded border border-brand-accent text-brand-gold font-bold" required min="0" />
+                            <p className="text-xs text-brand-light mt-1">Valor hora base: ${Math.round(hourlyRate * 100) / 100} {tipo === PayrollEventType.OVERTIME && '(x1.5 para extras)'}</p>
+                        </div>
+                    )}
+
+                    {!isTimeBased && (
+                        <div></div> // Spacer in grid if not used, but here we are in flex-col space-y-4
+                    )}
+
+
                     <div>
                         <label className="block text-sm font-medium text-brand-light mb-1">Descripción</label>
                         <input type="text" value={descripcion} onChange={e => setDescripcion(e.target.value)} placeholder="Ej: Bono por desempeño excelente" className="w-full bg-brand-primary p-3 rounded border border-brand-accent" required />
