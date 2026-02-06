@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Master of Taller</string>
+    <string name="title_activity_main">Master of Taller</string>
+    <string name="package_name">com.maestrosdeltaller.app</string>
+    <string name="custom_url_scheme">com.maestrosdeltaller.app</string>
+</resources>

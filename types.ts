@@ -139,6 +139,15 @@ export interface MissionMilestone {
   } | null;
 }
 
+export interface MissionRequirement {
+  id: string;
+  mission_id: string;
+  description: string;
+  quantity: number;
+  is_purchased: boolean;
+  created_at: string;
+}
+
 export interface Chat {
   id: string;
   created_at: string;

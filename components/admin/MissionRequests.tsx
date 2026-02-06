@@ -14,25 +14,28 @@ const MissionRequests: React.FC<MissionRequestsProps> = ({ onReview }) => {
     const usersMap = useMemo(() => new Map(users.map(u => [u.id, u])), [users]);
 
     const handleReject = async (mission: Mission) => {
-        if (mission.title.startsWith('[UNIRSE]')) {
-            if (window.confirm(`¿Rechazar la solicitud de ${usersMap.get(mission.assignedTo![0])?.name} para unirse a la misión?`)) {
-                await rejectJoinRequest(mission.id);
-            }
-        } else {
-            if (window.confirm(`¿Rechazar la solicitud para la misión "${mission.title}"? La misión volverá a estar disponible.`)) {
-                try {
+        const user = usersMap.get(mission.assignedTo![0]);
+        const msg = mission.title.startsWith('[UNIRSE]')
+            ? `¿Rechazar solicitud de ${user?.name}?`
+            : `¿Rechazar misión "${mission.title}"?`;
+
+        if (window.confirm(msg)) {
+            try {
+                if (mission.title.startsWith('[UNIRSE]')) {
+                    await rejectJoinRequest(mission.id);
+                } else {
                     await rejectMissionRequest(mission.id);
-                    showToast('Solicitud rechazada.', 'success');
-                } catch (error) {
-                    showToast(error instanceof Error ? error.message : 'Error al rechazar.', 'error');
                 }
+                showToast('Solicitud rechazada.', 'success');
+            } catch (error) {
+                showToast(error instanceof Error ? error.message : 'Error al rechazar.', 'error');
             }
         }
     };
-    
+
     const handleApprove = async (mission: Mission) => {
         if (mission.title.startsWith('[UNIRSE]')) {
-             if (window.confirm(`¿Aprobar la solicitud de ${usersMap.get(mission.assignedTo![0])?.name} para unirse a la misión?`)) {
+            if (window.confirm(`¿Aprobar ingreso de técnico a la misión?`)) {
                 await approveJoinRequest(mission);
             }
         } else {
@@ -41,38 +44,68 @@ const MissionRequests: React.FC<MissionRequestsProps> = ({ onReview }) => {
     }
 
     return (
-        <div className="bg-brand-secondary p-6 rounded-lg">
-            <h3 className="text-xl font-bold mb-4">Solicitudes de Misión Pendientes</h3>
-            <div className="space-y-4">
-                {requests.length === 0 && <p className="text-brand-light italic text-center p-8">No hay nuevas solicitudes de misión.</p>}
-                {requests.map(mission => {
-                    const user = usersMap.get(mission.assignedTo![0]);
-                    const isJoinRequest = mission.title.startsWith('[UNIRSE]');
-                    const originalTitle = isJoinRequest ? mission.title.replace('[UNIRSE] ', '') : mission.title;
+        <div className="space-y-8">
+            <div className="flex flex-col gap-2">
+                <h2 className="text-3xl font-black text-brand-highlight tracking-tight">Centro de Notificaciones</h2>
+                <p className="text-sm text-brand-light leading-none">Gestión de nuevas propuestas y refuerzos de personal.</p>
+            </div>
 
-                    return (
-                        <div key={mission.id} className={`bg-brand-primary rounded-lg shadow-lg p-4 flex flex-col md:flex-row md:items-center gap-4 border-l-4 ${isJoinRequest ? 'border-brand-orange' : 'border-brand-blue'}`}>
-                            <div className="flex-grow">
-                                <h4 className="font-bold text-lg">{originalTitle}</h4>
-                                <p className="text-sm text-brand-light mt-1">{isJoinRequest ? `El técnico solicita unirse a esta misión.` : mission.description}</p>
-                                {user && (
-                                    <div className="flex items-center gap-2 mt-2 text-xs text-brand-accent">
-                                        <img src={user.avatar} alt={user.name} className="w-5 h-5 rounded-full" />
-                                        <span>Solicitado por: {user.name}</span>
+            <div className="space-y-6">
+                {requests.length === 0 ? (
+                    <div className="border-4 border-dashed border-brand-accent/50 rounded-[40px] p-24 text-center bg-white/50">
+                        <p className="text-[10px] font-black uppercase text-brand-light tracking-[0.3em] opacity-30">Bandeja de entrada vacía</p>
+                    </div>
+                ) : (
+                    requests.map(mission => {
+                        const user = usersMap.get(mission.assignedTo![0]);
+                        const isJoinRequest = mission.title.startsWith('[UNIRSE]');
+                        const originalTitle = isJoinRequest ? mission.title.replace('[UNIRSE] ', '') : mission.title;
+
+                        return (
+                            <div key={mission.id} className="bg-white rounded-[32px] shadow-soft hover:shadow-premium transition-all border border-brand-accent/50 p-6 flex flex-col md:flex-row md:items-center gap-6 group relative overflow-hidden">
+                                <div className={`absolute top-0 left-0 w-2 h-full ${isJoinRequest ? 'bg-brand-orange shadow-[2px_0_10px_rgba(242,143,39,0.3)]' : 'bg-brand-blue shadow-[2px_0_10px_rgba(30,136,229,0.3)]'}`}></div>
+
+                                <div className="flex-1">
+                                    <div className="flex items-center gap-3 mb-2">
+                                        <span className={`text-[8px] font-black px-2 py-0.5 rounded-full uppercase tracking-widest ${isJoinRequest ? 'bg-brand-orange/10 text-brand-orange' : 'bg-brand-blue/10 text-brand-blue'}`}>
+                                            {isJoinRequest ? 'Refuerzo' : 'Misión Nueva'}
+                                        </span>
+                                        <span className="text-[8px] font-bold text-brand-light/50">ID: {mission.id.slice(0, 8)}</span>
                                     </div>
-                                )}
+                                    <h4 className="font-black text-xl text-brand-highlight leading-tight group-hover:text-brand-blue transition-colors">{originalTitle}</h4>
+                                    <p className="text-xs text-brand-light mt-1.5 leading-relaxed italic opacity-80">
+                                        {isJoinRequest ? 'El técnico solicita incorporarse al equipo de trabajo activo.' : mission.description}
+                                    </p>
+
+                                    {user && (
+                                        <div className="flex items-center gap-3 mt-4 p-2 bg-brand-secondary/50 rounded-2xl w-fit pr-4 border border-brand-accent/30">
+                                            <img src={user.avatar} alt={user.name} className="w-8 h-8 rounded-xl object-cover ring-2 ring-white shadow-sm" />
+                                            <div className="flex flex-col">
+                                                <span className="text-[8px] font-black text-brand-light/60 uppercase tracking-tighter">Solicitado por</span>
+                                                <span className="text-[10px] font-black text-brand-highlight">{user.name}</span>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+
+                                <div className="flex gap-3 shrink-0">
+                                    <button
+                                        onClick={() => handleApprove(mission)}
+                                        className="flex-1 md:flex-none px-8 h-12 bg-brand-highlight text-white rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-brand-blue transition-all shadow-md active:scale-95"
+                                    >
+                                        {isJoinRequest ? 'Aprobar Unión' : 'Gestionar'}
+                                    </button>
+                                    <button
+                                        onClick={() => handleReject(mission)}
+                                        className="h-12 px-6 bg-brand-red/10 text-brand-red rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-brand-red hover:text-white transition-all active:scale-95"
+                                    >
+                                        Rechazar
+                                    </button>
+                                </div>
                             </div>
-                            <div className="flex-shrink-0 flex gap-2">
-                                <button onClick={() => handleApprove(mission)} className="bg-brand-green text-brand-primary font-semibold py-2 px-3 rounded hover:bg-green-300">
-                                    {isJoinRequest ? 'Aprobar Unión' : 'Revisar y Aprobar'}
-                                </button>
-                                <button onClick={() => handleReject(mission)} className="bg-brand-red text-white font-semibold py-2 px-3 rounded hover:bg-red-700">
-                                    Rechazar
-                                </button>
-                            </div>
-                        </div>
-                    );
-                })}
+                        );
+                    })
+                )}
             </div>
         </div>
     );

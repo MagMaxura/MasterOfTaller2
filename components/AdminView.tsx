@@ -42,9 +42,9 @@ const AdminView: React.FC = () => {
     const [notifyingUser, setNotifyingUser] = useState<User | null>(null);
     const [editingMission, setEditingMission] = useState<Mission | null>(null);
     const [selectedMission, setSelectedMission] = useState<Mission | null>(null);
-    
+
     // Removed package.json fetch to avoid 404 errors in production
-    
+
     const missionRequestsCount = useMemo(() => missions.filter(m => m.status === MissionStatus.REQUESTED).length, [missions]);
 
     const TABS = [
@@ -62,75 +62,90 @@ const AdminView: React.FC = () => {
         { id: 'calendar', label: 'Calendario', icon: <CalendarIcon /> },
         { id: 'live_map', label: 'Mapa', icon: <MapPinIcon /> },
     ];
-    
+
     const activeTabLabel = useMemo(() => TABS.find(tab => tab.id === activeTab)?.label || 'Panel de Administrador', [activeTab]);
 
     if (!currentUser) return null;
 
     const sidebarContent = (
-        <>
-            <div className="flex items-center gap-3 mb-6 p-4 border-b border-brand-accent/50">
-                <img src={currentUser.avatar} alt={currentUser.name} className="w-12 h-12 rounded-full border-2 border-brand-orange p-0.5" />
+        <div className="flex flex-col h-full bg-slate-900 text-white">
+            <div className="flex items-center gap-4 mb-8 p-6 bg-white/5 border-b border-white/5">
+                <div className="relative">
+                    <img src={currentUser.avatar} alt={currentUser.name} className="w-14 h-14 rounded-2xl border-2 border-brand-blue shadow-lg object-cover" />
+                    <span className="absolute -bottom-1 -right-1 flex h-4 w-4 rounded-full bg-brand-green border-2 border-slate-900"></span>
+                </div>
                 <div className="overflow-hidden">
-                    <h2 className="font-bold text-lg truncate text-brand-highlight">{currentUser.name}</h2>
-                    <p className="text-sm text-brand-light truncate">General Supremo</p>
+                    <h2 className="font-black text-xl truncate tracking-tight">{currentUser.name}</h2>
+                    <p className="text-[10px] text-brand-blue uppercase font-black tracking-widest opacity-80">Administrador</p>
                 </div>
             </div>
-            <nav className="flex-grow flex flex-col space-y-1 overflow-y-auto px-2">
+
+            <nav className="flex-grow flex flex-col space-y-1.5 overflow-y-auto px-4 custom-scrollbar">
                 {TABS.map(tab => (
-                    <button 
-                        key={tab.id} 
+                    <button
+                        key={tab.id}
                         onClick={() => {
                             setActiveTab(tab.id);
-                            setIsSidebarOpen(false); // Close on mobile
-                        }} 
-                        className={`relative flex items-center gap-4 w-full px-4 py-3 rounded-lg text-sm font-medium transition-all text-left ${activeTab === tab.id ? 'bg-brand-blue text-white shadow-md' : 'text-brand-light hover:bg-brand-secondary hover:text-brand-highlight'}`}
+                            setIsSidebarOpen(false);
+                        }}
+                        className={`relative flex items-center gap-4 w-full px-4 py-3.5 rounded-2xl text-sm font-bold transition-all duration-300 group ${activeTab === tab.id ? 'bg-brand-blue text-white shadow-xl scale-105' : 'text-slate-400 hover:bg-white/5 hover:text-white'}`}
                     >
-                        {React.cloneElement(tab.icon as React.ReactElement, { className: "w-5 h-5 flex-shrink-0" })}
+                        <div className={`p-2 rounded-xl transition-colors ${activeTab === tab.id ? 'bg-white/20' : 'bg-white/5 group-hover:bg-white/10'}`}>
+                            {React.cloneElement(tab.icon as React.ReactElement, { className: "w-5 h-5 flex-shrink-0" })}
+                        </div>
                         <span className="truncate">{tab.label}</span>
-                        {tab.id === 'requests' && tab.notification && missionRequestsCount > 0 && 
-                            <span className="ml-auto h-5 min-w-[1.25rem] px-1.5 text-xs flex items-center justify-center rounded-full bg-brand-red text-white font-bold shadow-sm">{missionRequestsCount}</span>}
-                        {tab.id === 'chat' && tab.notification && unreadMessagesCount > 0 && 
-                            <span className="ml-auto block h-2.5 w-2.5 rounded-full bg-brand-red ring-2 ring-white" />}
+
+                        {tab.id === 'requests' && tab.notification && missionRequestsCount > 0 &&
+                            <span className="ml-auto h-6 min-w-[1.5rem] px-2 text-[10px] flex items-center justify-center rounded-full bg-brand-red text-white font-black shadow-lg animate-pulse">{missionRequestsCount}</span>}
+
+                        {tab.id === 'chat' && tab.notification && unreadMessagesCount > 0 &&
+                            <span className="ml-auto block h-3 w-3 rounded-full bg-brand-red ring-2 ring-slate-900" />}
                     </button>
                 ))}
             </nav>
-            <div className="mt-auto pt-4 border-t border-brand-accent/50 p-2">
-                <button onClick={handleLogout} className="flex items-center gap-4 w-full px-4 py-3 rounded-lg text-sm font-medium transition-colors text-brand-light hover:bg-brand-red/10 hover:text-brand-red">
-                    <LogoutIcon className="w-5 h-5 flex-shrink-0" />
-                    <span>Salir</span>
+
+            <div className="mt-auto pt-6 border-t border-white/5 p-4">
+                <button
+                    onClick={handleLogout}
+                    className="flex items-center gap-4 w-full px-5 py-4 rounded-2xl text-sm font-black transition-all bg-white/5 text-slate-400 hover:bg-brand-red hover:text-white group"
+                >
+                    <LogoutIcon className="w-5 h-5 flex-shrink-0 group-hover:scale-110 transition-transform" />
+                    <span>Cerrar Sesión</span>
                 </button>
             </div>
-        </>
+        </div>
     );
 
     return (
-        <div className="relative min-h-screen bg-brand-secondary md:flex">
-             {/* Mobile header */}
-            <header className="sticky top-0 z-10 flex items-center justify-between bg-white border-b border-brand-accent p-4 text-brand-highlight md:hidden shadow-sm">
-                <button onClick={() => setIsSidebarOpen(true)} className="p-2 -ml-2 text-brand-light hover:text-brand-highlight">
+        <div className="relative min-h-screen bg-brand-secondary md:flex overflow-hidden">
+            {/* Mobile header - Glassmorphism */}
+            <header className="fixed top-0 left-0 right-0 z-20 flex items-center justify-between bg-white/70 backdrop-blur-xl border-b border-brand-accent px-6 py-4 md:hidden shadow-sm">
+                <button onClick={() => setIsSidebarOpen(true)} className="p-2.5 -ml-3 bg-brand-secondary/50 rounded-xl text-brand-light hover:text-brand-blue hover:bg-brand-blue/10 transition-all">
                     <MenuIcon className="h-6 w-6" />
                 </button>
-                <h1 className="text-lg font-bold text-brand-blue">{activeTabLabel}</h1>
-                <div className="w-6"></div> {/* Spacer */}
+                <div className="flex flex-col items-center">
+                    <span className="text-[10px] uppercase font-black tracking-widest text-brand-light leading-none">Admin</span>
+                    <h1 className="text-sm font-black text-brand-highlight">{activeTabLabel}</h1>
+                </div>
+                <img src={currentUser.avatar} alt="Avatar" className="w-9 h-9 rounded-xl border border-brand-accent shadow-sm" />
             </header>
 
             {/* Overlay */}
             {isSidebarOpen && (
                 <div
-                    className="fixed inset-0 z-30 bg-black/50 backdrop-blur-sm transition-opacity md:hidden"
+                    className="fixed inset-0 z-30 bg-slate-900/40 backdrop-blur-md transition-opacity md:hidden"
                     onClick={() => setIsSidebarOpen(false)}
                 ></div>
             )}
 
-            {/* Sidebar */}
-            <aside className={`fixed inset-y-0 left-0 z-40 w-72 transform bg-white border-r border-brand-accent flex flex-col transition-transform duration-300 ease-in-out md:relative md:translate-x-0 md:flex-shrink-0 ${ isSidebarOpen ? 'translate-x-0 shadow-2xl' : '-translate-x-full'}`}>
+            {/* Sidebar - Dark Premium */}
+            <aside className={`fixed inset-y-0 left-0 z-40 w-80 transform bg-slate-900 flex flex-col transition-transform duration-500 cubic-bezier(0.4, 0, 0.2, 1) md:relative md:translate-x-0 md:flex-shrink-0 ${isSidebarOpen ? 'translate-x-0 shadow-2xl' : '-translate-x-full'}`}>
                 {sidebarContent}
             </aside>
-            
-            <div className="flex-1 flex flex-col overflow-hidden">
-                <main className="flex-1 p-4 md:p-8 overflow-y-auto">
-                    <div className="max-w-7xl mx-auto">
+
+            <div className="flex-1 flex flex-col overflow-hidden pt-16 md:pt-0">
+                <main className="flex-1 p-4 md:p-10 overflow-y-auto custom-scrollbar">
+                    <div className="max-w-7xl mx-auto animate-fadeIn">
                         <div className={activeTab === 'manage' ? 'block' : 'hidden'}>
                             <UserManagement onManageInventory={setManagingInventoryFor} onManageBadges={setManagingBadgesFor} onNotifyUser={setNotifyingUser} onSetSalary={setSettingSalaryFor} />
                         </div>
@@ -176,7 +191,7 @@ const AdminView: React.FC = () => {
                     Maestros del Taller
                 </footer>
             </div>
-            
+
             {isCreateItemModalOpen && <CreateItemModal onClose={() => setIsCreateItemModalOpen(false)} />}
             {managingInventoryFor && <InventoryManagementModal user={managingInventoryFor} onClose={() => setManagingInventoryFor(null)} />}
             {managingBadgesFor && <BadgeManagementModal user={managingBadgesFor} onClose={() => setManagingBadgesFor(null)} />}

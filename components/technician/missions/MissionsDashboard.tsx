@@ -4,10 +4,10 @@ import { Mission, MissionStatus, User } from '../../../types';
 import { useData } from '../../../contexts/DataContext';
 import MissionColumn from './MissionColumn';
 import RequestMissionModal from './RequestMissionModal';
-import { PlusIcon } from '../../Icons';
+import { PlusIcon, StarIcon, ArrowUpIcon, BoxIcon } from '../../Icons';
 
-const AvailableMissionCard: React.FC<{ 
-    mission: Mission; 
+const AvailableMissionCard: React.FC<{
+    mission: Mission;
     onRequest: (missionId: string) => Promise<void>;
     requestType?: 'take' | 'join';
 }> = ({ mission, onRequest, requestType = 'take' }) => {
@@ -22,45 +22,53 @@ const AvailableMissionCard: React.FC<{
         } catch (error) {
             console.error(`Failed to ${requestType} mission`, error)
         }
-        // Don't setIsLoading(false) on success, as the component will likely unmount.
-        // Only set it on error to allow retry.
         if (!isLoading) setIsLoading(false);
     };
-    
+
     const assignedUsers = (mission.assignedTo || []).map(id => usersMap.get(id)).filter(Boolean) as User[];
-    
+
     return (
-        <div className="bg-white border border-brand-accent p-5 rounded-xl shadow-sm hover:shadow-md transition-all flex flex-col gap-3">
-            <div>
-                <h4 className="font-bold text-lg text-brand-highlight">{mission.title}</h4>
-                <p className="text-sm text-brand-light mt-1">{mission.description.substring(0, 80)}...</p>
-            </div>
-            {assignedUsers.length > 0 && (
-                <div className="flex items-center gap-2 mt-2">
-                    <span className="text-xs font-semibold text-brand-light">Equipo:</span>
-                    <div className="flex -space-x-2">
-                        {assignedUsers.map(u => (
-                            <img key={u.id} src={u.avatar} alt={u.name} title={u.name} className="w-6 h-6 rounded-full ring-2 ring-white border border-brand-accent" />
-                        ))}
-                    </div>
+        <div className="bg-white border border-brand-accent p-6 rounded-3xl shadow-soft hover:shadow-premium transition-all flex flex-col gap-4 relative group active:scale-[0.98]">
+            {requestType === 'join' && (
+                <div className="absolute -top-3 left-6 bg-brand-blue text-white text-[8px] font-black uppercase tracking-widest px-3 py-1 rounded-full shadow-lg">
+                    Colaborativa
                 </div>
             )}
-            <div className="flex justify-between items-center mt-auto pt-2 text-sm border-t border-brand-accent/30">
-                <span className="font-bold text-brand-orange">{mission.xp} XP</span>
-                <span className="px-2 py-1 bg-brand-secondary text-brand-light text-xs rounded-md">{mission.difficulty}</span>
+            <div>
+                <h4 className="font-black text-xl text-brand-highlight tracking-tight leading-tight group-hover:text-brand-blue transition-colors">{mission.title}</h4>
+                <p className="text-xs text-brand-light mt-2 line-clamp-2 leading-relaxed">{mission.description}</p>
             </div>
-             <button
+
+            <div className="flex items-center justify-between">
+                {assignedUsers.length > 0 ? (
+                    <div className="flex -space-x-3">
+                        {assignedUsers.map(u => (
+                            <img key={u.id} src={u.avatar} alt={u.name} className="w-8 h-8 rounded-xl ring-4 ring-white border border-brand-accent object-cover shadow-sm" />
+                        ))}
+                    </div>
+                ) : <div className="p-2 rounded-xl bg-brand-secondary text-brand-light"><BoxIcon className="w-4 h-4 opacity-50" /></div>}
+                <div className="text-right">
+                    <span className="font-black text-brand-orange flex items-center gap-1 justify-end">
+                        <StarIcon className="w-4 h-4 fill-brand-orange" />
+                        {mission.xp} XP
+                    </span>
+                    <span className="text-[10px] font-black text-brand-light uppercase tracking-tighter opacity-70">{mission.difficulty}</span>
+                </div>
+            </div>
+
+            <button
                 onClick={handleRequest}
                 disabled={isLoading}
-                className="w-full bg-brand-blue text-white font-bold py-2.5 px-3 rounded-lg flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-blue-600 active:translate-y-0.5 transition-all mt-2 shadow-sm"
+                className="w-full bg-brand-highlight text-white font-black py-3.5 px-4 rounded-2xl flex items-center justify-center gap-3 disabled:opacity-50 transition-all hover:bg-brand-blue hover:shadow-lg active:scale-95"
             >
-                {isLoading && <div className="w-5 h-5 border-2 border-t-transparent border-white rounded-full animate-spin"></div>}
-                {isLoading ? 'Enviando...' : (requestType === 'join' ? 'Solicitar Unirse' : 'Solicitar Misión')}
+                {isLoading ? <div className="w-5 h-5 border-2 border-t-transparent border-white rounded-full animate-spin"></div> : <ArrowUpIcon className="w-4 h-4 rotate-45" />}
+                <span className="text-xs uppercase tracking-widest">
+                    {isLoading ? 'Solicitando...' : (requestType === 'join' ? 'Unirse al Equipo' : 'Tomar Desafío')}
+                </span>
             </button>
         </div>
     );
 };
-
 
 interface MissionsDashboardProps {
     user: User;
@@ -70,14 +78,14 @@ interface MissionsDashboardProps {
 const MissionsDashboard: React.FC<MissionsDashboardProps> = ({ user, onOpenMission }) => {
     const { missions, technicianRequestMission, requestToJoinMission } = useData();
     const [isRequestModalOpen, setIsRequestModalOpen] = useState(false);
+    const [activeTab, setActiveTab] = useState<MissionStatus>(MissionStatus.IN_PROGRESS);
 
     const { available, otherInProgress, requested, pending, inProgress, completed } = useMemo(() => {
         const visibleMissions = missions.filter(m => m.visibleTo?.includes(user.id));
-
         const available = visibleMissions.filter(m => (!m.assignedTo || m.assignedTo.length === 0) && m.status === MissionStatus.PENDING && !m.title.startsWith('[UNIRSE]'));
         const userMissions = visibleMissions.filter(m => m.assignedTo?.includes(user.id));
         const otherInProgress = visibleMissions.filter(m => m.status === MissionStatus.IN_PROGRESS && !m.assignedTo?.includes(user.id) && !m.title.startsWith('[UNIRSE]'));
-        
+
         return {
             available,
             otherInProgress,
@@ -88,49 +96,91 @@ const MissionsDashboard: React.FC<MissionsDashboardProps> = ({ user, onOpenMissi
         };
     }, [missions, user.id]);
 
+    const TABS_CONFIG = [
+        { id: MissionStatus.IN_PROGRESS, label: 'En Curso', count: inProgress.length, missions: inProgress },
+        { id: MissionStatus.PENDING, label: 'Pendientes', count: pending.length, missions: pending },
+        { id: MissionStatus.REQUESTED, label: 'Solicitadas', count: requested.length, missions: requested },
+        { id: MissionStatus.COMPLETED, label: 'Historial', count: completed.length, missions: completed },
+    ];
+
     return (
-        <div className="space-y-10">
+        <div className="space-y-12">
             <div>
-                <div className="flex justify-between items-center mb-6 flex-wrap gap-4">
-                    <h2 className="text-3xl font-bold text-brand-highlight tracking-tight">Mis Misiones</h2>
-                     <button
+                <div className="flex justify-between items-end mb-8">
+                    <div>
+                        <h2 className="text-4xl font-black text-brand-highlight tracking-tight">Mis Misiones</h2>
+                        <p className="text-sm text-brand-light mt-1">Sigue tu progreso y gestiona tus tareas activas.</p>
+                    </div>
+                    <button
                         onClick={() => setIsRequestModalOpen(true)}
-                        className="bg-white border border-brand-orange text-brand-orange font-bold py-2 px-4 rounded-lg flex items-center gap-2 hover:bg-brand-orange hover:text-white transition-all shadow-sm hover:shadow-md"
+                        className="bg-brand-highlight text-white font-black p-3.5 rounded-2xl flex items-center gap-2 hover:bg-brand-blue transition-all shadow-lg active:scale-95 sm:px-6"
                     >
                         <PlusIcon className="w-5 h-5" />
-                        <span>Solicitar Custom</span>
+                        <span className="hidden sm:inline">Solicitar Custom</span>
                     </button>
                 </div>
-                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                    <MissionColumn title={MissionStatus.REQUESTED} missions={requested} onOpenMission={onOpenMission} />
-                    <MissionColumn title={MissionStatus.PENDING} missions={pending} onOpenMission={onOpenMission} />
-                    <MissionColumn title={MissionStatus.IN_PROGRESS} missions={inProgress} onOpenMission={onOpenMission} />
-                    <MissionColumn title={MissionStatus.COMPLETED} missions={completed} onOpenMission={onOpenMission} />
+
+                {/* Mobile View: Tabbed Board */}
+                <div className="md:hidden space-y-6">
+                    <div className="flex gap-2 p-1.5 bg-brand-accent/30 rounded-2xl overflow-x-auto no-scrollbar">
+                        {TABS_CONFIG.map(tab => (
+                            <button
+                                key={tab.id}
+                                onClick={() => setActiveTab(tab.id as MissionStatus)}
+                                className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-tighter whitespace-nowrap transition-all ${activeTab === tab.id ? 'bg-white text-brand-blue shadow-premium' : 'text-brand-light'}`}
+                            >
+                                {tab.label}
+                                <span className={`px-1.5 py-0.5 rounded-md text-[10px] ${activeTab === tab.id ? 'bg-brand-blue/10 text-brand-blue' : 'bg-brand-accent/50'}`}>
+                                    {tab.count}
+                                </span>
+                            </button>
+                        ))}
+                    </div>
+                    <div className="animate-fadeIn">
+                        <MissionColumn
+                            title={activeTab}
+                            missions={TABS_CONFIG.find(t => t.id === activeTab)?.missions || []}
+                            onOpenMission={onOpenMission}
+                        />
+                    </div>
+                </div>
+
+                {/* Desktop View: Grid Columns */}
+                <div className="hidden md:grid grid-cols-4 gap-8">
+                    {TABS_CONFIG.map(tab => (
+                        <MissionColumn key={tab.id} title={tab.id as MissionStatus} missions={tab.missions} onOpenMission={onOpenMission} />
+                    ))}
                 </div>
             </div>
 
-            {(available.length > 0 || otherInProgress.length > 0) && <div className="border-t border-brand-accent my-8"></div>}
-            
+            {(available.length > 0 || otherInProgress.length > 0) && <div className="h-px bg-brand-accent w-full"></div>}
+
             {available.length > 0 && (
-                <div>
-                    <h2 className="text-2xl font-bold mb-4 text-brand-highlight">Disponibles para Tomar</h2>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <section>
+                    <div className="mb-6">
+                        <h2 className="text-2xl font-black text-brand-highlight tracking-tight">Tablón de Anuncios</h2>
+                        <p className="text-xs text-brand-light font-bold uppercase tracking-widest mt-1">Misiones disponibles para tomar ahora</p>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
                         {available.map(mission => (
                             <AvailableMissionCard key={mission.id} mission={mission} onRequest={technicianRequestMission} requestType="take" />
                         ))}
                     </div>
-                </div>
+                </section>
             )}
 
             {otherInProgress.length > 0 && (
-                <div>
-                    <h2 className="text-2xl font-bold mb-4 mt-8 text-brand-highlight">Unirse a Misión en Progreso</h2>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <section>
+                    <div className="mb-6">
+                        <h2 className="text-2xl font-black text-brand-highlight tracking-tight">Refuerzos Necesarios</h2>
+                        <p className="text-xs text-brand-light font-bold uppercase tracking-widest mt-1">Únete a otros maestros en sus trabajos actuales</p>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
                         {otherInProgress.map(mission => (
                             <AvailableMissionCard key={mission.id} mission={mission} onRequest={requestToJoinMission} requestType="join" />
                         ))}
                     </div>
-                </div>
+                </section>
             )}
 
             {isRequestModalOpen && <RequestMissionModal onClose={() => setIsRequestModalOpen(false)} />}

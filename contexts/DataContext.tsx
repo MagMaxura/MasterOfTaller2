@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect, useMemo, createContext, useContext } from 'react';
-import { User, Mission, InventoryItem, Chat, ChatMessage, EquipmentSlot, MissionMilestone, MissionStatus, UserInventoryItem, Supply, MissionSupply, Badge, Salary, PayrollEvent, PaymentPeriod, Role, MissionDifficulty, PayrollEventType } from '../types';
+import { User, Mission, InventoryItem, Chat, ChatMessage, EquipmentSlot, MissionMilestone, MissionStatus, UserInventoryItem, Supply, MissionSupply, Badge, Salary, PayrollEvent, PaymentPeriod, Role, MissionDifficulty, PayrollEventType, MissionRequirement } from '../types';
 import { supabase } from '../config';
 import { Database } from '../database.types';
 import { transformSupabaseProfileToUser } from '../utils/dataTransformers';
@@ -17,6 +17,7 @@ interface DataContextType {
   missionMilestones: MissionMilestone[];
   supplies: Supply[];
   missionSupplies: MissionSupply[];
+  missionRequirements: MissionRequirement[];
   salaries: Salary[];
   payrollEvents: PayrollEvent[];
   paymentPeriods: PaymentPeriod[];
@@ -66,6 +67,9 @@ interface DataContextType {
   createMissionBonusEvent: (userId: string, mission: Mission) => Promise<void>;
   calculatePayPeriods: () => Promise<void>;
   markPeriodAsPaid: (periodId: string) => Promise<void>;
+  addMissionRequirement: (missionId: string, description: string, quantity: number) => Promise<void>;
+  updateMissionRequirement: (id: string, data: Partial<MissionRequirement>) => Promise<void>;
+  deleteMissionRequirement: (id: string) => Promise<void>;
 }
 
 // --- CONTEXT CREATION ---
@@ -90,6 +94,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [missionMilestones, setMissionMilestones] = useState<MissionMilestone[]>([]);
   const [supplies, setSupplies] = useState<Supply[]>([]);
   const [missionSupplies, setMissionSupplies] = useState<MissionSupply[]>([]);
+  const [missionRequirements, setMissionRequirements] = useState<MissionRequirement[]>([]);
   const [salaries, setSalaries] = useState<Salary[]>([]);
   const [payrollEvents, setPayrollEvents] = useState<PayrollEvent[]>([]);
   const [paymentPeriods, setPaymentPeriods] = useState<PaymentPeriod[]>([]);
@@ -218,6 +223,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         messagesResult,
         suppliesResult,
         missionSuppliesResult,
+        missionRequirementsResult,
         salariesResult,
         payrollEventsResult,
         paymentPeriodsResult,
@@ -232,6 +238,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (messagesResult.error) throw new Error(`Al cargar mensajes: ${messagesResult.error.message}`);
       if (suppliesResult.error) throw new Error(`Al cargar insumos: ${suppliesResult.error.message}`);
       if (missionSuppliesResult.error) throw new Error(`Al cargar insumos de misión: ${missionSuppliesResult.error.message}`);
+      if (missionRequirementsResult.error) throw new Error(`Al cargar requerimientos de misión: ${missionRequirementsResult.error.message}`);
       if (salariesResult.error) throw new Error(`Al cargar salarios: ${salariesResult.error.message}`);
       if (payrollEventsResult.error) throw new Error(`Al cargar eventos de nómina: ${payrollEventsResult.error.message}`);
       if (paymentPeriodsResult.error) throw new Error(`Al cargar períodos de pago: ${paymentPeriodsResult.error.message}`);
@@ -258,6 +265,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setChatMessages((messagesResult.data || []) as ChatMessage[]);
       setSupplies((suppliesResult.data || []) as Supply[]);
       setMissionSupplies((missionSuppliesResult.data || []) as MissionSupply[]);
+      setMissionRequirements((missionRequirementsResult.data || []) as MissionRequirement[]);
       setSalaries((salariesResult.data || []) as Salary[]);
       setPayrollEvents((payrollEventsResult.data || []) as PayrollEvent[]);
       setPaymentPeriods((paymentPeriodsResult.data || []) as PaymentPeriod[]);
@@ -288,6 +296,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       supabase.channel('public:mission_milestones').on('postgres_changes', { event: '*', schema: 'public', table: 'mission_milestones' }, () => fetchData()).subscribe(),
       supabase.channel('public:supplies').on('postgres_changes', { event: '*', schema: 'public', table: 'supplies' }, () => fetchData()).subscribe(),
       supabase.channel('public:mission_supplies').on('postgres_changes', { event: '*', schema: 'public', table: 'mission_supplies' }, () => fetchData()).subscribe(),
+      supabase.channel('public:mission_requirements').on('postgres_changes', { event: '*', schema: 'public', table: 'mission_requirements' }, () => fetchData()).subscribe(),
       supabase.channel('public:chat_messages').on('postgres_changes', { event: '*', schema: 'public', table: 'chat_messages' }, () => fetchData()).subscribe(),
       supabase.channel('public:chats').on('postgres_changes', { event: '*', schema: 'public', table: 'chats' }, () => fetchData()).subscribe(),
       supabase.channel('public:user_badges').on('postgres_changes', { event: '*', schema: 'public', table: 'user_badges' }, () => fetchData()).subscribe(),
@@ -661,11 +670,23 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const value = {
-    currentUser, users, missions, allInventoryItems, allBadges, missionMilestones, supplies, missionSupplies, salaries, payrollEvents, paymentPeriods, chats, chatMessages, loading, unreadMessagesCount, viewingProfileOf, setViewingProfileOf,
+    currentUser, users, missions, allInventoryItems, allBadges, missionMilestones, supplies, missionSupplies, missionRequirements, salaries, payrollEvents, paymentPeriods, chats, chatMessages, loading, unreadMessagesCount, viewingProfileOf, setViewingProfileOf,
     updateMission, updateUser, deactivateUser, updateUserAvatar, addMission, requestMission, technicianRequestMission, rejectMissionRequest, deleteMission, addMissionMilestone, toggleMilestoneSolution, assignInventoryItem, removeInventoryItem, disposeOfInventoryItem, updateInventoryItemQuantity, updateInventoryVariantQuantity, addInventoryItem, deleteInventoryItem, savePushSubscription, sendNotification, handleSelectOrCreateChat, handleSendMessage, handleMarkAsRead, requestToJoinMission, approveJoinRequest, rejectJoinRequest,
     addSupply, updateSupply, deleteSupply, assignSupplyToMission, updateMissionSupply, removeSupplyFromMission,
     assignBadge, revokeBadge,
-    setSalary, addPayrollEvent, updatePayrollEvent, createMissionBonusEvent, calculatePayPeriods, markPeriodAsPaid
+    setSalary, addPayrollEvent, updatePayrollEvent, createMissionBonusEvent, calculatePayPeriods, markPeriodAsPaid,
+    addMissionRequirement: async (missionId: string, description: string, quantity: number) => {
+      if (currentUser?.id.startsWith('demo-')) { showToast('Acción simulada en modo demo.', 'success'); return; }
+      await api.addMissionRequirement({ mission_id: missionId, description, quantity });
+    },
+    updateMissionRequirement: async (id: string, data: Partial<MissionRequirement>) => {
+      if (currentUser?.id.startsWith('demo-')) { showToast('Acción simulada en modo demo.', 'success'); return; }
+      await api.updateMissionRequirement(id, data);
+    },
+    deleteMissionRequirement: async (id: string) => {
+      if (currentUser?.id.startsWith('demo-')) { showToast('Acción simulada en modo demo.', 'success'); return; }
+      await api.deleteMissionRequirement(id);
+    }
   };
 
   return (

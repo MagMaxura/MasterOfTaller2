@@ -1,8 +1,11 @@
 
 
 import { supabase } from '../config';
+import { User, Mission, EquipmentSlot, Supply, MissionSupply, MissionRequirement } from '../types';
 import { Database } from '../database.types';
-import { User, Mission, EquipmentSlot, Supply, MissionSupply } from '../types';
+
+type RequirementInsert = Database['public']['Tables']['mission_requirements']['Insert'];
+type RequirementUpdate = Database['public']['Tables']['mission_requirements']['Update'];
 
 type MissionInsert = Database['public']['Tables']['missions']['Insert'];
 type MissionUpdate = Database['public']['Tables']['missions']['Update'];
@@ -49,6 +52,7 @@ export const api = {
       supabase.from('chat_messages').select('id, chat_id, sender_id, content, created_at, is_read').order('created_at', { ascending: true }),
       supabase.from('supplies').select(supplyColumns).order('general_category').order('specific_category'),
       supabase.from('mission_supplies').select(`id, created_at, mission_id, supply_id, quantity_assigned, quantity_used, supplies(${supplyColumns})`),
+      supabase.from('mission_requirements').select('id, mission_id, description, quantity, is_purchased, created_at'),
       supabase.from('salarios').select(salaryColumns),
       supabase.from('eventos_nomina').select(payrollEventColumns).order('fecha_evento', { ascending: false }),
       supabase.from('periodos_pago').select(`${paymentPeriodColumns}, events:eventos_nomina(*)`).order('fecha_pago', { ascending: false }),
@@ -281,5 +285,17 @@ export const api = {
     const { data, error } = await supabase.rpc('calcular_nomina', { p_fecha_inicio: startDate, p_fecha_fin: endDate });
     if (error) throw new Error(`Error al calcular nómina: ${error.message}`);
     return data; // Returns the count of processed users
+  },
+  async addMissionRequirement(data: RequirementInsert) {
+    const { error } = await supabase.from('mission_requirements').insert(data);
+    if (error) throw new Error(error.message);
+  },
+  async updateMissionRequirement(id: string, data: RequirementUpdate) {
+    const { error } = await supabase.from('mission_requirements').update(data).eq('id', id);
+    if (error) throw new Error(error.message);
+  },
+  async deleteMissionRequirement(id: string) {
+    const { error } = await supabase.from('mission_requirements').delete().eq('id', id);
+    if (error) throw new Error(error.message);
   }
 };

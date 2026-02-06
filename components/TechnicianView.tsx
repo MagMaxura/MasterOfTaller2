@@ -118,39 +118,54 @@ const TechnicianUI: React.FC<TechnicianUIProps> = ({ user, isAdminViewing = fals
     };
 
     return (
-        <div className="min-h-screen bg-brand-primary pb-20 md:pb-0"> {/* Padding bottom for mobile nav */}
+        <div className="min-h-screen bg-brand-secondary pb-24 md:pb-0 overflow-x-hidden">
             <Header user={user} isAdminViewing={isAdminViewing} onBack={onBackToAdmin} />
 
             {/* Desktop Navigation */}
-            <nav className="bg-white border-b border-brand-accent hidden md:block sticky top-16 z-20 shadow-sm">
-                <div className="max-w-7xl mx-auto px-4"><div className="flex items-center justify-center h-14"><div className="flex items-center space-x-2">
-                    {TABS.desktop.map(tab => (
-                        <button key={tab.id} onClick={() => setActiveTab(tab.id)} className={`relative flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${activeTab === tab.id ? 'bg-brand-blue text-white shadow-md' : 'text-brand-light hover:bg-brand-secondary hover:text-brand-highlight'}`}>
-                            {React.cloneElement(tab.icon as React.ReactElement, { className: 'w-5 h-5' })}
-                            <span>{tab.label}</span>
-                            {tab.notification && <span className="absolute -top-1 -right-1 block h-3 w-3 rounded-full bg-brand-red border-2 border-white" />}
-                        </button>
-                    ))}
-                </div></div></div>
+            <nav className="bg-white/80 backdrop-blur-md border-b border-brand-accent hidden md:block sticky top-16 z-20 shadow-sm">
+                <div className="max-w-7xl mx-auto px-4">
+                    <div className="flex items-center justify-center h-14">
+                        <div className="flex items-center space-x-1">
+                            {TABS.desktop.map(tab => (
+                                <button
+                                    key={tab.id}
+                                    onClick={() => setActiveTab(tab.id)}
+                                    className={`relative flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all duration-300 ${activeTab === tab.id ? 'bg-brand-blue text-white shadow-lg scale-105' : 'text-brand-light hover:bg-brand-accent hover:text-brand-highlight'}`}
+                                >
+                                    {React.cloneElement(tab.icon as React.ReactElement, { className: 'w-5 h-5' })}
+                                    <span>{tab.label}</span>
+                                    {tab.notification && <span className="absolute -top-1 -right-1 block h-3 w-3 rounded-full bg-brand-red border-2 border-white animate-pulse" />}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+                </div>
             </nav>
 
-            <main className="p-4 md:p-8 max-w-7xl mx-auto">
+            <main className="p-4 md:p-8 max-w-7xl mx-auto animate-fadeIn">
                 {renderContent()}
-                <footer className="text-center text-xs text-brand-light pt-8 pb-4">
-                    Maestros del Taller
+                <footer className="text-center text-[10px] font-bold text-brand-light/50 uppercase tracking-[0.2em] pt-12 pb-6">
+                    Maestros del Taller &copy; 2026
                 </footer>
             </main>
 
-            {/* Mobile Bottom Tab Navigation - FIXED */}
-            <nav className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md border-t border-brand-accent shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] md:hidden z-30 pb-safe">
-                <div className="flex justify-between items-center h-16 overflow-x-auto no-scrollbar px-2">
+            {/* Mobile Bottom Tab Navigation - FIXED PREMIUM VERSION */}
+            <nav className="fixed bottom-4 left-4 right-4 h-16 bg-white/80 backdrop-blur-xl border border-white/20 shadow-premium rounded-2xl md:hidden z-30 pb-safe px-2">
+                <div className="flex justify-between items-center h-full overflow-x-auto no-scrollbar gap-1">
                     {TABS.mobile.map(tab => (
-                        <button key={tab.id} onClick={() => setActiveTab(tab.id)} className={`relative flex flex-col items-center justify-center min-w-[4rem] w-full h-full transition-all duration-200 ${activeTab === tab.id ? 'text-brand-blue scale-105 font-medium' : 'text-brand-light hover:text-brand-highlight'}`}>
-                            <div className="p-1 rounded-full">
+                        <button
+                            key={tab.id}
+                            onClick={() => {
+                                setActiveTab(tab.id);
+                                window.scrollTo({ top: 0, behavior: 'smooth' });
+                            }}
+                            className={`relative flex flex-col items-center justify-center min-w-[4.5rem] flex-1 h-[85%] rounded-xl transition-all duration-300 ${activeTab === tab.id ? 'bg-brand-blue text-white shadow-lg active:scale-95' : 'text-brand-light hover:text-brand-highlight hover:bg-black/5'}`}
+                        >
+                            <div className="relative">
                                 {React.cloneElement(tab.icon as React.ReactElement, { className: activeTab === tab.id ? 'w-6 h-6' : 'w-5 h-5' })}
+                                {tab.notification && <span className="absolute -top-1 -right-1 block h-2.5 w-2.5 rounded-full bg-brand-red ring-2 ring-white animate-pulse" />}
                             </div>
-                            <span className="text-[10px] mt-0.5 leading-none">{tab.label}</span>
-                            {tab.notification && <span className="absolute top-2 right-[25%] block h-2 w-2 rounded-full bg-brand-red ring-2 ring-white" />}
+                            <span className="text-[9px] mt-1 font-black uppercase tracking-tighter leading-none">{tab.label}</span>
                         </button>
                     ))}
                 </div>

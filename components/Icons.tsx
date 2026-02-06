@@ -32,10 +32,10 @@ export const CameraIcon: React.FC<IconProps> = (props) => (
 );
 
 export const AiIcon: React.FC<IconProps> = (props) => (
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" {...props}>
-        <path d="M11.983 1.904a1 1 0 00-1.13.256l-3.334 4.333A1 1 0 008.667 8H10a1 1 0 01.894.553l.448 1.118a.5.5 0 00.894.224l1.334-1.334a1 1 0 00.256-1.13l-1-2.5a1 1 0 00-.97-.667h-1.5z" />
-        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm.34-11.022a1 1 0 00-1.12.38l-4.013 7.023a1 1 0 00.86 1.505H9a1 1 0 01.894.553l.448 1.118a.5.5 0 00.895.224l.335-.335a1 1 0 00.256-1.13l-1.48-3.702a1 1 0 01.33-1.11l1.333-1.334a.5.5 0 00.224-.894l-1.118-.448A1 1 0 0112 8h-1.333a1 1 0 00-.85-.478L8.683 4.19a1 1 0 00-1.213-.576l-.007.003z" clipRule="evenodd" />
-    </svg>
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" {...props}>
+    <path d="M11.983 1.904a1 1 0 00-1.13.256l-3.334 4.333A1 1 0 008.667 8H10a1 1 0 01.894.553l.448 1.118a.5.5 0 00.894.224l1.334-1.334a1 1 0 00.256-1.13l-1-2.5a1 1 0 00-.97-.667h-1.5z" />
+    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm.34-11.022a1 1 0 00-1.12.38l-4.013 7.023a1 1 0 00.86 1.505H9a1 1 0 01.894.553l.448 1.118a.5.5 0 00.895.224l.335-.335a1 1 0 00.256-1.13l-1.48-3.702a1 1 0 01.33-1.11l1.333-1.334a.5.5 0 00.224-.894l-1.118-.448A1 1 0 0112 8h-1.333a1 1 0 00-.85-.478L8.683 4.19a1 1 0 00-1.213-.576l-.007.003z" clipRule="evenodd" />
+  </svg>
 );
 
 
@@ -88,7 +88,7 @@ export const BeltIcon: React.FC<IconProps> = (props) => (
 );
 
 export const ChatIcon: React.FC<IconProps> = (props) => (
-    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" {...props}><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
+  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" {...props}><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
 );
 
 export const BookOpenIcon: React.FC<IconProps> = (props) => (
@@ -110,13 +110,17 @@ export const EyeOffIcon: React.FC<IconProps> = (props) => (
 );
 
 export const CurrencyDollarIcon: React.FC<IconProps> = (props) => (
-    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" {...props}><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v.01M12 14v1m0-1v-.01M12 6a2 2 0 100-4 2 2 0 000 4zm0 12a2 2 0 100-4 2 2 0 000 4z" /></svg>
+  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" {...props}><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v.01M12 14v1m0-1v-.01M12 6a2 2 0 100-4 2 2 0 000 4zm0 12a2 2 0 100-4 2 2 0 000 4z" /></svg>
 );
 
 export const ArrowUpIcon: React.FC<IconProps> = (props) => (
-    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" {...props}><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 10l7-7m0 0l7 7m-7-7v18" /></svg>
+  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" {...props}><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 10l7-7m0 0l7 7m-7-7v18" /></svg>
 );
 
 export const ArrowDownIcon: React.FC<IconProps> = (props) => (
-    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" {...props}><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" /></svg>
+  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" {...props}><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" /></svg>
+);
+
+export const BellIcon: React.FC<IconProps> = (props) => (
+  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" {...props}><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" /></svg>
 );

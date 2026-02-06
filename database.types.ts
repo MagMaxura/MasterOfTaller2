@@ -209,6 +209,41 @@ export interface Database {
           }
         ]
       }
+      mission_requirements: {
+        Row: {
+          id: string
+          mission_id: string
+          description: string
+          quantity: number
+          is_purchased: boolean
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          mission_id: string
+          description: string
+          quantity?: number
+          is_purchased?: boolean
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          mission_id?: string
+          description?: string
+          quantity?: number
+          is_purchased?: boolean
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mission_requirements_mission_id_fkey"
+            columns: ["mission_id"]
+            isOneToOne: false
+            referencedRelation: "missions"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
       missions: {
         Row: {
           assigned_to: string[] | null
@@ -650,6 +685,13 @@ export interface Database {
       [_ in never]: never
     }
     Functions: {
+      calcular_nomina: {
+        Args: {
+          p_fecha_inicio: string
+          p_fecha_fin: string
+        }
+        Returns: number
+      }
       dispose_inventory_item: {
         Args: {
           p_user_inventory_id: string
