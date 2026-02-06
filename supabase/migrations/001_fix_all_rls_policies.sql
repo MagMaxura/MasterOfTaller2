@@ -1,1 +1,1 @@
-�
+-- Empty migration to fix encoding issue
