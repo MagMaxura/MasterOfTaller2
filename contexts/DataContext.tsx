@@ -28,7 +28,7 @@ interface DataContextType {
   viewingProfileOf: User | null;
   setViewingProfileOf: (user: User | null) => void;
   updateMission: (updatedMission: Partial<Mission>) => Promise<void>;
-  updateUser: (updatedUser: Partial<User>) => Promise<void>;
+  updateUser: (userId: string, data: Partial<User>) => Promise<void>;
   deactivateUser: (userId: string) => Promise<void>;
   updateUserAvatar: (userId: string, file: File) => Promise<void>;
   addMission: (newMission: Omit<Mission, 'id' | 'status'>) => Promise<void>;
@@ -400,10 +400,23 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     });
   };
 
-  const updateUser = async (updatedUser: Partial<User>) => {
+  const updateUser = async (userId: string, data: Partial<User>) => {
     if (currentUser?.id.startsWith('demo-')) { showToast('Acción simulada en modo demo.', 'success'); return; }
-    if (!updatedUser.id) return;
-    await api.updateUser(updatedUser.id, { name: updatedUser.name, xp: updatedUser.xp, level: updatedUser.level, push_subscription: updatedUser.pushSubscription });
+
+    await api.updateUser(userId, {
+      name: data.name,
+      xp: data.xp,
+      level: data.level,
+      role: data.role as any,
+      company: data.company as any,
+      push_subscription: data.pushSubscription
+    });
+
+    // Update local state
+    setUsers(prev => prev.map(u => u.id === userId ? { ...u, ...data } : u));
+    if (currentUser?.id === userId) {
+      setCurrentUser(prev => prev ? { ...prev, ...data } : null);
+    }
   };
 
   const deactivateUser = async (userId: string) => {

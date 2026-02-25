@@ -424,6 +424,7 @@ export interface Database {
           name: string
           push_subscription: Json | null
           role: Database["public"]["Enums"]["role"]
+          company: Database["public"]["Enums"]["company_name"] | null
           xp: number
         }
         Insert: {
@@ -437,6 +438,7 @@ export interface Database {
           name: string
           push_subscription?: Json | null
           role: Database["public"]["Enums"]["role"]
+          company?: Database["public"]["Enums"]["company_name"] | null
           xp?: number
         }
         Update: {
@@ -450,6 +452,7 @@ export interface Database {
           name?: string
           push_subscription?: Json | null
           role?: Database["public"]["Enums"]["role"]
+          company?: Database["public"]["Enums"]["company_name"] | null
           xp?: number
         }
         Relationships: [
@@ -718,7 +721,8 @@ export interface Database {
       | "accessory"
       mission_difficulty: "Bajo" | "Medio" | "Alto"
       mission_status: "Solicitada" | "Pendiente" | "En Progreso" | "Completada"
-      role: "tecnico" | "administrador"
+      role: "tecnico" | "administrador" | "administrativo" | "marketing" | "ventas"
+      company_name: "GREEN HABITAT" | "POTABILIZAR" | "ROSERMAN" | "ULTRASHINE"
       tipo_evento_nomina: "HORA_EXTRA" | "BONO" | "FALTA" | "TARDANZA" | "APERCIBIMIENTO"
       estado_pago: "CALCULADO" | "PAGADO"
     }

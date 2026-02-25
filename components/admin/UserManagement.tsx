@@ -283,31 +283,3 @@ const ActionBtn: React.FC<{
 };
 
 export default UserManagement;
-
-const ActionBtn: React.FC<{
-    onClick: () => void,
-    color: 'green' | 'blue' | 'orange' | 'red',
-    icon: React.ReactNode,
-    label: string,
-    disabled?: boolean
-}> = ({ onClick, color, icon, label, disabled }) => {
-    const colors = {
-        green: 'text-brand-green bg-brand-green/10 hover:bg-brand-green hover:text-white',
-        blue: 'text-brand-blue bg-brand-blue/10 hover:bg-brand-blue hover:text-white',
-        orange: 'text-brand-orange bg-brand-orange/10 hover:bg-brand-orange hover:text-white',
-        red: 'text-brand-red bg-brand-red/10 hover:bg-brand-red hover:text-white'
-    };
-
-    return (
-        <button
-            onClick={onClick}
-            disabled={disabled}
-            className={`min-w-[44px] h-[44px] rounded-xl flex items-center justify-center transition-all duration-300 ${colors[color]} disabled:opacity-20 disabled:grayscale`}
-            title={label}
-        >
-            {icon}
-        </button>
-    );
-};
-
-export default UserManagement;
