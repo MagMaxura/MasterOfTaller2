@@ -1,9 +1,9 @@
 
 import React from 'react';
-import { User, MissionStatus, Role } from '../../types';
+import { User, MissionStatus, Role, Company } from '../../types';
 import { useData } from '../../contexts/DataContext';
 import { useToast } from '../../contexts/ToastContext';
-import { PlusIcon, StarIcon, BoxIcon, BadgeIcon, CurrencyDollarIcon, BellIcon, LogoutIcon, UserIcon, ClockIcon } from '../Icons';
+import { PlusIcon, StarIcon, BoxIcon, BadgeIcon, CurrencyDollarIcon, BellIcon, LogoutIcon, UserIcon, ClockIcon, EditIcon } from '../Icons';
 
 const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS' }).format(amount);
@@ -16,18 +16,21 @@ const UserManagement: React.FC<{
     onSetSalary: (user: User) => void;
     onShowAttendance: (user: User) => void;
 }> = ({ onManageInventory, onManageBadges, onNotifyUser, onSetSalary, onShowAttendance }) => {
-    const { users, missions, salaries, setViewingProfileOf, deactivateUser } = useData();
+    const { users, missions, salaries, setViewingProfileOf, deactivateUser, updateUser } = useData();
     const { showToast } = useToast();
     const [activeRole, setActiveRole] = React.useState<Role>(Role.TECHNICIAN);
+    const [editingUser, setEditingUser] = React.useState<User | null>(null);
 
     const filteredUsers = users.filter(u => u.role === activeRole);
 
     const roles = [
-        { id: Role.TECHNICIAN, label: 'Técnicos', color: 'brand-blue' },
-        { id: Role.ADMINISTRATIVE, label: 'Administración', color: 'brand-green' },
-        { id: Role.MARKETING, label: 'Marketing', color: 'brand-orange' },
-        { id: Role.SALES, label: 'Ventas', color: 'brand-red' },
+        { id: Role.TECHNICIAN, label: 'Técnicos' },
+        { id: Role.ADMINISTRATIVE, label: 'Administración' },
+        { id: Role.MARKETING, label: 'Marketing' },
+        { id: Role.SALES, label: 'Ventas' },
     ];
+
+    const companies = Object.values(Company);
 
     const handleNotifyClick = (user: User) => {
         if (!user.pushSubscription) {
@@ -45,6 +48,22 @@ const UserManagement: React.FC<{
             } catch (error) {
                 showToast(error instanceof Error ? error.message : "Error al desactivar.", 'error');
             }
+        }
+    };
+
+    const handleUpdateUser = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!editingUser) return;
+
+        try {
+            await updateUser(editingUser.id, {
+                role: editingUser.role,
+                company: editingUser.company
+            });
+            showToast('Usuario actualizado correctamente.', 'success');
+            setEditingUser(null);
+        } catch (error) {
+            showToast(error instanceof Error ? error.message : "Error al actualizar.", 'error');
         }
     };
 
@@ -79,7 +98,7 @@ const UserManagement: React.FC<{
                             <th className="pb-4 pt-2 font-bold px-4 text-left">Miembro</th>
                             <th className="pb-4 pt-2 font-bold px-4 text-center">Progreso</th>
                             <th className="pb-4 pt-2 font-bold px-4 text-center">Tareas</th>
-                            <th className="pb-4 pt-2 font-bold px-4 text-right">Sueldo</th>
+                            <th className="pb-4 pt-2 font-bold px-4 text-right">Sueldo / Empresa</th>
                             <th className="pb-4 pt-2 font-bold px-4 text-right">Acciones</th>
                         </tr>
                     </thead>
@@ -147,15 +166,17 @@ const UserManagement: React.FC<{
                                         </div>
                                     </td>
 
-                                    {/* SALARY */}
+                                    {/* SALARY / COMPANY */}
                                     <td className="px-5 py-2 md:py-4 text-right block md:table-cell border-t md:border-t-0 border-brand-accent/30">
                                         <div className="flex md:flex-col items-center justify-between md:justify-end">
-                                            <span className="md:hidden text-[10px] font-black text-brand-light uppercase tracking-widest text-left">Presupuesto</span>
+                                            <span className="md:hidden text-[10px] font-black text-brand-light uppercase tracking-widest text-left">Datos</span>
                                             <div className="text-right">
                                                 <p className={`font-black tracking-tight ${salary ? 'text-brand-green' : 'text-brand-orange'}`}>
                                                     {salary ? formatCurrency(salary.monto_base_quincenal) : 'Sin sueldo'}
                                                 </p>
-                                                <p className="text-[9px] font-black text-brand-light uppercase leading-none opacity-60">Base Quincenal</p>
+                                                <p className="text-[9px] font-black text-brand-blue uppercase leading-none mt-1">
+                                                    {user.company || 'Sin Empresa'}
+                                                </p>
                                             </div>
                                         </div>
                                     </td>
@@ -165,6 +186,7 @@ const UserManagement: React.FC<{
                                         <div className="flex justify-end gap-2 sm:gap-3 flex-wrap">
                                             <ActionBtn onClick={() => onShowAttendance(user)} color="blue" icon={<ClockIcon className="w-4 h-4" />} label="Asistencia" />
                                             <ActionBtn onClick={() => onSetSalary(user)} color="green" icon={<CurrencyDollarIcon className="w-4 h-4" />} label="Salario" />
+                                            <ActionBtn onClick={() => setEditingUser(user)} color="orange" icon={<EditIcon className="w-4 h-4" />} label="Editar Perfil" />
                                             <ActionBtn onClick={() => onManageInventory(user)} color="blue" icon={<BoxIcon className="w-4 h-4" />} label="Stock" />
                                             <ActionBtn onClick={() => onManageBadges(user)} color="orange" icon={<BadgeIcon className="w-4 h-4" />} label="Logros" />
                                             <ActionBtn onClick={() => handleNotifyClick(user)} color="blue" icon={<BellIcon className="w-4 h-4" />} label="Notificar" disabled={!user.pushSubscription} />
@@ -177,9 +199,90 @@ const UserManagement: React.FC<{
                     </tbody>
                 </table>
             </div>
+
+            {/* EDIT USER MODAL */}
+            {editingUser && (
+                <div className="fixed inset-0 bg-brand-highlight/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                    <div className="bg-white rounded-[32px] w-full max-w-md overflow-hidden shadow-2xl border border-brand-accent">
+                        <div className="bg-brand-secondary px-8 py-6 border-b border-brand-accent">
+                            <h4 className="text-xl font-black text-brand-highlight tracking-tight">Editar Perfil</h4>
+                            <p className="text-xs text-brand-light font-bold uppercase tracking-widest mt-1">{editingUser.name}</p>
+                        </div>
+                        <form onSubmit={handleUpdateUser} className="p-8 space-y-6">
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-black text-brand-light uppercase tracking-widest ml-1">Área / Rol</label>
+                                <select
+                                    className="w-full bg-brand-secondary border border-brand-accent rounded-2xl px-4 py-3 font-bold text-brand-highlight focus:ring-2 focus:ring-brand-blue outline-none transition-all"
+                                    value={editingUser.role}
+                                    onChange={(e) => setEditingUser({ ...editingUser, role: e.target.value as Role })}
+                                >
+                                    {roles.map(r => <option key={r.id} value={r.id}>{r.label}</option>)}
+                                    <option value={Role.ADMIN}>Administrador Total</option>
+                                </select>
+                            </div>
+
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-black text-brand-light uppercase tracking-widest ml-1">Empresa</label>
+                                <select
+                                    className="w-full bg-brand-secondary border border-brand-accent rounded-2xl px-4 py-3 font-bold text-brand-highlight focus:ring-2 focus:ring-brand-blue outline-none transition-all"
+                                    value={editingUser.company || ''}
+                                    onChange={(e) => setEditingUser({ ...editingUser, company: e.target.value as Company })}
+                                >
+                                    <option value="">Seleccionar Empresa</option>
+                                    {companies.map(c => <option key={c} value={c}>{c}</option>)}
+                                </select>
+                            </div>
+
+                            <div className="flex gap-3 pt-2">
+                                <button
+                                    type="button"
+                                    onClick={() => setEditingUser(null)}
+                                    className="flex-1 px-6 py-3 rounded-2xl font-black text-[11px] uppercase tracking-[0.2em] border border-brand-accent text-brand-light hover:bg-brand-secondary transition-all"
+                                >
+                                    Cancelar
+                                </button>
+                                <button
+                                    type="submit"
+                                    className="flex-1 px-6 py-3 rounded-2xl font-black text-[11px] uppercase tracking-[0.2em] bg-brand-blue text-white shadow-premium hover:scale-[1.02] active:scale-[0.98] transition-all"
+                                >
+                                    Guardar
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };
+
+const ActionBtn: React.FC<{
+    onClick: () => void,
+    color: 'green' | 'blue' | 'orange' | 'red',
+    icon: React.ReactNode,
+    label: string,
+    disabled?: boolean
+}> = ({ onClick, color, icon, label, disabled }) => {
+    const colors = {
+        green: 'text-brand-green bg-brand-green/10 hover:bg-brand-green hover:text-white',
+        blue: 'text-brand-blue bg-brand-blue/10 hover:bg-brand-blue hover:text-white',
+        orange: 'text-brand-orange bg-brand-orange/10 hover:bg-brand-orange hover:text-white',
+        red: 'text-brand-red bg-brand-red/10 hover:bg-brand-red hover:text-white'
+    };
+
+    return (
+        <button
+            onClick={onClick}
+            disabled={disabled}
+            className={`min-w-[44px] h-[44px] rounded-xl flex items-center justify-center transition-all duration-300 ${colors[color]} disabled:opacity-20 disabled:grayscale`}
+            title={label}
+        >
+            {icon}
+        </button>
+    );
+};
+
+export default UserManagement;
 
 const ActionBtn: React.FC<{
     onClick: () => void,

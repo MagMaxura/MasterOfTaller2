@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect, useMemo, createContext, useContext } from 'react';
-import { User, Mission, InventoryItem, Chat, ChatMessage, EquipmentSlot, MissionMilestone, MissionStatus, UserInventoryItem, Supply, MissionSupply, Badge, Salary, PayrollEvent, PaymentPeriod, Role, MissionDifficulty, PayrollEventType, MissionRequirement } from '../types';
+import { User, Mission, InventoryItem, Chat, ChatMessage, EquipmentSlot, MissionMilestone, MissionStatus, UserInventoryItem, Supply, MissionSupply, Badge, Salary, PayrollEvent, PaymentPeriod, Role, MissionDifficulty, PayrollEventType, MissionRequirement, Company } from '../types';
 import { supabase } from '../config';
 import { Database } from '../database.types';
 import { transformSupabaseProfileToUser } from '../utils/dataTransformers';
@@ -115,6 +115,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         name: 'Admin Demo',
         email: 'admin@demo.com',
         role: Role.ADMIN,
+        company: Company.POTABILIZAR,
         avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Admin',
         xp: 9999,
         level: 100,
@@ -128,6 +129,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         name: 'Técnico Demo',
         email: 'tech@demo.com',
         role: Role.TECHNICIAN,
+        company: Company.GREEN_HABITAT,
         avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Felix',
         xp: 2450,
         level: 8,

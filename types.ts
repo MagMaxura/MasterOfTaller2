@@ -7,6 +7,13 @@ export enum Role {
   SALES = 'ventas',
 }
 
+export enum Company {
+  GREEN_HABITAT = 'GREEN HABITAT',
+  POTABILIZAR = 'POTABILIZAR',
+  ROSERMAN = 'ROSERMAN',
+  ULTRASHINE = 'ULTRASHINE',
+}
+
 export enum MissionStatus {
   REQUESTED = 'Solicitada',
   PENDING = 'Pendiente',
@@ -100,6 +107,7 @@ export interface User {
   name: string;
   email?: string;
   role: Role;
+  company?: Company;
   avatar: string;
   xp: number;
   level: number;
