@@ -14,34 +14,31 @@ import { DataProvider, useData } from './contexts/DataContext';
 
 // --- MAIN APP CONTENT ---
 const AppContent: React.FC = () => {
-    const { currentUser, users, viewingProfileOf, setViewingProfileOf, loading: dataLoading } = useData();
+  const { currentUser, users, viewingProfileOf, setViewingProfileOf, loading: dataLoading } = useData();
 
-    // The single loading state from DataContext now controls the initial render.
-    if (dataLoading) {
-        return <LoadingSpinner />;
-    }
+  // The single loading state from DataContext now controls the initial render.
+  if (dataLoading) {
+    return <LoadingSpinner />;
+  }
 
-    // If after all loading, we still don't have a user, something is wrong with auth or profile fetching.
-    if (!currentUser) {
-        return <LoadingSpinner message="Error al cargar el perfil. Intenta recargar la página." />;
-    }
-    
-    // Use currentUser from DataContext from now on, as it's the full profile.
-    if (viewingProfileOf) {
-        // We need to find the full profile for the user being viewed as well.
-        const fullViewingProfile = users.find(u => u.id === viewingProfileOf.id) || viewingProfileOf;
-        return <TechnicianView user={fullViewingProfile} isAdminViewing={true} onBackToAdmin={() => setViewingProfileOf(null)} />;
-    }
+  // If after all loading, we still don't have a user, something is wrong with auth or profile fetching.
+  if (!currentUser) {
+    return <LoadingSpinner message="Error al cargar el perfil. Intenta recargar la página." />;
+  }
 
-    if (currentUser.role === Role.TECHNICIAN) {
-        return <TechnicianView user={currentUser} />;
-    }
+  // Use currentUser from DataContext from now on, as it's the full profile.
+  if (viewingProfileOf) {
+    // We need to find the full profile for the user being viewed as well.
+    const fullViewingProfile = users.find(u => u.id === viewingProfileOf.id) || viewingProfileOf;
+    return <TechnicianView user={fullViewingProfile} isAdminViewing={true} onBackToAdmin={() => setViewingProfileOf(null)} />;
+  }
 
-    if (currentUser.role === Role.ADMIN) {
-        return <AdminView />;
-    }
+  if (currentUser.role === Role.ADMIN) {
+    return <AdminView />;
+  }
 
-    return <LoadingSpinner message="Verificando rol..." />;
+  // All other specialized roles (Technician, Sales, Marketing, etc.) see the technician dashboard
+  return <TechnicianView user={currentUser} />;
 };
 
 
@@ -57,10 +54,10 @@ const AuthenticatedApp: React.FC = () => {
     const hashParams = new URLSearchParams(window.location.hash.substring(1));
     const errorDescription = hashParams.get('error_description');
     if (errorDescription) {
-        setAuthError(`Error: ${decodeURIComponent(errorDescription.replace(/\+/g, ' '))}`);
-        window.history.replaceState(null, '', window.location.pathname + window.location.search);
+      setAuthError(`Error: ${decodeURIComponent(errorDescription.replace(/\+/g, ' '))}`);
+      window.history.replaceState(null, '', window.location.pathname + window.location.search);
     }
-    
+
     // We can safely assume `supabase` is initialized here.
     const checkSession = async () => {
       const { data } = await supabase.auth.getSession();
@@ -81,21 +78,21 @@ const AuthenticatedApp: React.FC = () => {
   }, []);
 
   const handleBypass = (role: 'admin' | 'technician') => {
-      const mockSession = {
-          access_token: 'mock-token',
-          token_type: 'bearer',
-          user: {
-              id: role === 'admin' ? 'demo-admin' : 'demo-technician',
-              email: role === 'admin' ? 'admin@demo.com' : 'tech@demo.com',
-              aud: 'authenticated',
-              created_at: new Date().toISOString(),
-          }
-      };
-      setSession(mockSession);
+    const mockSession = {
+      access_token: 'mock-token',
+      token_type: 'bearer',
+      user: {
+        id: role === 'admin' ? 'demo-admin' : 'demo-technician',
+        email: role === 'admin' ? 'admin@demo.com' : 'tech@demo.com',
+        aud: 'authenticated',
+        created_at: new Date().toISOString(),
+      }
+    };
+    setSession(mockSession);
   };
 
   if (loading) return <LoadingSpinner message="Verificando sesión..." />;
-  
+
   return (
     <ToastProvider>
       {!session ? (
