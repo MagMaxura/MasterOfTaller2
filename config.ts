@@ -28,8 +28,16 @@ if (!supabaseUrl || !supabaseAnonKey || !ATTENDANCE_SUPABASE_URL || !ATTENDANCE_
 
 export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey);
 
-// Cliente para la base de datos de asistencia (Nota: usa generic 'any' o un tipo específico si fuera necesario)
-export const supabaseAttendance = createClient(ATTENDANCE_SUPABASE_URL, ATTENDANCE_SUPABASE_ANON_KEY);
+// Cliente para la base de datos de asistencia
+// IMPORTANTE: Se deshabilita la persistencia de sesión para evitar conflictos con el cliente principal.
+// Ambos comparten el mismo localStorage por defecto si no se configura.
+export const supabaseAttendance = createClient(ATTENDANCE_SUPABASE_URL, ATTENDANCE_SUPABASE_ANON_KEY, {
+    auth: {
+        persistSession: false,
+        autoRefreshToken: false,
+        detectSessionInUrl: false
+    }
+});
 
 /**
  * Construye una URL pública para un archivo en Supabase Storage.
