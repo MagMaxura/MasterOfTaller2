@@ -5,23 +5,31 @@
 
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from './database.types';
-import { SUPABASE_URL, SUPABASE_ANON_KEY } from './constants';
+import {
+    SUPABASE_URL,
+    SUPABASE_ANON_KEY,
+    ATTENDANCE_SUPABASE_URL,
+    ATTENDANCE_SUPABASE_ANON_KEY
+} from './constants';
 
 // Se obtienen las credenciales del archivo de constantes.
 const supabaseUrl = SUPABASE_URL;
 const supabaseAnonKey = SUPABASE_ANON_KEY;
 
 // Verificación para asegurar que las constantes están definidas.
-if (!supabaseUrl || !supabaseAnonKey) {
+if (!supabaseUrl || !supabaseAnonKey || !ATTENDANCE_SUPABASE_URL || !ATTENDANCE_SUPABASE_ANON_KEY) {
     const errorDiv = document.createElement('div');
     errorDiv.style.cssText = 'background: #ff476f; color: white; padding: 20px; text-align: center; font-family: sans-serif;';
-    errorDiv.innerHTML = '<h1>Error de Configuración</h1><p>Las credenciales de Supabase no están definidas. Por favor, revisa el archivo <code>constants.tsx</code> y asegúrate de que <code>SUPABASE_URL</code> y <code>SUPABASE_ANON_KEY</code> estén correctamente configuradas.</p>';
+    errorDiv.innerHTML = '<h1>Error de Configuración</h1><p>Las credenciales de Supabase no están definidas. Por favor, revisa el archivo <code>constants.tsx</code> y asegúrate de que todas las claves de Supabase estén correctamente configuradas.</p>';
     document.body.innerHTML = '';
     document.body.appendChild(errorDiv);
     throw new Error("Las credenciales de Supabase no están definidas en constants.tsx");
 }
 
 export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey);
+
+// Cliente para la base de datos de asistencia (Nota: usa generic 'any' o un tipo específico si fuera necesario)
+export const supabaseAttendance = createClient(ATTENDANCE_SUPABASE_URL, ATTENDANCE_SUPABASE_ANON_KEY);
 
 /**
  * Construye una URL pública para un archivo en Supabase Storage.

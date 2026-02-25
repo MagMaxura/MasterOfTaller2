@@ -25,6 +25,7 @@ import HallOfFame from './common/HallOfFame';
 import PayrollManagement from './admin/payroll/PayrollManagement';
 import SetSalaryModal from './admin/payroll/SetSalaryModal';
 import AddPayrollEventModal from './admin/payroll/AddPayrollEventModal';
+import AttendanceModal from './admin/modals/AttendanceModal';
 
 import { PlusIcon, BoxIcon, CalendarIcon, MapPinIcon, UserIcon, ChatIcon, TasksIcon, BookOpenIcon, LogoutIcon, MenuIcon, ChartIcon, HallOfFameIcon, CurrencyDollarIcon } from './Icons';
 
@@ -38,6 +39,7 @@ const AdminView: React.FC = () => {
     const [managingBadgesFor, setManagingBadgesFor] = useState<User | null>(null);
     const [settingSalaryFor, setSettingSalaryFor] = useState<User | null>(null);
     const [addingPayrollEventFor, setAddingPayrollEventFor] = useState<User | null>(null);
+    const [viewingAttendanceFor, setViewingAttendanceFor] = useState<User | null>(null);
     const [isCreateItemModalOpen, setIsCreateItemModalOpen] = useState(false);
     const [notifyingUser, setNotifyingUser] = useState<User | null>(null);
     const [editingMission, setEditingMission] = useState<Mission | null>(null);
@@ -147,7 +149,13 @@ const AdminView: React.FC = () => {
                 <main className="flex-1 p-4 md:p-10 overflow-y-auto custom-scrollbar">
                     <div className="max-w-7xl mx-auto animate-fadeIn">
                         <div className={activeTab === 'manage' ? 'block' : 'hidden'}>
-                            <UserManagement onManageInventory={setManagingInventoryFor} onManageBadges={setManagingBadgesFor} onNotifyUser={setNotifyingUser} onSetSalary={setSettingSalaryFor} />
+                            <UserManagement
+                                onManageInventory={setManagingInventoryFor}
+                                onManageBadges={setManagingBadgesFor}
+                                onNotifyUser={setNotifyingUser}
+                                onSetSalary={setSettingSalaryFor}
+                                onShowAttendance={setViewingAttendanceFor}
+                            />
                         </div>
                         <div className={activeTab === 'payroll' ? 'block' : 'hidden'}>
                             <PayrollManagement onAddEvent={setAddingPayrollEventFor} />
@@ -188,7 +196,7 @@ const AdminView: React.FC = () => {
                     </div>
                 </main>
                 <footer className="flex-shrink-0 bg-white border-t border-brand-accent p-3 text-center text-xs text-brand-light">
-                    Maestros del Taller
+                    Herramienta de Proyecto y Gestion Gamificada
                 </footer>
             </div>
 
@@ -197,6 +205,7 @@ const AdminView: React.FC = () => {
             {managingBadgesFor && <BadgeManagementModal user={managingBadgesFor} onClose={() => setManagingBadgesFor(null)} />}
             {settingSalaryFor && <SetSalaryModal user={settingSalaryFor} onClose={() => setSettingSalaryFor(null)} />}
             {addingPayrollEventFor && <AddPayrollEventModal user={addingPayrollEventFor} onClose={() => setAddingPayrollEventFor(null)} />}
+            {viewingAttendanceFor && <AttendanceModal user={viewingAttendanceFor} onClose={() => setViewingAttendanceFor(null)} />}
             {notifyingUser && <NotificationModal user={notifyingUser} onClose={() => setNotifyingUser(null)} />}
             {editingMission && <ApproveMissionModal mission={editingMission} onClose={() => setEditingMission(null)} />}
             {selectedMission && <MissionDetailsModal mission={selectedMission} user={currentUser} onClose={() => setSelectedMission(null)} isAdminViewing={true} />}

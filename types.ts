@@ -2,6 +2,9 @@
 export enum Role {
   TECHNICIAN = 'tecnico',
   ADMIN = 'administrador',
+  ADMINISTRATIVE = 'administrativo',
+  MARKETING = 'marketing',
+  SALES = 'ventas',
 }
 
 export enum MissionStatus {
@@ -95,6 +98,7 @@ export interface Location {
 export interface User {
   id: string;
   name: string;
+  email: string;
   role: Role;
   avatar: string;
   xp: number;

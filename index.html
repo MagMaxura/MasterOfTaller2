@@ -1,121 +1,139 @@
-
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <link rel="manifest" href="/manifest.json" />
-    <!-- ATENCIÓN: Esta URL depende de la configuración en constants.tsx. Si la app no carga el ícono, verifica la SUPABASE_URL allí. -->
-    <link rel="icon" type="image/png" href="https://npoukowwhminfidgkriq.supabase.co/storage/v1/object/public/iconos-equipamiento/cazco.png" />
-    <link rel="apple-touch-icon" href="https://npoukowwhminfidgkriq.supabase.co/storage/v1/object/public/iconos-equipamiento/cazco.png" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-    <title>Maestros del Taller</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
-    <script>
-      tailwind.config = {
-        theme: {
-          extend: {
-            colors: {
-              'brand-primary': '#FFFFFF',       /* Background: Pure White */
-              'brand-secondary': '#FAFAFA',     /* Secondary Background: Neutral 50 */
-              'brand-accent': '#F0F0F0',        /* Borders: Neutral 100 */
-              'brand-light': '#737373',         /* Secondary Text: Neutral 500 */
-              'brand-highlight': '#171717',     /* Main Text: Neutral 900 */
-              'brand-blue': '#2563EB',          /* Vibrant Blue */
-              'brand-orange': '#F59E0B',        /* Vibrant Orange */
-              'brand-green': '#10B981',         /* Vibrant Green */
-              'brand-red': '#EF4444',           /* Vibrant Red */
-              'slate-900': '#0F172A',           /* Used for Dark Modals */
-              'slate-800': '#1E293B',
-            },
-            fontFamily: {
-              sans: ['Outfit', 'Inter', 'system-ui', 'sans-serif'],
-            },
-            boxShadow: {
-              'soft': '0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)',
-              'premium': '0 10px 15px -3px rgb(0 0 0 / 0.05), 0 4px 6px -4px rgb(0 0 0 / 0.05)',
-              'glass': '0 8px 32px 0 rgba(31, 38, 135, 0.07)',
-            },
-            borderRadius: {
-              '2xl': '1rem',
-              '3xl': '1.5rem',
-            }
+
+<head>
+  <meta charset="UTF-8" />
+  <link rel="manifest" href="/manifest.json" />
+  <!-- ATENCIÓN: Esta URL depende de la configuración en constants.tsx. Si la app no carga el ícono, verifica la SUPABASE_URL allí. -->
+  <link rel="icon" type="image/png"
+    href="https://npoukowwhminfidgkriq.supabase.co/storage/v1/object/public/iconos-equipamiento/cazco.png" />
+  <link rel="apple-touch-icon"
+    href="https://npoukowwhminfidgkriq.supabase.co/storage/v1/object/public/iconos-equipamiento/cazco.png" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Herramienta de Proyecto y Gestion Gamificada</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            'brand-primary': '#FFFFFF',       /* Background: Pure White */
+            'brand-secondary': '#FAFAFA',     /* Secondary Background: Neutral 50 */
+            'brand-accent': '#F0F0F0',        /* Borders: Neutral 100 */
+            'brand-light': '#737373',         /* Secondary Text: Neutral 500 */
+            'brand-highlight': '#171717',     /* Main Text: Neutral 900 */
+            'brand-blue': '#2563EB',          /* Vibrant Blue */
+            'brand-orange': '#F59E0B',        /* Vibrant Orange */
+            'brand-green': '#10B981',         /* Vibrant Green */
+            'brand-red': '#EF4444',           /* Vibrant Red */
+            'slate-900': '#0F172A',           /* Used for Dark Modals */
+            'slate-800': '#1E293B',
+          },
+          fontFamily: {
+            sans: ['Outfit', 'Inter', 'system-ui', 'sans-serif'],
+          },
+          boxShadow: {
+            'soft': '0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)',
+            'premium': '0 10px 15px -3px rgb(0 0 0 / 0.05), 0 4px 6px -4px rgb(0 0 0 / 0.05)',
+            'glass': '0 8px 32px 0 rgba(31, 38, 135, 0.07)',
+          },
+          borderRadius: {
+            '2xl': '1rem',
+            '3xl': '1.5rem',
           }
         }
       }
-    </script>
-    <style>
-      @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap');
+    }
+  </script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap');
 
-      /* Better mobile defaults */
-      html, body {
-        height: 100%;
-        width: 100%;
-        overflow-x: hidden;
-        -webkit-text-size-adjust: 100%;
-        touch-action: manipulation; /* Prevents double-tap zoom delay */
+    /* Better mobile defaults */
+    html,
+    body {
+      height: 100%;
+      width: 100%;
+      overflow-x: hidden;
+      -webkit-text-size-adjust: 100%;
+      touch-action: manipulation;
+      /* Prevents double-tap zoom delay */
+    }
+
+    body {
+      -webkit-tap-highlight-color: transparent;
+      font-family: 'Outfit', sans-serif;
+    }
+
+    /* Smooth scrolling */
+    html {
+      scroll-behavior: smooth;
+    }
+
+    /* Custom scrollbar for premium feel */
+    ::-webkit-scrollbar {
+      width: 5px;
+      height: 5px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: #e5e5e5;
+      border-radius: 10px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background: #d4d4d4;
+    }
+
+    /* Safe area adjustments for notched phones */
+    .pb-safe {
+      padding-bottom: env(safe-area-inset-bottom);
+    }
+
+    .pt-safe {
+      padding-top: env(safe-area-inset-top);
+    }
+
+    /* Premium Glassmorphism Utility */
+    .glass-morphism {
+      background: rgba(255, 255, 255, 0.7);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.18);
+    }
+
+    /* Hide horizontal scrollbar in some containers */
+    .no-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+
+    .no-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+
+    /* Fade-in Animation */
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(5px);
       }
 
-      body {
-        -webkit-tap-highlight-color: transparent;
-        font-family: 'Outfit', sans-serif;
+      to {
+        opacity: 1;
+        transform: translateY(0);
       }
-      
-      /* Smooth scrolling */
-      html {
-        scroll-behavior: smooth;
-      }
+    }
 
-      /* Custom scrollbar for premium feel */
-      ::-webkit-scrollbar {
-        width: 5px;
-        height: 5px;
-      }
-      ::-webkit-scrollbar-track {
-        background: transparent;
-      }
-      ::-webkit-scrollbar-thumb {
-        background: #e5e5e5;
-        border-radius: 10px;
-      }
-      ::-webkit-scrollbar-thumb:hover {
-        background: #d4d4d4;
-      }
-
-      /* Safe area adjustments for notched phones */
-      .pb-safe {
-        padding-bottom: env(safe-area-inset-bottom);
-      }
-      .pt-safe {
-        padding-top: env(safe-area-inset-top);
-      }
-
-      /* Premium Glassmorphism Utility */
-      .glass-morphism {
-        background: rgba(255, 255, 255, 0.7);
-        backdrop-filter: blur(10px);
-        -webkit-backdrop-filter: blur(10px);
-        border: 1px solid rgba(255, 255, 255, 0.18);
-      }
-
-      /* Hide horizontal scrollbar in some containers */
-      .no-scrollbar::-webkit-scrollbar {
-        display: none;
-      }
-      .no-scrollbar {
-        -ms-overflow-style: none;
-        scrollbar-width: none;
-      }
-
-      /* Fade-in Animation */
-      @keyframes fadeIn {
-        from { opacity: 0; transform: translateY(5px); }
-        to { opacity: 1; transform: translateY(0); }
-      }
-      .animate-fadeIn {
-        animation: fadeIn 0.3s ease-out forwards;
-      }
-    </style>
+    .animate-fadeIn {
+      animation: fadeIn 0.3s ease-out forwards;
+    }
+  </style>
   <script type="importmap">
 {
   "imports": {
@@ -131,20 +149,22 @@
 }
 </script>
 </head>
-  <body class="bg-brand-primary text-brand-highlight font-sans antialiased selection:bg-brand-blue selection:text-white">
-    <div id="root"></div>
-    <script>
-      if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-          // Correct path to register the service worker from the public folder
-          navigator.serviceWorker.register('/sw.js').then(registration => {
-            console.log('ServiceWorker registration successful with scope: ', registration.scope);
-          }, err => {
-            console.log('ServiceWorker registration failed: ', err);
-          });
+
+<body class="bg-brand-primary text-brand-highlight font-sans antialiased selection:bg-brand-blue selection:text-white">
+  <div id="root"></div>
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        // Correct path to register the service worker from the public folder
+        navigator.serviceWorker.register('/sw.js').then(registration => {
+          console.log('ServiceWorker registration successful with scope: ', registration.scope);
+        }, err => {
+          console.log('ServiceWorker registration failed: ', err);
         });
-      }
-    </script>
-    <script type="module" src="/index.tsx"></script>
-  </body>
+      });
+    }
+  </script>
+  <script type="module" src="/index.tsx"></script>
+</body>
+
 </html>

@@ -23,7 +23,7 @@ const MissionCreator: React.FC<{ users: User[] }> = ({ users }) => {
     const [isAiLoading, setIsAiLoading] = useState(false);
 
 
-    const technicians = users.filter(u => u.role === Role.TECHNICIAN);
+    const assignableUsers = users.filter(u => u.role !== Role.ADMIN);
 
     const handleAssigneeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
         const selectedId = e.target.value;
@@ -114,7 +114,7 @@ const MissionCreator: React.FC<{ users: User[] }> = ({ users }) => {
         }
     };
 
-    const assignedUsers = assignedTo.map(id => technicians.find(t => t.id === id)).filter(Boolean);
+    const assignedUsers = assignedTo.map(id => assignableUsers.find(u => u.id === id)).filter(Boolean);
 
     return (
         <form onSubmit={handleSubmit} className="bg-brand-secondary p-6 rounded-lg shadow-xl space-y-6">
@@ -152,12 +152,14 @@ const MissionCreator: React.FC<{ users: User[] }> = ({ users }) => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <input type="text" placeholder="Título de la Misión" value={title} onChange={e => setTitle(e.target.value)} className="w-full bg-brand-primary p-3 rounded border border-brand-accent" required />
                 <div>
-                    <select onChange={handleAssigneeChange} value="" className="w-full bg-brand-primary p-3 rounded border border-brand-accent mb-2">
-                        <option value="">Asignar técnico...</option>
-                        {technicians.filter(t => !assignedTo.includes(t.id)).map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+                    <select onChange={handleAssigneeChange} value="" className="w-full bg-brand-primary p-3 rounded border border-brand-accent mb-2 text-sm">
+                        <option value="">Asignar personal...</option>
+                        {assignableUsers.filter(u => !assignedTo.includes(u.id)).map(u => (
+                            <option key={u.id} value={u.id}>[{u.role.toUpperCase()}] {u.name}</option>
+                        ))}
                     </select>
                     <div className="flex flex-wrap gap-2">
-                        {assignedUsers.map(user => user && (
+                        {assignedTo.map(id => assignableUsers.find(u => u.id === id)).filter(Boolean).map(user => user && (
                             <div key={user.id} className="bg-brand-blue/50 text-white flex items-center gap-2 px-2 py-1 rounded-full text-sm">
                                 <img src={user.avatar} className="w-5 h-5 rounded-full" />
                                 <span>{user.name}</span>
@@ -179,20 +181,20 @@ const MissionCreator: React.FC<{ users: User[] }> = ({ users }) => {
             </div>
 
             <div className="col-span-full">
-                <label className="block font-semibold mb-2">Visible para Técnicos</label>
-                <div className="bg-brand-primary p-3 rounded-lg grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-                    {technicians.map(tech => (
-                        <div key={tech.id} className="flex items-center gap-2">
+                <label className="block font-semibold mb-2">Visible para</label>
+                <div className="bg-brand-primary p-3 rounded-lg grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 max-h-40 overflow-y-auto">
+                    {assignableUsers.map(user => (
+                        <div key={user.id} className="flex items-center gap-2">
                             <input
                                 type="checkbox"
-                                id={`vis-${tech.id}`}
-                                checked={visibleTo.includes(tech.id)}
-                                onChange={() => handleVisibilityChange(tech.id)}
+                                id={`vis-${user.id}`}
+                                checked={visibleTo.includes(user.id)}
+                                onChange={() => handleVisibilityChange(user.id)}
                                 className="h-5 w-5 rounded bg-brand-secondary border-brand-accent text-brand-blue focus:ring-brand-blue"
                             />
-                            <label htmlFor={`vis-${tech.id}`} className="flex items-center gap-2 text-brand-light select-none cursor-pointer">
-                                <img src={tech.avatar} alt={tech.name} className="w-6 h-6 rounded-full" />
-                                <span>{tech.name}</span>
+                            <label htmlFor={`vis-${user.id}`} className="flex items-center gap-2 text-brand-light select-none cursor-pointer">
+                                <img src={user.avatar} alt={user.name} className="w-6 h-6 rounded-full" />
+                                <span className="text-xs">{user.name}</span>
                             </label>
                         </div>
                     ))}

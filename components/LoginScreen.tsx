@@ -13,7 +13,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ authError, onBypass }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [activeTab, setActiveTab] = useState<'login' | 'signup'>('login');
-  
+
   // Combine all error/success messages into one state
   const [formMessage, setFormMessage] = useState<string | null>(authError || null);
   const [messageType, setMessageType] = useState<'error' | 'success'>(authError ? 'error' : 'success');
@@ -24,32 +24,32 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ authError, onBypass }) => {
     setFormMessage(null);
 
     try {
-        if (!supabase) {
-            throw new Error("Cliente Supabase no inicializado.");
-        }
-        if (activeTab === 'login') {
-            const { error } = await supabase.auth.signInWithPassword({ email, password });
-            if (error) throw error;
+      if (!supabase) {
+        throw new Error("Cliente Supabase no inicializado.");
+      }
+      if (activeTab === 'login') {
+        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        if (error) throw error;
+      } else {
+        const { data, error } = await supabase.auth.signUp({
+          email,
+          password
+        });
+        if (error) throw error;
+
+        if (data.user && data.user.identities?.length === 0) {
+          setMessageType('error');
+          setFormMessage('Este correo ya está registrado a través de un proveedor como Google. Por favor, inicia sesión con Google.');
         } else {
-            const { data, error } = await supabase.auth.signUp({ 
-                email, 
-                password
-            });
-            if (error) throw error;
-            
-            if (data.user && data.user.identities?.length === 0) {
-                 setMessageType('error');
-                 setFormMessage('Este correo ya está registrado a través de un proveedor como Google. Por favor, inicia sesión con Google.');
-            } else {
-                 setMessageType('success');
-                 setFormMessage('¡Registro exitoso! Revisa tu bandeja de entrada para confirmar tu correo electrónico.');
-            }
+          setMessageType('success');
+          setFormMessage('¡Registro exitoso! Revisa tu bandeja de entrada para confirmar tu correo electrónico.');
         }
+      }
     } catch (err: any) {
-        setMessageType('error');
-        setFormMessage(err.error_description || err.message || 'Ocurrió un error inesperado.');
+      setMessageType('error');
+      setFormMessage(err.error_description || err.message || 'Ocurrió un error inesperado.');
     } finally {
-        setLoading(false);
+      setLoading(false);
     }
   };
 
@@ -59,7 +59,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ authError, onBypass }) => {
     setFormMessage(null);
     try {
       if (!supabase) {
-          throw new Error("Cliente Supabase no inicializado.");
+        throw new Error("Cliente Supabase no inicializado.");
       }
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
@@ -74,7 +74,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ authError, onBypass }) => {
       setLoading(false);
     }
   };
-  
+
   const handleTabChange = (tab: 'login' | 'signup') => {
     setActiveTab(tab);
     setFormMessage(null); // Clear messages when switching tabs
@@ -88,9 +88,10 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ authError, onBypass }) => {
         <div className="inline-block bg-brand-blue p-5 rounded-3xl mb-8 shadow-xl shadow-brand-blue/20">
           <WrenchIcon className="w-16 h-16 text-white" />
         </div>
-        <h1 className="text-4xl font-extrabold text-brand-highlight tracking-tight mb-2">Maestros del Taller</h1>
+        <h1 className="text-4xl font-extrabold text-brand-highlight tracking-tight mb-2 uppercase">Herramienta de</h1>
+        <h1 className="text-2xl font-black text-brand-blue tracking-tighter mb-2">PROYECTO Y GESTION GAMIFICADA</h1>
         <p className="text-brand-light text-lg mb-10">Gestión profesional y gamificada.</p>
-        
+
         {!authError?.includes('Google') && <p className="text-xs text-brand-light/70 mb-4 px-4">Asegúrate de habilitar el proveedor "Email" en la configuración de autenticación de Supabase.</p>}
 
         <div className="bg-white shadow-soft rounded-3xl p-8 border border-brand-accent/50">
@@ -102,37 +103,37 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ authError, onBypass }) => {
               Registrarse
             </button>
           </div>
-          
+
           <form onSubmit={handleEmailAuth} className="space-y-4">
-              <input 
-                type="email"
-                placeholder="Correo electrónico"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                className="w-full bg-brand-secondary p-4 rounded-xl border border-brand-accent/50 focus:outline-none focus:ring-2 focus:ring-brand-blue/50 focus:border-brand-blue transition-all"
-              />
-              <input 
-                type="password"
-                placeholder="Contraseña"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                className="w-full bg-brand-secondary p-4 rounded-xl border border-brand-accent/50 focus:outline-none focus:ring-2 focus:ring-brand-blue/50 focus:border-brand-blue transition-all"
-              />
-              <button 
-                type="submit"
-                disabled={loading}
-                className="w-full bg-brand-highlight text-white font-bold py-4 px-4 rounded-xl flex items-center justify-center gap-2 disabled:bg-brand-light hover:bg-brand-blue transition-all shadow-lg hover:shadow-xl active:translate-y-0.5"
-              >
-                {loading && <div className="w-5 h-5 border-2 border-t-transparent border-white rounded-full animate-spin"></div>}
-                {activeTab === 'login' ? 'Entrar' : 'Crear Cuenta'}
-              </button>
+            <input
+              type="email"
+              placeholder="Correo electrónico"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+              className="w-full bg-brand-secondary p-4 rounded-xl border border-brand-accent/50 focus:outline-none focus:ring-2 focus:ring-brand-blue/50 focus:border-brand-blue transition-all"
+            />
+            <input
+              type="password"
+              placeholder="Contraseña"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              className="w-full bg-brand-secondary p-4 rounded-xl border border-brand-accent/50 focus:outline-none focus:ring-2 focus:ring-brand-blue/50 focus:border-brand-blue transition-all"
+            />
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full bg-brand-highlight text-white font-bold py-4 px-4 rounded-xl flex items-center justify-center gap-2 disabled:bg-brand-light hover:bg-brand-blue transition-all shadow-lg hover:shadow-xl active:translate-y-0.5"
+            >
+              {loading && <div className="w-5 h-5 border-2 border-t-transparent border-white rounded-full animate-spin"></div>}
+              {activeTab === 'login' ? 'Entrar' : 'Crear Cuenta'}
+            </button>
           </form>
 
           {formMessage && (
             <p className={`text-center text-sm mt-4 p-3 rounded-lg font-medium ${messageType === 'error' ? 'bg-red-50 text-brand-red border border-red-100' : 'bg-green-50 text-brand-green border border-green-100'}`}>
-                {formMessage}
+              {formMessage}
             </p>
           )}
 
@@ -144,7 +145,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ authError, onBypass }) => {
               <span className="px-4 bg-white text-brand-light font-medium">O continúa con</span>
             </div>
           </div>
-          
+
           <button
             onClick={handleGoogleLogin}
             disabled={loading}

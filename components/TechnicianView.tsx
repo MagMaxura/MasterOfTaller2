@@ -145,7 +145,7 @@ const TechnicianUI: React.FC<TechnicianUIProps> = ({ user, isAdminViewing = fals
             <main className="p-4 md:p-8 max-w-7xl mx-auto animate-fadeIn">
                 {renderContent()}
                 <footer className="text-center text-[10px] font-bold text-brand-light/50 uppercase tracking-[0.2em] pt-12 pb-6">
-                    Maestros del Taller &copy; 2026
+                    Herramienta de Proyecto y Gestion Gamificada &copy; 2026
                 </footer>
             </main>
 

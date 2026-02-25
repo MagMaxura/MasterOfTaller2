@@ -3,7 +3,7 @@ import React from 'react';
 import { User, MissionStatus, Role } from '../../types';
 import { useData } from '../../contexts/DataContext';
 import { useToast } from '../../contexts/ToastContext';
-import { PlusIcon, StarIcon, BoxIcon, BadgeIcon, CurrencyDollarIcon, BellIcon, LogoutIcon, UserIcon } from '../Icons';
+import { PlusIcon, StarIcon, BoxIcon, BadgeIcon, CurrencyDollarIcon, BellIcon, LogoutIcon, UserIcon, ClockIcon } from '../Icons';
 
 const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS' }).format(amount);
@@ -14,10 +14,20 @@ const UserManagement: React.FC<{
     onManageBadges: (user: User) => void;
     onNotifyUser: (user: User) => void;
     onSetSalary: (user: User) => void;
-}> = ({ onManageInventory, onManageBadges, onNotifyUser, onSetSalary }) => {
+    onShowAttendance: (user: User) => void;
+}> = ({ onManageInventory, onManageBadges, onNotifyUser, onSetSalary, onShowAttendance }) => {
     const { users, missions, salaries, setViewingProfileOf, deactivateUser } = useData();
     const { showToast } = useToast();
-    const technicians = users.filter(u => u.role === Role.TECHNICIAN);
+    const [activeRole, setActiveRole] = React.useState<Role>(Role.TECHNICIAN);
+
+    const filteredUsers = users.filter(u => u.role === activeRole);
+
+    const roles = [
+        { id: Role.TECHNICIAN, label: 'Técnicos', color: 'brand-blue' },
+        { id: Role.ADMINISTRATIVE, label: 'Administración', color: 'brand-green' },
+        { id: Role.MARKETING, label: 'Marketing', color: 'brand-orange' },
+        { id: Role.SALES, label: 'Ventas', color: 'brand-red' },
+    ];
 
     const handleNotifyClick = (user: User) => {
         if (!user.pushSubscription) {
@@ -40,15 +50,24 @@ const UserManagement: React.FC<{
 
     return (
         <div className="space-y-6">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
-                    <h3 className="text-2xl font-black text-brand-highlight tracking-tight">Gestión de Técnicos</h3>
-                    <p className="text-sm text-brand-light">Administra el personal, salarios y equipamiento.</p>
+                    <h3 className="text-2xl font-black text-brand-highlight tracking-tight">Gestión de Personal</h3>
+                    <p className="text-sm text-brand-light">Administra el talento de todas las áreas de la empresa.</p>
                 </div>
-                <div className="hidden sm:block">
-                    <span className="bg-brand-blue/10 text-brand-blue px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider">
-                        {technicians.length} Técnicos
-                    </span>
+                <div className="flex bg-brand-secondary p-1 rounded-2xl border border-brand-accent shadow-inner overflow-x-auto whitespace-nowrap scrollbar-hide">
+                    {roles.map(role => (
+                        <button
+                            key={role.id}
+                            onClick={() => setActiveRole(role.id)}
+                            className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all duration-300 ${activeRole === role.id
+                                ? 'bg-white text-brand-blue shadow-premium'
+                                : 'text-brand-light hover:text-brand-highlight'
+                                }`}
+                        >
+                            {role.label}
+                        </button>
+                    ))}
                 </div>
             </div>
 
@@ -57,20 +76,20 @@ const UserManagement: React.FC<{
                 <table className="w-full text-left border-collapse">
                     <thead className="hidden md:table-header-group">
                         <tr className="border-b border-brand-accent text-[10px] text-brand-light uppercase font-black tracking-[0.2em]">
-                            <th className="pb-4 pt-2 font-bold px-4 text-center">Técnico</th>
-                            <th className="pb-4 pt-2 font-bold px-4 text-center">Rendimiento</th>
-                            <th className="pb-4 pt-2 font-bold px-4 text-center">Misiones</th>
-                            <th className="pb-4 pt-2 font-bold px-4 text-right">Salario</th>
+                            <th className="pb-4 pt-2 font-bold px-4 text-left">Miembro</th>
+                            <th className="pb-4 pt-2 font-bold px-4 text-center">Progreso</th>
+                            <th className="pb-4 pt-2 font-bold px-4 text-center">Tareas</th>
+                            <th className="pb-4 pt-2 font-bold px-4 text-right">Sueldo</th>
                             <th className="pb-4 pt-2 font-bold px-4 text-right">Acciones</th>
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-brand-accent md:divide-none">
-                        {technicians.length === 0 && (
+                        {filteredUsers.length === 0 && (
                             <tr>
-                                <td colSpan={5} className="p-12 text-center text-brand-light italic">No hay técnicos registrados.</td>
+                                <td colSpan={5} className="p-12 text-center text-brand-light italic">No hay personal registrado en esta área.</td>
                             </tr>
                         )}
-                        {technicians.map(user => {
+                        {filteredUsers.map(user => {
                             const userMissions = missions.filter(m => m.assignedTo?.includes(user.id));
                             const completed = userMissions.filter(m => m.status === MissionStatus.COMPLETED).length;
                             const inProgress = userMissions.filter(m => m.status === MissionStatus.IN_PROGRESS).length;
@@ -144,6 +163,7 @@ const UserManagement: React.FC<{
                                     {/* ACTIONS */}
                                     <td className="p-5 md:p-4 text-right block md:table-cell border-t md:border-t-0 border-brand-accent/30 md:rounded-r-2xl bg-brand-secondary/30 md:bg-transparent">
                                         <div className="flex justify-end gap-2 sm:gap-3 flex-wrap">
+                                            <ActionBtn onClick={() => onShowAttendance(user)} color="blue" icon={<ClockIcon className="w-4 h-4" />} label="Asistencia" />
                                             <ActionBtn onClick={() => onSetSalary(user)} color="green" icon={<CurrencyDollarIcon className="w-4 h-4" />} label="Salario" />
                                             <ActionBtn onClick={() => onManageInventory(user)} color="blue" icon={<BoxIcon className="w-4 h-4" />} label="Stock" />
                                             <ActionBtn onClick={() => onManageBadges(user)} color="orange" icon={<BadgeIcon className="w-4 h-4" />} label="Logros" />
