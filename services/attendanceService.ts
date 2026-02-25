@@ -4,7 +4,7 @@ export interface AttendanceRecord {
     id: string;
     user_id: string;
     user_name: string;
-    type: 'IN' | 'OUT';
+    type: 'IN' | 'OUT' | 'Entrada' | 'Salida' | 'ENTRADA' | 'SALIDA';
     timestamp: string;
     tardiness_hours?: number;
     hours_worked?: number;
@@ -54,17 +54,19 @@ export const attendanceService = {
     },
 
     /**
-     * Obtiene todos los registros de acceso de un usuario por su ID de asistencia.
+     * Obtiene los registros de acceso de un usuario por su ID de asistencia en un rango de fechas.
      */
-    async getAccessLogs(attendanceUserId: string): Promise<AttendanceRecord[]> {
+    async getAccessLogsByRange(attendanceUserId: string, startDate: string, endDate: string): Promise<AttendanceRecord[]> {
         const { data, error } = await supabaseAttendance
             .from('access_logs')
             .select('*')
             .eq('user_id', attendanceUserId)
-            .order('timestamp', { ascending: false });
+            .gte('timestamp', `${startDate}T00:00:00`)
+            .lte('timestamp', `${endDate}T23:59:59`)
+            .order('timestamp', { ascending: true });
 
         if (error) {
-            console.error('Error fetching access logs:', error);
+            console.error('Error fetching access logs by range:', error);
             return [];
         }
 

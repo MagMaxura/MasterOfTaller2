@@ -146,6 +146,7 @@ const TechnicianPayRow: React.FC<{
                             periodStart={period.fecha_inicio_periodo}
                             periodEnd={period.fecha_fin_periodo}
                             events={period.events || []}
+                            attendanceHistory={period.attendanceHistory}
                             onDayClick={(date) => onAddEvent(user, date.toISOString().split('T')[0])}
                             onEventClick={onEditEvent}
                         />

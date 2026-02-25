@@ -1,11 +1,12 @@
 import React, { useState, useCallback, useEffect, useMemo, createContext, useContext } from 'react';
-import { User, Mission, InventoryItem, Chat, ChatMessage, EquipmentSlot, MissionMilestone, MissionStatus, UserInventoryItem, Supply, MissionSupply, Badge, Salary, PayrollEvent, PaymentPeriod, Role, MissionDifficulty, PayrollEventType, MissionRequirement, Company } from '../types';
+import { User, Mission, InventoryItem, Chat, ChatMessage, EquipmentSlot, MissionMilestone, MissionStatus, UserInventoryItem, Supply, MissionSupply, Badge, Salary, PayrollEvent, PaymentPeriod, Role, MissionDifficulty, PayrollEventType, MissionRequirement, Company, AttendanceSummary } from '../types';
 import { supabase } from '../config';
 import { Database } from '../database.types';
 import { transformSupabaseProfileToUser } from '../utils/dataTransformers';
 import { useAuth } from './AuthContext';
 import { useToast } from './ToastContext';
 import { api } from '../services/api';
+import { attendanceService } from '../services/attendanceService';
 
 // --- CONTEXT INTERFACE ---
 interface DataContextType {
@@ -248,7 +249,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (paymentPeriodsResult.error) throw new Error(`Al cargar períodos de pago: ${paymentPeriodsResult.error.message}`);
 
 
-      const profilesData = profilesResult.data || [];
+      const profilesData = (profilesResult.data || []) as any[];
       const combinedUsers = profilesData.map(p => transformSupabaseProfileToUser(p));
       setUsers(combinedUsers);
 
@@ -332,7 +333,41 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setMissionRequirements((missionRequirementsResult.data || []) as MissionRequirement[]);
       setSalaries((salariesResult.data || []) as Salary[]);
       setPayrollEvents((payrollEventsResult.data || []) as PayrollEvent[]);
-      setPaymentPeriods((paymentPeriodsResult.data || []) as PaymentPeriod[]);
+
+      const rawPeriods = (paymentPeriodsResult.data || []) as PaymentPeriod[];
+
+      // Enrich periods with attendance history (lazily or in parallel)
+      const enrichedPeriods = await Promise.all(rawPeriods.map(async (p): Promise<PaymentPeriod> => {
+        const user = profilesData.find(u => u.id === p.user_id);
+        if (!user || !user.email) return p;
+
+        try {
+          const attUser = await attendanceService.getUserProfileByEmail(user.email);
+          if (!attUser) return p;
+
+          const logs = await attendanceService.getAccessLogsByRange(attUser.id, p.fecha_inicio_periodo, p.fecha_fin_periodo);
+
+          const summaryMap: Record<string, AttendanceSummary> = {};
+          logs.forEach(l => {
+            const date = l.timestamp.split('T')[0];
+            if (!summaryMap[date]) {
+              summaryMap[date] = { date, totalHours: 0, isTardy: !!l.tardiness_hours, isAbsent: false };
+            }
+            const type = l.type.toUpperCase();
+            if (type === 'IN' || type === 'ENTRADA') summaryMap[date].checkIn = l.timestamp;
+            if (type === 'OUT' || type === 'SALIDA') summaryMap[date].checkOut = l.timestamp;
+
+            if (l.hours_worked) summaryMap[date].totalHours += l.hours_worked;
+          });
+
+          return { ...p, attendanceHistory: Object.values(summaryMap) };
+        } catch (e) {
+          console.warn("Could not enrich period with attendance:", e);
+          return p;
+        }
+      }));
+
+      setPaymentPeriods(enrichedPeriods);
 
     } catch (error) {
       console.error("Error fetching data:", error);
@@ -726,12 +761,70 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const startStr = formatDate(startDate);
       const endStr = formatDate(endDate);
 
+      // 1. Core payroll calculation (Server-side RPC)
       await api.calculatePayroll(startStr, endStr);
-      await fetchData(); // Refresh local state to show new periods
-      showToast(`Nómina calculada para período ${startStr} al ${endStr}`, 'success');
 
-      // Refresh data to show new periods
-      fetchData();
+      // 2. Attendance-based penalties (Client-side logic for flexibility)
+      for (const user of users) {
+        if (!user.email) continue;
+
+        // Find attendance profile
+        const attUser = await attendanceService.getUserProfileByEmail(user.email);
+        if (!attUser) continue;
+
+        // Fetch logs for the period
+        const logs = await attendanceService.getAccessLogsByRange(attUser.id, startStr, endStr);
+        if (logs.length === 0) continue;
+
+        // Group by day
+        const logsByDay: Record<string, typeof logs> = {};
+        logs.forEach(l => {
+          const date = l.timestamp.split('T')[0];
+          if (!logsByDay[date]) logsByDay[date] = [];
+          logsByDay[date].push(l);
+        });
+
+        // Get user's base salary
+        const userSalary = salaries.find(s => s.user_id === user.id)?.monto_base_quincenal || 0;
+        if (userSalary <= 0) continue;
+        const penaltyAmount = userSalary / 10;
+
+        for (const date in logsByDay) {
+          const dayLogs = logsByDay[date];
+          const hasIn = dayLogs.some(l => {
+            const type = l.type.toUpperCase();
+            return type === 'IN' || type === 'ENTRADA';
+          });
+          const hasOut = dayLogs.some(l => {
+            const type = l.type.toUpperCase();
+            return type === 'OUT' || type === 'SALIDA';
+          });
+
+          // New Rule: Missing entry or exit = Full day deduction
+          if ((hasIn && !hasOut) || (!hasIn && hasOut)) {
+            // Check if penalty already exists for this day to avoid duplicates
+            const existingPenalty = payrollEvents.find(e =>
+              e.user_id === user.id &&
+              e.fecha_evento === date &&
+              e.tipo === PayrollEventType.ABSENCE &&
+              e.descripcion.includes('Fichada incompleta')
+            );
+
+            if (!existingPenalty) {
+              await api.addPayrollEvent({
+                user_id: user.id,
+                tipo: PayrollEventType.ABSENCE,
+                monto: penaltyAmount,
+                descripcion: `Fichada incompleta el ${date} (Auto-generado)`,
+                fecha_evento: date
+              });
+            }
+          }
+        }
+      }
+
+      await fetchData(); // Refresh local state to show new periods and events
+      showToast(`Nómina y asistencia calculadas para el período ${startStr} al ${endStr}`, 'success');
     } catch (e) {
       console.error(e);
       showToast((e as Error).message, 'error');

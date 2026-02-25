@@ -224,6 +224,24 @@ export interface PayrollEvent {
   created_at: string;
 }
 
+export interface AttendanceLog {
+  id: string;
+  user_id: string;
+  user_name: string;
+  type: 'Entrada' | 'Salida';
+  timestamp: string;
+  image_base64?: string;
+}
+
+export interface AttendanceSummary {
+  date: string;
+  checkIn?: string;
+  checkOut?: string;
+  totalHours: number;
+  isTardy: boolean;
+  isAbsent: boolean;
+}
+
 export interface PaymentPeriod {
   id: string;
   user_id: string;
@@ -237,4 +255,5 @@ export interface PaymentPeriod {
   estado: PaymentStatus;
   created_at: string;
   events: PayrollEvent[];
+  attendanceHistory?: AttendanceSummary[];
 }

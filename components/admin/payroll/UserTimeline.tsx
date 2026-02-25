@@ -1,15 +1,16 @@
 import React, { useMemo } from 'react';
-import { PayrollEvent, PayrollEventType } from '../../../types';
+import { PayrollEvent, PayrollEventType, AttendanceSummary } from '../../../types';
 
 interface UserTimelineProps {
     periodStart: string;
     periodEnd: string;
     events: PayrollEvent[];
+    attendanceHistory?: AttendanceSummary[];
     onDayClick?: (date: Date) => void;
     onEventClick?: (event: PayrollEvent) => void;
 }
 
-const UserTimeline: React.FC<UserTimelineProps> = ({ periodStart, periodEnd, events, onDayClick, onEventClick }) => {
+const UserTimeline: React.FC<UserTimelineProps> = ({ periodStart, periodEnd, events, attendanceHistory = [], onDayClick, onEventClick }) => {
 
     // Generate array of days for the period
     const days = useMemo(() => {
@@ -26,9 +27,12 @@ const UserTimeline: React.FC<UserTimelineProps> = ({ periodStart, periodEnd, eve
     // Helper to find event for a specific day
     const getEventForDay = (date: Date) => {
         const dateStr = date.toISOString().split('T')[0];
-        // We might have multiple events per day, for now we pick the most critical one or list them
-        // Criticality: ABSENCE > SICK > TARDINESS > EXTAS ...
         return events.filter(e => e.fecha_evento === dateStr);
+    };
+
+    const getAttendanceForDay = (date: Date) => {
+        const dateStr = date.toISOString().split('T')[0];
+        return attendanceHistory.find(a => a.date === dateStr);
     };
 
     const getEventStyle = (type: PayrollEventType) => {
@@ -47,8 +51,8 @@ const UserTimeline: React.FC<UserTimelineProps> = ({ periodStart, periodEnd, eve
         }
     };
 
-    const getDayStyle = (events: PayrollEvent[], isWeekend: boolean) => {
-        if (events.length === 0) {
+    const getDayStyle = (events: PayrollEvent[], isWeekend: boolean, attendance?: AttendanceSummary) => {
+        if (events.length === 0 && !attendance) {
             return isWeekend
                 ? 'bg-brand-secondary/50 border-brand-accent/30'
                 : 'bg-brand-secondary border-brand-accent';
@@ -70,7 +74,9 @@ const UserTimeline: React.FC<UserTimelineProps> = ({ periodStart, periodEnd, eve
         if (hasDeduction) return 'bg-brand-red/10 border-brand-red/30';
         if (hasAddition) return 'bg-brand-green/10 border-brand-green/30';
 
-        return 'bg-brand-secondary border-brand-accent'; // Neutral events (loan, vacation, etc)
+        if (attendance && attendance.totalHours > 0) return 'bg-brand-blue/5 border-brand-blue/20';
+
+        return 'bg-brand-secondary border-brand-accent';
     };
 
     const getEventIcon = (type: PayrollEventType) => {
@@ -88,24 +94,44 @@ const UserTimeline: React.FC<UserTimelineProps> = ({ periodStart, periodEnd, eve
         }
     };
 
+    const formatTime = (isoString?: string) => {
+        if (!isoString) return '-';
+        return new Date(isoString).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', hour12: false });
+    };
+
     return (
         <div className="w-full overflow-x-auto pb-4">
             <h4 className="text-sm font-bold text-brand-light mb-2">Línea de Tiempo del Periodo</h4>
             <div className="flex gap-2 min-w-max">
                 {days.map((date, index) => {
                     const dayEvents = getEventForDay(date);
-                    const isWeekend = date.getDay() === 0 || date.getDay() === 6; // 0=Sun, 6=Sat
+                    const attendance = getAttendanceForDay(date);
+                    const isWeekend = date.getDay() === 0 || date.getDay() === 6;
 
                     return (
                         <div
                             key={index}
                             onClick={() => onDayClick && onDayClick(date)}
-                            className={`flex flex-col items-center min-w-[3rem] p-2 rounded border cursor-pointer hover:bg-brand-primary/80 transition-colors ${getDayStyle(dayEvents, isWeekend)}`}
+                            className={`flex flex-col items-center min-w-[4.5rem] p-2 rounded border cursor-pointer hover:bg-brand-primary/80 transition-colors ${getDayStyle(dayEvents, isWeekend, attendance)}`}
                         >
                             <span className="text-xs text-brand-light mb-1">{date.getDate()}/{date.getMonth() + 1}</span>
-                            <span className="text-[10px] uppercase text-brand-light/50 mb-2">{date.toLocaleDateString('es-AR', { weekday: 'short' })}</span>
+                            <span className="text-[10px] uppercase text-brand-light/50 mb-1">{date.toLocaleDateString('es-AR', { weekday: 'short' })}</span>
 
-                            <div className="space-y-1">
+                            {/* Attendance Info */}
+                            {attendance && (
+                                <div className="text-[9px] text-center mb-1 leading-tight text-brand-blue font-bold">
+                                    <div className="flex items-center justify-center gap-1">
+                                        <span className={attendance.checkIn ? 'text-brand-green' : 'text-brand-red/50'}>•</span>
+                                        <span>{attendance.totalHours.toFixed(1)}h</span>
+                                        <span className={attendance.checkOut ? 'text-brand-green' : 'text-brand-red/50'}>•</span>
+                                    </div>
+                                    <div className="text-brand-light/70 font-normal">
+                                        {formatTime(attendance.checkIn)}|{formatTime(attendance.checkOut)}
+                                    </div>
+                                </div>
+                            )}
+
+                            <div className="space-y-1 mt-1">
                                 {dayEvents.length > 0 ? (
                                     dayEvents.map(ev => (
                                         <div
@@ -120,13 +146,17 @@ const UserTimeline: React.FC<UserTimelineProps> = ({ periodStart, periodEnd, eve
                                             {getEventIcon(ev.tipo)}
                                         </div>
                                     ))
-                                ) : (
-                                    <div className="w-6 h-6 rounded-full bg-white/5 mx-auto group-hover:bg-white/10 transition-colors"></div>
+                                ) : !attendance && (
+                                    <div className="w-6 h-6 rounded-full bg-white/5 mx-auto"></div>
                                 )}
                             </div>
                         </div>
                     );
                 })}
+            </div>
+            <div className="mt-2 flex gap-4 text-[10px] text-brand-light italic">
+                <div className="flex items-center gap-1"><span className="text-brand-green">•</span> Fichada completa</div>
+                <div className="flex items-center gap-1"><span className="text-brand-red/50">•</span> Fichada faltante (Deducción automática)</div>
             </div>
         </div>
     );
