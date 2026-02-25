@@ -1,5 +1,5 @@
 
-import React, { useState, FormEvent } from 'react';
+import React, { useState } from 'react';
 import { WrenchIcon } from './Icons';
 import { supabase } from '../config';
 
@@ -10,49 +10,10 @@ interface LoginScreenProps {
 
 const LoginScreen: React.FC<LoginScreenProps> = ({ authError, onBypass }) => {
   const [loading, setLoading] = useState(false);
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [activeTab, setActiveTab] = useState<'login' | 'signup'>('login');
 
   // Combine all error/success messages into one state
   const [formMessage, setFormMessage] = useState<string | null>(authError || null);
   const [messageType, setMessageType] = useState<'error' | 'success'>(authError ? 'error' : 'success');
-
-  const handleEmailAuth = async (e: FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    setFormMessage(null);
-
-    try {
-      if (!supabase) {
-        throw new Error("Cliente Supabase no inicializado.");
-      }
-      if (activeTab === 'login') {
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
-        if (error) throw error;
-      } else {
-        const { data, error } = await supabase.auth.signUp({
-          email,
-          password
-        });
-        if (error) throw error;
-
-        if (data.user && data.user.identities?.length === 0) {
-          setMessageType('error');
-          setFormMessage('Este correo ya está registrado a través de un proveedor como Google. Por favor, inicia sesión con Google.');
-        } else {
-          setMessageType('success');
-          setFormMessage('¡Registro exitoso! Revisa tu bandeja de entrada para confirmar tu correo electrónico.');
-        }
-      }
-    } catch (err: any) {
-      setMessageType('error');
-      setFormMessage(err.error_description || err.message || 'Ocurrió un error inesperado.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
 
   const handleGoogleLogin = async () => {
     setLoading(true);
@@ -75,13 +36,6 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ authError, onBypass }) => {
     }
   };
 
-  const handleTabChange = (tab: 'login' | 'signup') => {
-    setActiveTab(tab);
-    setFormMessage(null); // Clear messages when switching tabs
-    setEmail('');
-    setPassword('');
-  };
-
   return (
     <div className="min-h-screen bg-brand-primary flex flex-col items-center justify-center p-4 text-center">
       <div className="w-full max-w-sm">
@@ -92,64 +46,15 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ authError, onBypass }) => {
         <h1 className="text-2xl font-black text-brand-blue tracking-tighter mb-2">PROYECTO Y GESTION GAMIFICADA</h1>
         <p className="text-brand-light text-lg mb-10">Gestión profesional y gamificada.</p>
 
-        {!authError?.includes('Google') && <p className="text-xs text-brand-light/70 mb-4 px-4">Asegúrate de habilitar el proveedor "Email" en la configuración de autenticación de Supabase.</p>}
-
         <div className="bg-white shadow-soft rounded-3xl p-8 border border-brand-accent/50">
-          <div className="flex border-b border-brand-accent mb-6">
-            <button onClick={() => handleTabChange('login')} className={`flex-1 font-semibold py-3 text-sm transition-all ${activeTab === 'login' ? 'text-brand-blue border-b-2 border-brand-blue' : 'text-brand-light hover:text-brand-highlight'}`}>
-              Iniciar Sesión
-            </button>
-            <button onClick={() => handleTabChange('signup')} className={`flex-1 font-semibold py-3 text-sm transition-all ${activeTab === 'signup' ? 'text-brand-blue border-b-2 border-brand-blue' : 'text-brand-light hover:text-brand-highlight'}`}>
-              Registrarse
-            </button>
-          </div>
+          <h2 className="text-xl font-bold text-brand-highlight mb-6">Bienvenido</h2>
 
-          <form onSubmit={handleEmailAuth} className="space-y-4">
-            <input
-              type="email"
-              placeholder="Correo electrónico"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              className="w-full bg-brand-secondary p-4 rounded-xl border border-brand-accent/50 focus:outline-none focus:ring-2 focus:ring-brand-blue/50 focus:border-brand-blue transition-all"
-            />
-            <input
-              type="password"
-              placeholder="Contraseña"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              className="w-full bg-brand-secondary p-4 rounded-xl border border-brand-accent/50 focus:outline-none focus:ring-2 focus:ring-brand-blue/50 focus:border-brand-blue transition-all"
-            />
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full bg-brand-highlight text-white font-bold py-4 px-4 rounded-xl flex items-center justify-center gap-2 disabled:bg-brand-light hover:bg-brand-blue transition-all shadow-lg hover:shadow-xl active:translate-y-0.5"
-            >
-              {loading && <div className="w-5 h-5 border-2 border-t-transparent border-white rounded-full animate-spin"></div>}
-              {activeTab === 'login' ? 'Entrar' : 'Crear Cuenta'}
-            </button>
-          </form>
-
-          {formMessage && (
-            <p className={`text-center text-sm mt-4 p-3 rounded-lg font-medium ${messageType === 'error' ? 'bg-red-50 text-brand-red border border-red-100' : 'bg-green-50 text-brand-green border border-green-100'}`}>
-              {formMessage}
-            </p>
-          )}
-
-          <div className="relative my-8">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-brand-accent"></div>
-            </div>
-            <div className="relative flex justify-center text-sm">
-              <span className="px-4 bg-white text-brand-light font-medium">O continúa con</span>
-            </div>
-          </div>
+          <p className="text-brand-light text-sm mb-8">Usa tu cuenta de Google para acceder a la plataforma de forma segura.</p>
 
           <button
             onClick={handleGoogleLogin}
             disabled={loading}
-            className="w-full bg-white border border-brand-accent text-brand-highlight font-bold py-3 px-4 rounded-xl flex items-center justify-center gap-3 transition-all hover:bg-brand-secondary hover:border-brand-light/30 disabled:bg-gray-50"
+            className="w-full bg-white border border-brand-accent text-brand-highlight font-bold py-4 px-4 rounded-xl flex items-center justify-center gap-3 transition-all hover:bg-brand-secondary hover:border-brand-light/30 disabled:bg-gray-50 shadow-sm hover:shadow-md"
           >
             {loading ? (
               <div className="w-6 h-6 border-2 border-t-transparent border-brand-blue rounded-full animate-spin"></div>
@@ -161,8 +66,18 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ authError, onBypass }) => {
                 <path fill="#1976D2" d="M43.611 20.083H42V20H24v8h11.303c-.792 2.237-2.231 4.166-4.087 5.571l6.19 5.238C42.012 35.846 44 30.228 44 24c0-1.341-.138-2.65-.389-3.917z" />
               </svg>
             )}
-            Google
+            <span className="text-lg">Continuar con Google</span>
           </button>
+
+          {formMessage && (
+            <p className={`text-center text-sm mt-6 p-4 rounded-xl font-medium ${messageType === 'error' ? 'bg-red-50 text-brand-red border border-red-100' : 'bg-green-50 text-brand-green border border-green-100'}`}>
+              {formMessage}
+            </p>
+          )}
+
+          <p className="mt-8 text-xs text-brand-light/60">
+            Al continuar, aceptas nuestros términos de servicio y políticas de privacidad.
+          </p>
         </div>
       </div>
     </div>
