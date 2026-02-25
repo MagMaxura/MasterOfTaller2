@@ -113,6 +113,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const mockAdmin: User = {
         id: 'demo-admin',
         name: 'Admin Demo',
+        email: 'admin@demo.com',
         role: Role.ADMIN,
         avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Admin',
         xp: 9999,
@@ -125,6 +126,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const mockTech: User = {
         id: 'demo-technician',
         name: 'Técnico Demo',
+        email: 'tech@demo.com',
         role: Role.TECHNICIAN,
         avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Felix',
         xp: 2450,
@@ -248,10 +250,46 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const combinedUsers = profilesData.map(p => transformSupabaseProfileToUser(p));
       setUsers(combinedUsers);
 
-      const foundUser = combinedUsers.find(u => u.id === authUser.id);
+      let foundUser = combinedUsers.find(u => u.id === authUser.id);
+
+      // AUTO-REGISTRATION for Google Users (No profile found)
+      if (!foundUser && !authUser.id.startsWith('demo-')) {
+        console.log("No profile found for authenticated user. Attempting auto-registration...");
+        try {
+          const userName = authUser.user_metadata?.full_name || authUser.user_metadata?.name || authUser.email?.split('@')[0] || 'Nuevo Usuario';
+          const userAvatar = authUser.user_metadata?.avatar_url || authUser.user_metadata?.picture || `https://ui-avatars.com/api/?name=${encodeURIComponent(userName)}&background=random`;
+
+          await api.createProfile({
+            id: authUser.id,
+            name: userName,
+            avatar: userAvatar,
+            role: 'tecnico'
+          });
+
+          showToast('¡Bienvenido! Hemos creado tu perfil.', 'success');
+
+          // Re-fetch data to include the new profile
+          const newProfilesResult = await supabase.from('profiles').select(`
+              avatar, id, is_active, lat, level, lng, location_last_update, name, push_subscription, role, xp,
+              profile_skills ( level, skills ( id, name ) ),
+              user_badges ( badges ( id, name, icon, description ) ),
+              user_inventory ( id, assigned_at, variant_id, inventory_items ( id, name, description, icon_url, slot, quantity ), variant:inventory_variants ( id, size, quantity ) )
+          `).eq('id', authUser.id).single();
+
+          if (newProfilesResult.data) {
+            const newUser = transformSupabaseProfileToUser(newProfilesResult.data);
+            setUsers(prev => [...prev, newUser]);
+            foundUser = newUser;
+          }
+        } catch (regError) {
+          console.error("Error during auto-registration:", regError);
+          showToast('Error al crear tu perfil automático.', 'error');
+        }
+      }
+
       setCurrentUser(foundUser || null);
-      if (!foundUser) {
-        console.error("Authenticated user's profile not found in initial data load. Logging out.");
+      if (!foundUser && !loading) { // Avoid logout if still loading or if democratic bypass
+        console.error("Authenticated user's profile not found. Logging out.");
         showToast('Tu perfil no se encontró. Saliendo de la sesión.', 'error');
         supabase.auth.signOut();
       }

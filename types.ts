@@ -98,7 +98,7 @@ export interface Location {
 export interface User {
   id: string;
   name: string;
-  email: string;
+  email?: string;
   role: Role;
   avatar: string;
   xp: number;

@@ -89,6 +89,10 @@ export const api = {
       throw new Error(errorMessage);
     }
   },
+  async createProfile(insertData: { id: string, name: string, avatar: string, role: Database['public']['Enums']['role'] }) {
+    const { error } = await supabase.from('profiles').insert(insertData);
+    if (error) throw new Error(error.message);
+  },
   async updateUser(id: string, updateData: ProfileUpdate) {
     const { error } = await supabase.from('profiles').update(updateData).eq('id', id);
     if (error) throw new Error(error.message);
