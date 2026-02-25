@@ -38,10 +38,11 @@ export const attendanceService = {
      * Obtiene el perfil de un usuario en la base de asistencia por su email.
      */
     async getUserProfileByEmail(email: string): Promise<AttendanceUser | null> {
+        const cleanEmail = email.trim().toLowerCase();
         const { data, error } = await supabaseAttendance
             .from('users')
             .select('*')
-            .eq('email', email)
+            .ilike('email', cleanEmail)
             .maybeSingle();
 
         if (error) {
