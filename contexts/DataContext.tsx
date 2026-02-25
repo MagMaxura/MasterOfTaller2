@@ -252,45 +252,69 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       let foundUser = combinedUsers.find(u => u.id === authUser.id);
 
-      // AUTO-REGISTRATION for Google Users (No profile found)
+      // AUTO-REGISTRATION or ACCESS CONTROL for Users not in the 'active' list
       if (!foundUser && !authUser.id.startsWith('demo-')) {
-        console.log("No profile found for authenticated user. Attempting auto-registration...");
+        console.log("Profile not found in active list. Checking existence/status...");
         try {
-          const userName = authUser.user_metadata?.full_name || authUser.user_metadata?.name || authUser.email?.split('@')[0] || 'Nuevo Usuario';
-          const userAvatar = authUser.user_metadata?.avatar_url || authUser.user_metadata?.picture || `https://ui-avatars.com/api/?name=${encodeURIComponent(userName)}&background=random`;
+          // Explicitly check for the profile regardless of 'is_active' status
+          const { data: existingProfile, error: checkError } = await supabase
+            .from('profiles')
+            .select('id, is_active')
+            .eq('id', authUser.id)
+            .maybeSingle();
 
-          await api.createProfile({
-            id: authUser.id,
-            name: userName,
-            avatar: userAvatar,
-            role: 'tecnico'
-          });
+          if (checkError) throw checkError;
 
-          showToast('¡Bienvenido! Hemos creado tu perfil.', 'success');
+          if (existingProfile) {
+            // User exists but is NOT active (since they weren't in combinedUsers)
+            if (existingProfile.is_active === false) {
+              console.error("User is deactivated.");
+              showToast('USTED NO TIENE ACCESO A LA HERRAMIENTA', 'error');
+              await supabase.auth.signOut();
+              setLoading(false);
+              return;
+            }
+          }
 
-          // Re-fetch data to include the new profile
-          const newProfilesResult = await supabase.from('profiles').select(`
-              avatar, id, is_active, lat, level, lng, location_last_update, name, push_subscription, role, xp,
-              profile_skills ( level, skills ( id, name ) ),
-              user_badges ( badges ( id, name, icon, description ) ),
-              user_inventory ( id, assigned_at, variant_id, inventory_items ( id, name, description, icon_url, slot, quantity ), variant:inventory_variants ( id, size, quantity ) )
-          `).eq('id', authUser.id).single();
+          // If NO profile exists at all, proceed with auto-registration
+          if (!existingProfile) {
+            console.log("No profile found at all. Attempting auto-registration...");
+            const userName = authUser.user_metadata?.full_name || authUser.user_metadata?.name || authUser.email?.split('@')[0] || 'Nuevo Usuario';
+            const userAvatar = authUser.user_metadata?.avatar_url || authUser.user_metadata?.picture || `https://ui-avatars.com/api/?name=${encodeURIComponent(userName)}&background=random`;
 
-          if (newProfilesResult.data) {
-            const newUser = transformSupabaseProfileToUser(newProfilesResult.data);
-            setUsers(prev => [...prev, newUser]);
-            foundUser = newUser;
+            await api.createProfile({
+              id: authUser.id,
+              name: userName,
+              avatar: userAvatar,
+              role: 'tecnico'
+            });
+
+            // Re-fetch to confirm and load
+            const newProfilesResult = await supabase.from('profiles').select(`
+                avatar, id, is_active, lat, level, lng, location_last_update, name, push_subscription, role, xp,
+                profile_skills ( level, skills ( id, name ) ),
+                user_badges ( badges ( id, name, icon, description ) ),
+                user_inventory ( id, assigned_at, variant_id, inventory_items ( id, name, description, icon_url, slot, quantity ), variant:inventory_variants ( id, size, quantity ) )
+            `).eq('id', authUser.id).maybeSingle();
+
+            if (newProfilesResult.data) {
+              const newUser = transformSupabaseProfileToUser(newProfilesResult.data);
+              setUsers(prev => [...prev.filter(u => u.id !== newUser.id), newUser]);
+              foundUser = newUser;
+              showToast('¡Bienvenido! Tu perfil ha sido creado.', 'success');
+            }
           }
         } catch (regError) {
-          console.error("Error during auto-registration:", regError);
-          showToast('Error al crear tu perfil automático.', 'error');
+          console.error("Error during profile processing:", regError);
+          showToast('Error al procesar tu acceso. Contacta a soporte.', 'error');
         }
       }
 
       setCurrentUser(foundUser || null);
-      if (!foundUser && !loading) { // Avoid logout if still loading or if democratic bypass
-        console.error("Authenticated user's profile not found. Logging out.");
-        showToast('Tu perfil no se encontró. Saliendo de la sesión.', 'error');
+
+      if (!foundUser && !loading && !authUser.id.startsWith('demo-')) {
+        console.error("Profile missing or inaccessible.");
+        showToast('No se pudo encontrar un perfil activo.', 'error');
         supabase.auth.signOut();
       }
 

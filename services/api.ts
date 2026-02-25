@@ -90,7 +90,11 @@ export const api = {
     }
   },
   async createProfile(insertData: { id: string, name: string, avatar: string, role: Database['public']['Enums']['role'] }) {
-    const { error } = await supabase.from('profiles').insert(insertData);
+    // Usamos upsert para ser más resilientes ante reintentos accidentales
+    const { error } = await supabase.from('profiles').upsert({
+      ...insertData,
+      is_active: true // Aseguramos que el perfil sea visible de inmediato
+    });
     if (error) throw new Error(error.message);
   },
   async updateUser(id: string, updateData: ProfileUpdate) {
