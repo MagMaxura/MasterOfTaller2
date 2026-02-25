@@ -219,7 +219,7 @@ const PayrollManagement: React.FC<PayrollManagementProps> = ({ onAddEvent, onEdi
     const { users, paymentPeriods, calculatePayPeriods, markPeriodAsPaid } = useData();
     const [isLoading, setIsLoading] = useState<'calculating' | 'paying' | null>(null);
 
-    const technicians = useMemo(() => users.filter(u => u.role === Role.TECHNICIAN), [users]);
+    const allUsersForPayroll = useMemo(() => [...users].sort((a, b) => a.name.localeCompare(b.name)), [users]);
 
     const calculatedPeriods = useMemo(() => paymentPeriods.filter(p => p.estado === PaymentStatus.CALCULATED), [paymentPeriods]);
 
@@ -257,6 +257,26 @@ const PayrollManagement: React.FC<PayrollManagementProps> = ({ onAddEvent, onEdi
     }
 
     const totalToPay = useMemo(() => calculatedPeriods.reduce((sum, p) => sum + p.monto_final_a_pagar, 0), [calculatedPeriods]);
+
+    const stats = useMemo(() => {
+        const byCompany: Record<string, number> = {};
+        const byArea: Record<string, number> = {};
+        let grandTotal = 0;
+
+        calculatedPeriods.forEach(p => {
+            const u = users.find(user => user.id === p.user_id);
+            if (!u) return;
+
+            const company = u.company || 'PÚBLICO/SIN EMPRESA';
+            const area = u.role || 'SIN ÁREA';
+
+            byCompany[company] = (byCompany[company] || 0) + p.monto_final_a_pagar;
+            byArea[area] = (byArea[area] || 0) + p.monto_final_a_pagar;
+            grandTotal += p.monto_final_a_pagar;
+        });
+
+        return { byCompany, byArea, grandTotal };
+    }, [calculatedPeriods, users]);
 
     const [showHistory, setShowHistory] = useState(false);
     const paidPeriods = useMemo(() => paymentPeriods.filter(p => p.estado === PaymentStatus.PAID), [paymentPeriods]);
@@ -344,18 +364,71 @@ const PayrollManagement: React.FC<PayrollManagementProps> = ({ onAddEvent, onEdi
                     </div>
 
                     <div className="space-y-4">
-                        {technicians.map(tech => {
-                            const techPeriod = calculatedPeriods.find(p => p.user_id === tech.id);
+                        {allUsersForPayroll.map(person => {
+                            const personPeriod = calculatedPeriods.find(p => p.user_id === person.id);
                             return <TechnicianPayRow
-                                key={tech.id}
-                                user={tech}
-                                period={techPeriod}
+                                key={person.id}
+                                user={person}
+                                period={personPeriod}
                                 onAddEvent={onAddEvent}
                                 onEditEvent={onEditEvent}
                                 onMarkAsPaid={handleMarkSingleAsPaid}
                             />
                         })}
                     </div>
+
+                    {/* ESTADÍSTICAS */}
+                    {calculatedPeriods.length > 0 && (
+                        <div className="mt-12 p-6 bg-brand-primary rounded-xl border border-brand-accent/30 shadow-2xl animation-fade-in-up">
+                            <h3 className="text-xl font-bold text-brand-orange mb-6 flex items-center gap-2 uppercase tracking-widest">
+                                <span className="w-2 h-8 bg-brand-orange rounded-full"></span>
+                                Estadísticas de Nómina
+                            </h3>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                {/* Por Empresa */}
+                                <div className="space-y-4">
+                                    <h4 className="text-sm font-bold text-brand-light uppercase tracking-wider border-b border-brand-accent/30 pb-2">Por Empresa</h4>
+                                    <div className="space-y-3">
+                                        {Object.entries(stats.byCompany).map(([name, total]) => (
+                                            <div key={name} className="flex justify-between items-center group">
+                                                <span className="text-sm font-semibold group-hover:text-brand-blue transition-colors">{name}</span>
+                                                <div className="flex items-center gap-3">
+                                                    <div className="w-24 h-2 bg-brand-accent/20 rounded-full overflow-hidden hidden sm:block">
+                                                        <div className="h-full bg-brand-blue" style={{ width: `${(total / (stats.grandTotal || 1)) * 100}%` }}></div>
+                                                    </div>
+                                                    <span className="font-bold text-brand-light text-sm">{formatCurrency(total)}</span>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                {/* Por Área */}
+                                <div className="space-y-4">
+                                    <h4 className="text-sm font-bold text-brand-light uppercase tracking-wider border-b border-brand-accent/30 pb-2">Por Área</h4>
+                                    <div className="space-y-3">
+                                        {Object.entries(stats.byArea).map(([name, total]) => (
+                                            <div key={name} className="flex justify-between items-center group">
+                                                <span className="text-sm font-semibold group-hover:text-brand-orange transition-colors capitalize">{name.toLowerCase()}</span>
+                                                <div className="flex items-center gap-3">
+                                                    <div className="w-24 h-2 bg-brand-accent/20 rounded-full overflow-hidden hidden sm:block">
+                                                        <div className="h-full bg-brand-orange" style={{ width: `${(total / (stats.grandTotal || 1)) * 100}%` }}></div>
+                                                    </div>
+                                                    <span className="font-bold text-brand-light text-sm">{formatCurrency(total)}</span>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="mt-8 pt-6 border-t border-brand-accent/50 flex justify-between items-center">
+                                <span className="text-lg font-bold">TOTAL GLOBAL PROYECTADO</span>
+                                <span className="text-2xl font-black text-brand-orange">{formatCurrency(stats.grandTotal)}</span>
+                            </div>
+                        </div>
+                    )}
                 </>
             ) : (
                 <div className="space-y-8 animation-fade-in">

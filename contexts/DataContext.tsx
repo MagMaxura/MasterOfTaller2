@@ -727,6 +727,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const endStr = formatDate(endDate);
 
       await api.calculatePayroll(startStr, endStr);
+      await fetchData(); // Refresh local state to show new periods
       showToast(`Nómina calculada para período ${startStr} al ${endStr}`, 'success');
 
       // Refresh data to show new periods
