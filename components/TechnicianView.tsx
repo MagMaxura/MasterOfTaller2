@@ -68,7 +68,18 @@ const TechnicianUI: React.FC<TechnicianUIProps> = ({ user, isAdminViewing = fals
     }, [user.id, isAdminViewing]);
 
 
-    const userMissions = useMemo(() => missions.filter(m => m.visibleTo?.includes(user.id)), [missions, user.id]);
+    const userMissions = useMemo(() => {
+        return missions.filter(m => {
+            // Direct visibility
+            if (m.visibleTo?.includes(user.id)) return true;
+
+            // Company and Role isolation (matches RLS)
+            const companyMatch = !m.company || m.company === user.company;
+            const roleMatch = !m.role || m.role === user.role;
+
+            return companyMatch && roleMatch;
+        });
+    }, [missions, user.id, user.company, user.role]);
 
     const TABS = useMemo(() => {
         const baseTabs = [

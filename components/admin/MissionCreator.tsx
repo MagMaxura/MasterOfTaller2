@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { User, Role, MissionDifficulty } from '../../types';
+import { User, Role, MissionDifficulty, Company } from '../../types';
 import { useData } from '../../contexts/DataContext';
 import { useToast } from '../../contexts/ToastContext';
 import { generateMissionDetails } from '../../services/geminiService';
@@ -19,6 +19,8 @@ const MissionCreator: React.FC<{ users: User[] }> = ({ users }) => {
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState('');
     const [visibleTo, setVisibleTo] = useState<string[]>([]);
+    const [targetCompany, setTargetCompany] = useState<Company | ''>('');
+    const [targetRole, setTargetRole] = useState<Role | ''>('');
     const [aiPrompt, setAiPrompt] = useState('');
     const [isAiLoading, setIsAiLoading] = useState(false);
 
@@ -94,6 +96,8 @@ const MissionCreator: React.FC<{ users: User[] }> = ({ users }) => {
                 deadline,
                 skills: [], // Skills might be added later or derived differently
                 visibleTo,
+                company: targetCompany || undefined,
+                role: targetRole || undefined,
             });
             showToast('¡Misión creada con éxito!', 'success');
             // Reset form
@@ -106,6 +110,8 @@ const MissionCreator: React.FC<{ users: User[] }> = ({ users }) => {
             setStartDate(new Date().toISOString().split('T')[0]);
             setDeadline('');
             setVisibleTo([]);
+            setTargetCompany('');
+            setTargetRole('');
             setAiPrompt('');
         } catch (err) {
             showToast(err instanceof Error ? err.message : 'Error al crear la misión.', 'error');
@@ -198,6 +204,35 @@ const MissionCreator: React.FC<{ users: User[] }> = ({ users }) => {
                             </label>
                         </div>
                     ))}
+                </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2 pt-4 border-t border-brand-accent/50">
+                <div>
+                    <label className="block text-sm font-bold text-brand-orange mb-1 uppercase tracking-wider">Restringir a Empresa</label>
+                    <select
+                        value={targetCompany}
+                        onChange={e => setTargetCompany(e.target.value as Company)}
+                        className="w-full bg-brand-primary p-3 rounded border border-brand-accent text-sm font-bold focus:ring-2 focus:ring-brand-blue outline-none transition-all"
+                    >
+                        <option value="">-- TODAS (Público) --</option>
+                        {Object.values(Company).map(c => (
+                            <option key={c} value={c}>{c}</option>
+                        ))}
+                    </select>
+                </div>
+                <div>
+                    <label className="block text-sm font-bold text-brand-orange mb-1 uppercase tracking-wider">Restringir a Área / Rol</label>
+                    <select
+                        value={targetRole}
+                        onChange={e => setTargetRole(e.target.value as Role)}
+                        className="w-full bg-brand-primary p-3 rounded border border-brand-accent text-sm font-bold focus:ring-2 focus:ring-brand-blue outline-none transition-all"
+                    >
+                        <option value="">-- TODAS (Público) --</option>
+                        {Object.values(Role).map(r => (
+                            <option key={r} value={r}>{r.toUpperCase()}</option>
+                        ))}
+                    </select>
                 </div>
             </div>
 

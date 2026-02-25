@@ -25,7 +25,7 @@ export const api = {
   // --- FETCH ---
   async getInitialData(userId: string) {
     const profileColumns = 'avatar, id, is_active, lat, level, lng, location_last_update, name, push_subscription, role, company, xp';
-    const missionColumns = 'id, created_at, title, description, status, difficulty, xp, bonus_monetario, assigned_to, start_date, deadline, required_skills, progress_photo_url, completed_date, bonus_xp, visible_to';
+    const missionColumns = 'id, created_at, title, description, status, difficulty, xp, bonus_monetario, assigned_to, start_date, deadline, required_skills, progress_photo_url, completed_date, bonus_xp, visible_to, company, role';
     const inventoryItemColumns = 'id, name, description, icon_url, slot, quantity';
     const badgeColumns = 'id, name, icon, description';
     const supplyColumns = 'id, created_at, general_category, specific_category, type, model, details, stock_quantity, photo_url';

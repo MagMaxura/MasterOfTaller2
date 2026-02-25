@@ -134,6 +134,8 @@ export interface Mission {
   bonusXp?: number;
   bonusMonetario?: number;
   visibleTo: string[] | null; // User IDs
+  company?: Company;
+  role?: Role;
   created_at?: string;
 }
 

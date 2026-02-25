@@ -528,6 +528,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       deadline: newMission.deadline,
       required_skills: newMission.skills,
       visible_to: newMission.visibleTo || null,
+      company: newMission.company as any,
+      role: newMission.role as any,
       status: 'Pendiente', // Set default status here
     };
     await api.addMission(missionDataForDb);

@@ -262,6 +262,8 @@ export interface Database {
           title: string
           xp: number
           visible_to: string[] | null
+          company: Database["public"]["Enums"]["company_name"] | null
+          role: Database["public"]["Enums"]["role"] | null
         }
         Insert: {
           assigned_to?: string[] | null
@@ -280,6 +282,8 @@ export interface Database {
           title: string
           xp: number
           visible_to?: string[] | null
+          company?: Database["public"]["Enums"]["company_name"] | null
+          role?: Database["public"]["Enums"]["role"] | null
         }
         Update: {
           assigned_to?: string[] | null
@@ -298,6 +302,8 @@ export interface Database {
           title?: string
           xp?: number
           visible_to?: string[] | null
+          company?: Database["public"]["Enums"]["company_name"] | null
+          role?: Database["public"]["Enums"]["role"] | null
         }
         Relationships: []
       }
