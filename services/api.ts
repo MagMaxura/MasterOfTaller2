@@ -24,7 +24,7 @@ type PaymentPeriodUpdate = Database['public']['Tables']['periodos_pago']['Update
 export const api = {
   // --- FETCH ---
   async getInitialData(userId: string) {
-    const profileColumns = 'avatar, id, is_active, lat, level, lng, location_last_update, name, push_subscription, role, company, xp';
+    const profileColumns = 'avatar, id, email, is_active, lat, level, lng, location_last_update, name, push_subscription, role, company, xp';
     const missionColumns = 'id, created_at, title, description, status, difficulty, xp, bonus_monetario, assigned_to, start_date, deadline, required_skills, progress_photo_url, completed_date, bonus_xp, visible_to, company, role';
     const inventoryItemColumns = 'id, name, description, icon_url, slot, quantity';
     const badgeColumns = 'id, name, icon, description';

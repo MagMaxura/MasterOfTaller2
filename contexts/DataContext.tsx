@@ -293,7 +293,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
             // Re-fetch to confirm and load
             const newProfilesResult = await supabase.from('profiles').select(`
-                avatar, id, is_active, lat, level, lng, location_last_update, name, push_subscription, role, xp,
+                avatar, id, email, is_active, lat, level, lng, location_last_update, name, push_subscription, role, company, xp,
                 profile_skills ( level, skills ( id, name ) ),
                 user_badges ( badges ( id, name, icon, description ) ),
                 user_inventory ( id, assigned_at, variant_id, inventory_items ( id, name, description, icon_url, slot, quantity ), variant:inventory_variants ( id, size, quantity ) )
