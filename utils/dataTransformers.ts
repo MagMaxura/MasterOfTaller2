@@ -13,6 +13,7 @@ export const transformSupabaseProfileToUser = (p: any): User => {
     role: p.role as Role,
     company: p.company as Company,
     avatar: p.avatar,
+    email: p.email,
     xp: p.xp,
     level: p.level,
     skills: (p.profile_skills || [])
