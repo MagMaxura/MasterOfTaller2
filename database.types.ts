@@ -433,6 +433,8 @@ export interface Database {
           company: Database["public"]["Enums"]["company_name"] | null
           xp: number
           attendance_id: string | null
+          vacation_total_days: number
+          vacation_remaining_days: number
         }
         Insert: {
           avatar: string
@@ -447,6 +449,9 @@ export interface Database {
           role: Database["public"]["Enums"]["role"]
           company?: Database["public"]["Enums"]["company_name"] | null
           xp?: number
+          attendance_id?: string | null
+          vacation_total_days?: number
+          vacation_remaining_days?: number
         }
         Update: {
           avatar?: string
@@ -461,6 +466,9 @@ export interface Database {
           role?: Database["public"]["Enums"]["role"]
           company?: Database["public"]["Enums"]["company_name"] | null
           xp?: number
+          attendance_id?: string | null
+          vacation_total_days?: number
+          vacation_remaining_days?: number
         }
         Relationships: [
           {
@@ -684,6 +692,60 @@ export interface Database {
           {
             foreignKeyName: "periodos_pago_user_id_fkey"
             columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      vacation_requests: {
+        Row: {
+          id: string
+          user_id: string
+          start_date: string
+          end_date: string
+          days_count: number
+          status: 'PENDIENTE' | 'APROBADA' | 'RECHAZADA'
+          reason: string | null
+          created_at: string
+          reviewed_by: string | null
+          reviewed_at: string | null
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          start_date: string
+          end_date: string
+          days_count: number
+          status?: 'PENDIENTE' | 'APROBADA' | 'RECHAZADA'
+          reason?: string | null
+          created_at?: string
+          reviewed_by?: string | null
+          reviewed_at?: string | null
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          start_date?: string
+          end_date?: string
+          days_count?: number
+          status?: 'PENDIENTE' | 'APROBADA' | 'RECHAZADA'
+          reason?: string | null
+          created_at?: string
+          reviewed_by?: string | null
+          reviewed_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vacation_requests_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vacation_requests_reviewed_by_fkey"
+            columns: ["reviewed_by"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]

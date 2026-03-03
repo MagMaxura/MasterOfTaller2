@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
-import { Mission, User, MissionStatus, PayrollEvent, PayrollEventType } from '../types';
+import { Mission, User, MissionStatus, PayrollEvent, PayrollEventType, VacationRequest } from '../types';
+import { CalendarIcon, TasksIcon, ClockIcon, PlusIcon } from './Icons';
 
 interface MissionLayout {
   mission: Mission;
@@ -77,12 +78,15 @@ interface MissionCalendarProps {
   missions: Mission[];
   users: User[];
   payrollEvents?: PayrollEvent[];
+  vacationRequests?: VacationRequest[];
   onOpenMission?: (mission: Mission) => void;
   onEditPayrollEvent?: (event: PayrollEvent) => void;
+  onRequestVacation?: () => void;
 }
 
-const MissionCalendar: React.FC<MissionCalendarProps> = ({ missions, users, payrollEvents = [], onOpenMission, onEditPayrollEvent }) => {
+const MissionCalendar: React.FC<MissionCalendarProps> = ({ missions, users, payrollEvents = [], vacationRequests = [], onOpenMission, onEditPayrollEvent, onRequestVacation }) => {
   const [currentDate, setCurrentDate] = useState(new Date());
+  const [viewMode, setViewMode] = useState<'missions' | 'attendance'>('missions');
 
   const usersMap = useMemo(() => new Map(users.map(u => [u.id, u])), [users]);
   const today = useMemo(() => {
@@ -90,7 +94,6 @@ const MissionCalendar: React.FC<MissionCalendarProps> = ({ missions, users, payr
     d.setHours(0, 0, 0, 0);
     return d;
   }, []);
-
 
   const { weeks, year, month } = useMemo(() => {
     const year = currentDate.getFullYear();
@@ -185,6 +188,51 @@ const MissionCalendar: React.FC<MissionCalendarProps> = ({ missions, users, payr
     });
   }, [weeks, missions]);
 
+  const vacationLayout = useMemo(() => {
+    return weeks.map(week => {
+      const weekStart = week[0];
+      const weekEnd = week[6];
+      const weekVacations: any[] = [];
+
+      const relevantVacations = vacationRequests.filter(v => {
+        const vStart = new Date(v.start_date + 'T00:00:00');
+        const vEnd = new Date(v.end_date + 'T00:00:00');
+        return vStart <= weekEnd && vEnd >= weekStart;
+      });
+
+      const userLanes: Record<string, number> = {}; // userId -> lane
+      let nextLane = 0;
+
+      relevantVacations.forEach(vac => {
+        const vStart = new Date(vac.start_date + 'T00:00:00');
+        const vEnd = new Date(vac.end_date + 'T00:00:00');
+
+        if (userLanes[vac.user_id] === undefined) {
+          userLanes[vac.user_id] = nextLane++;
+        }
+
+        const startDay = vStart < weekStart ? weekStart : vStart;
+        const endDay = vEnd > weekEnd ? weekEnd : vEnd;
+
+        const startCol = startDay.getDay() === 0 ? 7 : startDay.getDay();
+        const endCol = endDay.getDay() === 0 ? 7 : endDay.getDay();
+        const span = endCol - startCol + 1;
+
+        if (span > 0) {
+          weekVacations.push({
+            vacation: vac,
+            track: userLanes[vac.user_id],
+            startCol,
+            span,
+            isStart: vStart >= weekStart,
+            isEnd: vEnd <= weekEnd
+          });
+        }
+      });
+      return weekVacations;
+    });
+  }, [weeks, vacationRequests]);
+
 
   const goToNextMonth = () => setCurrentDate(new Date(year, month + 1, 1));
   const goToPrevMonth = () => setCurrentDate(new Date(year, month - 1, 1));
@@ -223,12 +271,39 @@ const MissionCalendar: React.FC<MissionCalendarProps> = ({ missions, users, payr
 
   return (
     <div className="bg-brand-secondary p-4 rounded-lg shadow-xl select-none">
-      <div className="flex items-center justify-between mb-4">
-        <button onClick={goToPrevMonth} className="p-2 rounded-full hover:bg-brand-accent">&lt;</button>
-        <h3 className="text-xl font-bold">
-          {new Date(year, month).toLocaleString('es-ES', { month: 'long', year: 'numeric' }).replace(/^\w/, c => c.toUpperCase())}
-        </h3>
-        <button onClick={goToNextMonth} className="p-2 rounded-full hover:bg-brand-accent">&gt;</button>
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mb-4">
+        <div className="flex bg-brand-dark/20 p-1 rounded-xl border border-brand-light/10">
+          <button
+            onClick={() => setViewMode('missions')}
+            className={`flex items-center gap-2 px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${viewMode === 'missions' ? 'bg-brand-blue text-white shadow-lg' : 'text-brand-light hover:text-white'}`}
+          >
+            <TasksIcon className="w-4 h-4" />
+            <span>Misiones</span>
+          </button>
+          <button
+            onClick={() => setViewMode('attendance')}
+            className={`flex items-center gap-2 px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${viewMode === 'attendance' ? 'bg-brand-blue text-white shadow-lg' : 'text-brand-light hover:text-white'}`}
+          >
+            <ClockIcon className="w-4 h-4" />
+            <span>Asistencia / Vacaciones</span>
+          </button>
+        </div>
+        <div className="flex items-center gap-4">
+          <button onClick={goToPrevMonth} className="p-2 rounded-full hover:bg-brand-accent text-brand-light hover:text-white transition-colors">&lt;</button>
+          <h3 className="text-xl font-bold min-w-[150px] text-center">
+            {new Date(year, month).toLocaleString('es-ES', { month: 'long', year: 'numeric' }).replace(/^\w/, c => c.toUpperCase())}
+          </h3>
+          <button onClick={goToNextMonth} className="p-2 rounded-full hover:bg-brand-accent text-brand-light hover:text-white transition-colors">&gt;</button>
+        </div>
+        {onRequestVacation && (
+          <button
+            onClick={onRequestVacation}
+            className="flex items-center gap-2 bg-brand-green text-brand-dark px-4 py-2 rounded-lg text-xs font-bold hover:brightness-110 transition-all shadow-lg active:scale-95"
+          >
+            <PlusIcon className="w-4 h-4" />
+            <span>Solicitar Vacaciones</span>
+          </button>
+        )}
       </div>
 
       <div className="grid grid-cols-7">
@@ -266,23 +341,54 @@ const MissionCalendar: React.FC<MissionCalendarProps> = ({ missions, users, payr
             </div>
           );
         })}
-        {weeksLayout.map((weekMissions, weekIndex) => (
-          <div key={weekIndex} className="row-start-auto grid grid-cols-7 absolute w-full pointer-events-none" style={{ top: `calc(${weekIndex * 120}px + 0.5rem)` }}>
-            {weekMissions.map((layout) => {
-              const assignedUsers = (layout.mission.assignedTo || []).map(id => usersMap.get(id)).filter((u): u is User => !!u);
-              return (
-                <div key={`${layout.mission.id}-${weekIndex}`} className="pointer-events-auto">
-                  <MissionBar
-                    layout={layout}
-                    users={assignedUsers}
-                    today={today}
-                    onClick={() => onOpenMission && onOpenMission(layout.mission)}
-                  />
-                </div>
-              );
-            })}
-          </div>
-        ))}
+        {viewMode === 'missions' ? (
+          weeksLayout.map((weekMissions, weekIndex) => (
+            <div key={weekIndex} className="row-start-auto grid grid-cols-7 absolute w-full pointer-events-none" style={{ top: `calc(${weekIndex * 120}px + 0.5rem)` }}>
+              {weekMissions.map((layout) => {
+                const assignedUsers = (layout.mission.assignedTo || []).map(id => usersMap.get(id)).filter((u): u is User => !!u);
+                return (
+                  <div key={`${layout.mission.id}-${weekIndex}`} className="pointer-events-auto">
+                    <MissionBar
+                      layout={layout}
+                      users={assignedUsers}
+                      today={today}
+                      onClick={() => onOpenMission && onOpenMission(layout.mission)}
+                    />
+                  </div>
+                );
+              })}
+            </div>
+          ))
+        ) : (
+          vacationLayout.map((weekVacations, weekIndex) => (
+            <div key={weekIndex} className="row-start-auto grid grid-cols-7 absolute w-full pointer-events-none" style={{ top: `calc(${weekIndex * 120}px + 0.5rem)` }}>
+              {weekVacations.map((layout) => {
+                const user = usersMap.get(layout.vacation.user_id);
+                const isApproved = layout.vacation.status === 'APROBADA';
+                const colorClass = isApproved ? 'bg-brand-green/40' : 'bg-brand-orange/30';
+                const borderColor = isApproved ? 'border-brand-green' : 'border-brand-orange';
+
+                return (
+                  <div
+                    key={`${layout.vacation.id}-${weekIndex}`}
+                    style={{
+                      gridColumnStart: layout.startCol,
+                      gridColumnEnd: `span ${layout.span}`,
+                      marginTop: `${layout.track * 2.25}rem`
+                    }}
+                    className={`absolute w-full h-8 px-2 flex items-center gap-2 pointer-events-auto border-l-4 ${borderColor} ${colorClass} ${layout.isStart ? 'rounded-l' : ''} ${layout.isEnd ? 'rounded-r' : ''}`}
+                    title={`Vacaciones: ${user?.name || 'N/A'}\nEstado: ${layout.vacation.status}\nMotivo: ${layout.vacation.reason || 'Sin motivo'}`}
+                  >
+                    <img src={user?.avatar} alt="" className="w-5 h-5 rounded-full border border-white/20" />
+                    <span className="text-[10px] font-bold text-white truncate">
+                      {user?.name} {layout.vacation.status === 'PENDIENTE' ? '(P)' : ''}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          ))
+        )}
       </div>
     </div>
   );

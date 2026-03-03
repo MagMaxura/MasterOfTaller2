@@ -32,7 +32,7 @@ import { PlusIcon, BoxIcon, CalendarIcon, MapPinIcon, UserIcon, ChatIcon, TasksI
 // --- MAIN COMPONENT ---
 const AdminView: React.FC = () => {
     const { handleLogout } = useAuth();
-    const { currentUser, missions, users, unreadMessagesCount } = useData();
+    const { currentUser, missions, users, unreadMessagesCount, vacationRequests, payrollEvents } = useData();
     const [activeTab, setActiveTab] = useState('manage');
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const [managingInventoryFor, setManagingInventoryFor] = useState<User | null>(null);
@@ -188,7 +188,13 @@ const AdminView: React.FC = () => {
                             <KnowledgeBase />
                         </div>
                         <div className={activeTab === 'calendar' ? 'block' : 'hidden'}>
-                            <MissionCalendar missions={missions} users={users} onOpenMission={setSelectedMission} />
+                            <MissionCalendar
+                                missions={missions}
+                                users={users}
+                                vacationRequests={vacationRequests}
+                                payrollEvents={payrollEvents}
+                                onOpenMission={setSelectedMission}
+                            />
                         </div>
                         <div className={activeTab === 'live_map' ? 'block' : 'hidden'}>
                             <LiveLocationMap users={users} isVisible={activeTab === 'live_map'} />

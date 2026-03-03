@@ -316,5 +316,29 @@ export const api = {
   async createUserSchedule(data: any) {
     const { error } = await (supabase as any).from('user_schedules').insert(data);
     if (error) throw new Error(error.message);
+  },
+  // Vacation Services
+  async getVacationRequests(userId?: string) {
+    let query = supabase.from('vacation_requests').select('*').order('created_at', { ascending: false });
+    if (userId) query = query.eq('user_id', userId);
+    const { data, error } = await query;
+    if (error) throw new Error(error.message);
+    return data;
+  },
+  async createVacationRequest(data: any) {
+    const { error } = await supabase.from('vacation_requests').insert(data);
+    if (error) throw new Error(error.message);
+  },
+  async updateVacationStatus(id: string, status: 'PENDIENTE' | 'APROBADA' | 'RECHAZADA', reviewerId: string) {
+    const { error } = await supabase.from('vacation_requests').update({
+      status,
+      reviewed_by: reviewerId,
+      reviewed_at: new Date().toISOString()
+    }).eq('id', id);
+    if (error) throw new Error(error.message);
+  },
+  async deleteVacationRequest(id: string) {
+    const { error } = await supabase.from('vacation_requests').delete().eq('id', id);
+    if (error) throw new Error(error.message);
   }
 };

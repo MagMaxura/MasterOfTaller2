@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect, useMemo, createContext, useContext } from 'react';
-import { User, Mission, InventoryItem, Chat, ChatMessage, EquipmentSlot, MissionMilestone, MissionStatus, UserInventoryItem, Supply, MissionSupply, Badge, Salary, PayrollEvent, PaymentPeriod, Role, MissionDifficulty, PayrollEventType, MissionRequirement, Company, AttendanceSummary, UserSchedule } from '../types';
+import { User, Mission, InventoryItem, Chat, ChatMessage, EquipmentSlot, MissionMilestone, MissionStatus, UserInventoryItem, Supply, MissionSupply, Badge, Salary, PayrollEvent, PaymentPeriod, Role, MissionDifficulty, PayrollEventType, MissionRequirement, Company, AttendanceSummary, UserSchedule, VacationRequest } from '../types';
 import { supabase } from '../config';
 import { Database } from '../database.types';
 import { transformSupabaseProfileToUser } from '../utils/dataTransformers';
@@ -26,6 +26,7 @@ interface DataContextType {
   chats: Chat[];
   chatMessages: ChatMessage[];
   attendanceUsers: AttendanceUser[];
+  vacationRequests: VacationRequest[];
   loading: boolean;
   unreadMessagesCount: number;
   viewingProfileOf: User | null;
@@ -74,6 +75,9 @@ interface DataContextType {
   updateMissionRequirement: (id: string, data: Partial<MissionRequirement>) => Promise<void>;
   deleteMissionRequirement: (id: string) => Promise<void>;
   updateUserSchedule: (userId: string, data: Partial<UserSchedule>) => Promise<void>;
+  requestVacation: (data: Omit<VacationRequest, 'id' | 'status' | 'created_at'>) => Promise<void>;
+  updateVacationStatus: (requestId: string, status: VacationRequest['status'], reason?: string) => Promise<void>;
+  deleteVacationRequest: (requestId: string) => Promise<void>;
 }
 
 // --- CONTEXT CREATION ---
@@ -106,6 +110,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [chats, setChats] = useState<Chat[]>([]);
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [attendanceUsers, setAttendanceUsers] = useState<AttendanceUser[]>([]);
+  const [vacationRequests, setVacationRequests] = useState<VacationRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [viewingProfileOf, setViewingProfileOf] = useState<User | null>(null);
 
@@ -238,8 +243,9 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         salariesResult,
         payrollEventsResult,
         paymentPeriodsResult,
-        schedulesResult
-      ] = results;
+        schedulesResult,
+        vacationRequestsResult
+      ] = await Promise.all([...results, api.getVacationRequests()]);
 
       if (profilesResult.error) throw new Error(`Al cargar perfiles: ${profilesResult.error.message}`);
       if (missionsResult.error) throw new Error(`Al cargar misiones: ${missionsResult.error.message}`);
@@ -255,6 +261,9 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (payrollEventsResult.error) throw new Error(`Al cargar eventos de nómina: ${payrollEventsResult.error.message}`);
       if (paymentPeriodsResult.error) throw new Error(`Al cargar períodos de pago: ${paymentPeriodsResult.error.message}`);
       if (schedulesResult.error) throw new Error(`Al cargar horarios: ${schedulesResult.error.message}`);
+      // vacationRequestsResult doesn't have .error if it's from api.getVacationRequests() directly (it throws or returns data)
+      // but if I use Promise.all with results from getInitialData, I should be careful.
+      // Actually api.getVacationRequests() returns data directly.
 
 
       const profilesData = (profilesResult.data || []) as any[];
@@ -342,6 +351,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setSalaries((salariesResult.data || []) as Salary[]);
       setPayrollEvents((payrollEventsResult.data || []) as PayrollEvent[]);
       setUserSchedules((schedulesResult.data || []) as UserSchedule[]);
+      setVacationRequests(vacationRequestsResult || []);
 
       // NEW: Fetch all attendance users for linking mapping
       const attUsers = await attendanceService.getAllUsers();
@@ -421,6 +431,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       supabase.channel('public:eventos_nomina').on('postgres_changes', { event: '*', schema: 'public', table: 'eventos_nomina' }, () => fetchData()).subscribe(),
       supabase.channel('public:periodos_pago').on('postgres_changes', { event: '*', schema: 'public', table: 'periodos_pago' }, () => fetchData()).subscribe(),
       supabase.channel('public:user_schedules').on('postgres_changes', { event: '*', schema: 'public', table: 'user_schedules' }, () => fetchData()).subscribe(),
+      supabase.channel('public:vacation_requests').on('postgres_changes', { event: '*', schema: 'public', table: 'vacation_requests' }, () => fetchData()).subscribe(),
     ];
     return () => { allChannels.forEach(channel => supabase.removeChannel(channel)); };
   }, [authUser, fetchData]);
@@ -882,37 +893,140 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const updateUserSchedule = async (userId: string, data: Partial<UserSchedule>) => {
+  const updateUserSchedule = (userId: string, data: Partial<UserSchedule>) => {
+    if (currentUser?.id.startsWith('demo-')) { showToast('Acción simulada en modo demo.', 'success'); return Promise.resolve(); }
+    return api.updateUserSchedule(userId, data);
+  }
+
+  const requestVacation = async (data: Omit<VacationRequest, 'id' | 'status' | 'created_at'>) => {
     if (currentUser?.id.startsWith('demo-')) { showToast('Acción simulada en modo demo.', 'success'); return; }
     try {
-      await api.updateUserSchedule(userId, data);
-      showToast('Horario actualizado correctamente.', 'success');
+      await api.createVacationRequest(data);
+      showToast('Solicitud de vacaciones enviada.', 'success');
       fetchData();
     } catch (e) {
-      console.error(e);
-      showToast((e as Error).message, 'error');
+      showToast('Error al solicitar vacaciones.', 'error');
     }
   };
 
-  const value = {
-    currentUser, users, missions, allInventoryItems, allBadges, missionMilestones, supplies, missionSupplies, missionRequirements, salaries, payrollEvents, paymentPeriods, userSchedules, chats, chatMessages, attendanceUsers, loading, unreadMessagesCount, viewingProfileOf, setViewingProfileOf,
-    updateMission, updateUser, deactivateUser, updateUserAvatar, addMission, requestMission, technicianRequestMission, rejectMissionRequest, deleteMission, addMissionMilestone, toggleMilestoneSolution, assignInventoryItem, removeInventoryItem, disposeOfInventoryItem, updateInventoryItemQuantity, updateInventoryVariantQuantity, addInventoryItem, deleteInventoryItem, savePushSubscription, sendNotification, handleSelectOrCreateChat, handleSendMessage, handleMarkAsRead, requestToJoinMission, approveJoinRequest, rejectJoinRequest,
-    addSupply, updateSupply, deleteSupply, assignSupplyToMission, updateMissionSupply, removeSupplyFromMission,
-    assignBadge, revokeBadge,
-    setSalary, addPayrollEvent, updatePayrollEvent, createMissionBonusEvent, calculatePayPeriods, markPeriodAsPaid,
-    addMissionRequirement: async (missionId: string, description: string, quantity: number) => {
-      if (currentUser?.id.startsWith('demo-')) { showToast('Acción simulada en modo demo.', 'success'); return; }
-      await api.addMissionRequirement({ mission_id: missionId, description, quantity });
-    },
-    updateMissionRequirement: async (id: string, data: Partial<MissionRequirement>) => {
-      if (currentUser?.id.startsWith('demo-')) { showToast('Acción simulada en modo demo.', 'success'); return; }
-      await api.updateMissionRequirement(id, data);
-    },
-    deleteMissionRequirement: async (id: string) => {
-      if (currentUser?.id.startsWith('demo-')) { showToast('Acción simulada en modo demo.', 'success'); return; }
-      await api.deleteMissionRequirement(id);
-    },
-    updateUserSchedule
+  const updateVacationStatus = async (requestId: string, status: VacationRequest['status'], reason?: string) => {
+    if (currentUser?.id.startsWith('demo-')) { showToast('Acción simulada en modo demo.', 'success'); return; }
+    if (!currentUser) return;
+    try {
+      const request = vacationRequests.find(r => r.id === requestId);
+      if (!request) return;
+
+      await api.updateVacationStatus(requestId, status, currentUser.id);
+
+      // If approved, update remaining days
+      if (status === 'APROBADA') {
+        const user = users.find(u => u.id === request.user_id);
+        if (user) {
+          const newRemaining = (user.vacation_remaining_days || 0) - request.days_count;
+          await updateUser(user.id, { vacation_remaining_days: newRemaining });
+        }
+      }
+
+      showToast(`Solicitud ${status.toLowerCase()}.`, 'success');
+      fetchData();
+    } catch (e) {
+      showToast('Error al actualizar solicitud.', 'error');
+    }
+  };
+
+  const deleteVacationRequest = async (requestId: string) => {
+    if (currentUser?.id.startsWith('demo-')) { showToast('Acción simulada en modo demo.', 'success'); return; }
+    try {
+      await api.deleteVacationRequest(requestId);
+      showToast('Solicitud eliminada.', 'success');
+      fetchData();
+    } catch (e) {
+      showToast('Error al eliminar solicitud.', 'error');
+    }
+  };
+
+  const addMissionRequirement = async (missionId: string, description: string, quantity: number) => {
+    if (currentUser?.id.startsWith('demo-')) { showToast('Acción simulada en modo demo.', 'success'); return; }
+    await api.addMissionRequirement({ mission_id: missionId, description, quantity });
+  };
+  const updateMissionRequirement = async (id: string, data: Partial<MissionRequirement>) => {
+    if (currentUser?.id.startsWith('demo-')) { showToast('Acción simulada en modo demo.', 'success'); return; }
+    await api.updateMissionRequirement(id, data);
+  };
+  const deleteMissionRequirement = async (id: string) => {
+    if (currentUser?.id.startsWith('demo-')) { showToast('Acción simulada en modo demo.', 'success'); return; }
+    await api.deleteMissionRequirement(id);
+  };
+
+  const value: DataContextType = {
+    currentUser,
+    users,
+    missions,
+    allInventoryItems,
+    allBadges,
+    missionMilestones,
+    supplies,
+    missionSupplies,
+    missionRequirements,
+    salaries,
+    payrollEvents,
+    paymentPeriods,
+    userSchedules,
+    chats,
+    chatMessages,
+    attendanceUsers,
+    vacationRequests,
+    loading,
+    unreadMessagesCount,
+    viewingProfileOf,
+    setViewingProfileOf,
+    updateMission,
+    updateUser,
+    deactivateUser,
+    updateUserAvatar,
+    addMission,
+    requestMission,
+    technicianRequestMission,
+    requestToJoinMission,
+    approveJoinRequest,
+    rejectJoinRequest,
+    rejectMissionRequest,
+    deleteMission,
+    addMissionMilestone,
+    toggleMilestoneSolution,
+    assignInventoryItem,
+    removeInventoryItem,
+    disposeOfInventoryItem,
+    updateInventoryItemQuantity,
+    updateInventoryVariantQuantity,
+    addInventoryItem,
+    deleteInventoryItem,
+    savePushSubscription,
+    sendNotification,
+    handleSelectOrCreateChat,
+    handleSendMessage,
+    handleMarkAsRead,
+    addSupply,
+    updateSupply,
+    deleteSupply,
+    assignSupplyToMission,
+    updateMissionSupply,
+    removeSupplyFromMission,
+    assignBadge,
+    revokeBadge,
+    setSalary,
+    addPayrollEvent,
+    updatePayrollEvent,
+    createMissionBonusEvent,
+    calculatePayPeriods,
+    markPeriodAsPaid,
+    addMissionRequirement,
+    updateMissionRequirement,
+    deleteMissionRequirement,
+    updateUserSchedule,
+    requestVacation,
+    updateVacationStatus,
+    deleteVacationRequest
   };
 
   return (

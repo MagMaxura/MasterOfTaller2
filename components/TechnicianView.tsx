@@ -16,6 +16,7 @@ import ChatView from './ChatView';
 import KnowledgeBase from './knowledge/KnowledgeBase';
 import TechnicianSuppliesView from './technician/TechnicianSuppliesView';
 import PaymentsView from './technician/payments/PaymentsView';
+import RequestVacationModal from './technician/modals/RequestVacationModal';
 import { hasSupplyAdminBadge, hasEquipmentAdminBadge } from '../utils/ranks';
 import StockManagement from './admin/stock/StockManagement';
 import CreateItemModal from './admin/stock/CreateItemModal';
@@ -32,10 +33,11 @@ interface TechnicianUIProps {
 }
 
 const TechnicianUI: React.FC<TechnicianUIProps> = ({ user, isAdminViewing = false, onBackToAdmin }) => {
-    const { missions, users, unreadMessagesCount } = useData();
+    const { missions, users, unreadMessagesCount, vacationRequests, payrollEvents } = useData();
     const [activeTab, setActiveTab] = useState('missions');
     const [selectedMission, setSelectedMission] = useState<Mission | null>(null);
     const [isCreateStockItemModalOpen, setIsCreateStockItemModalOpen] = useState(false);
+    const [isRequestingVacation, setIsRequestingVacation] = useState(false);
     const userHasSupplyBadge = useMemo(() => hasSupplyAdminBadge(user), [user]);
     const userHasEquipmentBadge = useMemo(() => hasEquipmentAdminBadge(user), [user]);
 
@@ -123,7 +125,16 @@ const TechnicianUI: React.FC<TechnicianUIProps> = ({ user, isAdminViewing = fals
             case 'chat': return <ChatView currentUser={user} />;
             case 'leaderboard': return <Leaderboard users={users} />;
             case 'hall_of_fame': return <HallOfFame missions={missions} users={users} />;
-            case 'calendar': return <MissionCalendar missions={userMissions} users={users} onOpenMission={setSelectedMission} />;
+            case 'calendar': return (
+                <MissionCalendar
+                    missions={userMissions}
+                    users={users}
+                    vacationRequests={vacationRequests.filter(r => r.user_id === user.id)}
+                    payrollEvents={payrollEvents.filter(e => e.user_id === user.id)}
+                    onOpenMission={setSelectedMission}
+                    onRequestVacation={!isAdminViewing ? () => setIsRequestingVacation(true) : undefined}
+                />
+            );
             default: return null;
         }
     };
@@ -184,6 +195,7 @@ const TechnicianUI: React.FC<TechnicianUIProps> = ({ user, isAdminViewing = fals
 
             {selectedMission && <MissionDetailsModal mission={selectedMission} user={user} onClose={() => setSelectedMission(null)} isAdminViewing={isAdminViewing} />}
             {isCreateStockItemModalOpen && <CreateItemModal onClose={() => setIsCreateStockItemModalOpen(false)} />}
+            {isRequestingVacation && <RequestVacationModal user={user} onClose={() => setIsRequestingVacation(false)} />}
         </div>
     );
 };

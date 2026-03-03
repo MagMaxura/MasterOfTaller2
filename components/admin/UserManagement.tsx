@@ -3,7 +3,8 @@ import React from 'react';
 import { User, MissionStatus, Role, Company } from '../../types';
 import { useData } from '../../contexts/DataContext';
 import { useToast } from '../../contexts/ToastContext';
-import { PlusIcon, StarIcon, BoxIcon, BadgeIcon, CurrencyDollarIcon, BellIcon, LogoutIcon, UserIcon, ClockIcon, EditIcon } from '../Icons';
+import { PlusIcon, StarIcon, BoxIcon, BadgeIcon, CurrencyDollarIcon, BellIcon, LogoutIcon, UserIcon, ClockIcon, EditIcon, CalendarIcon } from '../Icons';
+import VacationApprovalModal from './modals/VacationApprovalModal';
 
 const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS' }).format(amount);
@@ -20,6 +21,8 @@ const UserManagement: React.FC<{
     const { showToast } = useToast();
     const [activeRole, setActiveRole] = React.useState<Role>(Role.TECHNICIAN);
     const [editingUser, setEditingUser] = React.useState<User | null>(null);
+    const [vacationUser, setVacationUser] = React.useState<User | null>(null);
+    const { vacationRequests } = useData();
 
     const filteredUsers = users.filter(u => u.role === activeRole);
 
@@ -59,7 +62,9 @@ const UserManagement: React.FC<{
             await updateUser(editingUser.id, {
                 role: editingUser.role,
                 company: editingUser.company,
-                attendance_id: editingUser.attendance_id
+                attendance_id: editingUser.attendance_id,
+                vacation_total_days: editingUser.vacation_total_days,
+                vacation_remaining_days: editingUser.vacation_remaining_days
             });
             showToast('Usuario actualizado correctamente.', 'success');
             setEditingUser(null);
@@ -134,6 +139,11 @@ const UserManagement: React.FC<{
                                                 <button onClick={() => setViewingProfileOf(user)} className="text-[10px] uppercase tracking-wider font-bold text-brand-blue hover:text-brand-highlight flex items-center gap-1 mt-0.5 transition-colors">
                                                     <UserIcon className="w-3 h-3" /> Ver Perfil
                                                 </button>
+                                                {vacationRequests.filter(r => r.user_id === user.id && r.status === 'PENDIENTE').length > 0 && (
+                                                    <span className="inline-flex items-center gap-1 bg-brand-blue text-white text-[7px] font-black uppercase px-2 py-0.5 rounded-full mt-1 border border-white shadow-sm">
+                                                        <CalendarIcon className="w-2 h-2" /> Solicitud Pendiente
+                                                    </span>
+                                                )}
                                             </div>
                                         </div>
                                     </td>
@@ -193,6 +203,7 @@ const UserManagement: React.FC<{
                                             <ActionBtn onClick={() => onShowAttendance(user)} color="blue" icon={<ClockIcon className="w-4 h-4" />} label="Asistencia" />
                                             <ActionBtn onClick={() => onSetSalary(user)} color="green" icon={<CurrencyDollarIcon className="w-4 h-4" />} label="Salario" />
                                             <ActionBtn onClick={() => setEditingUser(user)} color="orange" icon={<EditIcon className="w-4 h-4" />} label="Editar Perfil" />
+                                            <ActionBtn onClick={() => setVacationUser(user)} color="green" icon={<CalendarIcon className="w-4 h-4" />} label="Vacaciones" />
                                             <ActionBtn onClick={() => onManageInventory(user)} color="blue" icon={<BoxIcon className="w-4 h-4" />} label="Stock" />
                                             <ActionBtn onClick={() => onManageBadges(user)} color="orange" icon={<BadgeIcon className="w-4 h-4" />} label="Logros" />
                                             <ActionBtn onClick={() => handleNotifyClick(user)} color="blue" icon={<BellIcon className="w-4 h-4" />} label="Notificar" disabled={!user.pushSubscription} />
@@ -258,6 +269,27 @@ const UserManagement: React.FC<{
                                 <p className="text-[9px] text-brand-light font-bold italic ml-1">* Selecciona el perfil del reloj facial para vincularlo manualmente.</p>
                             </div>
 
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-black text-brand-light uppercase tracking-widest ml-1">Total Vacaciones</label>
+                                    <input
+                                        type="number"
+                                        className="w-full bg-brand-secondary border border-brand-accent rounded-2xl px-4 py-3 font-bold text-brand-highlight focus:ring-2 focus:ring-brand-blue outline-none transition-all"
+                                        value={editingUser.vacation_total_days || 0}
+                                        onChange={(e) => setEditingUser({ ...editingUser, vacation_total_days: parseInt(e.target.value) || 0 })}
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-black text-brand-light uppercase tracking-widest ml-1">Días Disponibles</label>
+                                    <input
+                                        type="number"
+                                        className="w-full bg-brand-secondary border border-brand-accent rounded-2xl px-4 py-3 font-bold text-brand-highlight focus:ring-2 focus:ring-brand-blue outline-none transition-all"
+                                        value={editingUser.vacation_remaining_days || 0}
+                                        onChange={(e) => setEditingUser({ ...editingUser, vacation_remaining_days: parseInt(e.target.value) || 0 })}
+                                    />
+                                </div>
+                            </div>
+
                             <div className="flex gap-3 pt-2">
                                 <button
                                     type="button"
@@ -276,6 +308,14 @@ const UserManagement: React.FC<{
                         </form>
                     </div>
                 </div>
+            )}
+
+            {/* VACATION MODAL */}
+            {vacationUser && (
+                <VacationApprovalModal
+                    user={vacationUser}
+                    onClose={() => setVacationUser(null)}
+                />
             )}
         </div>
     );

@@ -38,6 +38,8 @@ export const transformSupabaseProfileToUser = (p: any): User => {
       })),
     location: p.lat && p.lng ? { lat: p.lat, lng: p.lng, lastUpdate: p.location_last_update } : undefined,
     pushSubscription: p.push_subscription,
-    attendance_id: p.attendance_id
+    attendance_id: p.attendance_id,
+    vacation_total_days: p.vacation_total_days,
+    vacation_remaining_days: p.vacation_remaining_days
   };
 };

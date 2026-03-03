@@ -59,6 +59,15 @@ const UserInfoCard: React.FC<{ user: User; isAdminViewing?: boolean; }> = ({ use
             <h3 className="text-2xl font-bold mt-4">{user.name}</h3>
             <p className="text-brand-light">{rank}</p>
 
+            {/* Vacation Balance Display */}
+            <div className="mt-4 flex flex-col items-center gap-1">
+                <div className="flex items-center gap-2 bg-brand-dark/30 px-3 py-1.5 rounded-full border border-brand-light/10 shadow-inner">
+                    <span className="text-[10px] font-black text-brand-light uppercase tracking-widest">Vacaciones</span>
+                    <span className="text-sm font-black text-brand-green">{user.vacation_remaining_days || 0} / {user.vacation_total_days || 0}</span>
+                </div>
+                <p className="text-[9px] font-bold text-brand-light/60 uppercase tracking-tighter">Días Disponibles</p>
+            </div>
+
             {/* Inventory Button for Admin or EPP Manager */}
             {canManageInventory && (
                 <button

@@ -117,6 +117,8 @@ export interface User {
   location?: Location;
   pushSubscription?: any | null;
   attendance_id?: string;
+  vacation_total_days?: number;
+  vacation_remaining_days?: number;
 }
 
 export interface Mission {
@@ -271,4 +273,17 @@ export interface UserSchedule {
   vacation_end_date: string | null;
   created_at: string;
   updated_at: string;
+}
+
+export interface VacationRequest {
+  id: string;
+  user_id: string;
+  start_date: string;
+  end_date: string;
+  days_count: number;
+  status: 'PENDIENTE' | 'APROBADA' | 'RECHAZADA';
+  reason?: string;
+  created_at: string;
+  reviewed_by?: string;
+  reviewed_at?: string;
 }
