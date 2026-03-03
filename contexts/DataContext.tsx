@@ -6,7 +6,7 @@ import { transformSupabaseProfileToUser } from '../utils/dataTransformers';
 import { useAuth } from './AuthContext';
 import { useToast } from './ToastContext';
 import { api } from '../services/api';
-import { attendanceService } from '../services/attendanceService';
+import { attendanceService, AttendanceUser } from '../services/attendanceService';
 
 // --- CONTEXT INTERFACE ---
 interface DataContextType {
@@ -25,6 +25,7 @@ interface DataContextType {
   userSchedules: UserSchedule[];
   chats: Chat[];
   chatMessages: ChatMessage[];
+  attendanceUsers: AttendanceUser[];
   loading: boolean;
   unreadMessagesCount: number;
   viewingProfileOf: User | null;
@@ -104,6 +105,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [userSchedules, setUserSchedules] = useState<UserSchedule[]>([]);
   const [chats, setChats] = useState<Chat[]>([]);
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
+  const [attendanceUsers, setAttendanceUsers] = useState<AttendanceUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [viewingProfileOf, setViewingProfileOf] = useState<User | null>(null);
 
@@ -213,6 +215,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setPaymentPeriods([]);
       setChats([]);
       setChatMessages([]);
+      setAttendanceUsers([]);
 
       setLoading(false);
       return;
@@ -339,6 +342,10 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setSalaries((salariesResult.data || []) as Salary[]);
       setPayrollEvents((payrollEventsResult.data || []) as PayrollEvent[]);
       setUserSchedules((schedulesResult.data || []) as UserSchedule[]);
+
+      // NEW: Fetch all attendance users for linking mapping
+      const attUsers = await attendanceService.getAllUsers();
+      setAttendanceUsers(attUsers);
 
       const rawPeriods = (paymentPeriodsResult.data || []) as PaymentPeriod[];
 
@@ -884,7 +891,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const value = {
-    currentUser, users, missions, allInventoryItems, allBadges, missionMilestones, supplies, missionSupplies, missionRequirements, salaries, payrollEvents, paymentPeriods, userSchedules, chats, chatMessages, loading, unreadMessagesCount, viewingProfileOf, setViewingProfileOf,
+    currentUser, users, missions, allInventoryItems, allBadges, missionMilestones, supplies, missionSupplies, missionRequirements, salaries, payrollEvents, paymentPeriods, userSchedules, chats, chatMessages, attendanceUsers, loading, unreadMessagesCount, viewingProfileOf, setViewingProfileOf,
     updateMission, updateUser, deactivateUser, updateUserAvatar, addMission, requestMission, technicianRequestMission, rejectMissionRequest, deleteMission, addMissionMilestone, toggleMilestoneSolution, assignInventoryItem, removeInventoryItem, disposeOfInventoryItem, updateInventoryItemQuantity, updateInventoryVariantQuantity, addInventoryItem, deleteInventoryItem, savePushSubscription, sendNotification, handleSelectOrCreateChat, handleSendMessage, handleMarkAsRead, requestToJoinMission, approveJoinRequest, rejectJoinRequest,
     addSupply, updateSupply, deleteSupply, assignSupplyToMission, updateMissionSupply, removeSupplyFromMission,
     assignBadge, revokeBadge,

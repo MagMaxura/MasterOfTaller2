@@ -16,7 +16,7 @@ const UserManagement: React.FC<{
     onSetSalary: (user: User) => void;
     onShowAttendance: (user: User) => void;
 }> = ({ onManageInventory, onManageBadges, onNotifyUser, onSetSalary, onShowAttendance }) => {
-    const { users, missions, salaries, setViewingProfileOf, deactivateUser, updateUser } = useData();
+    const { users, missions, salaries, setViewingProfileOf, deactivateUser, updateUser, attendanceUsers } = useData();
     const { showToast } = useToast();
     const [activeRole, setActiveRole] = React.useState<Role>(Role.TECHNICIAN);
     const [editingUser, setEditingUser] = React.useState<User | null>(null);
@@ -125,6 +125,11 @@ const UserManagement: React.FC<{
                                             </div>
                                             <div>
                                                 <h4 className="font-black text-brand-highlight leading-tight">{user.name}</h4>
+                                                {!user.attendance_id && (
+                                                    <span className="inline-block bg-brand-orange/10 text-brand-orange text-[8px] font-black uppercase tracking-tighter px-1.5 py-0.5 rounded-full mt-0.5 border border-brand-orange/20 animate-pulse">
+                                                        ⚠ Requiere Vinculación
+                                                    </span>
+                                                )}
                                                 <button onClick={() => setViewingProfileOf(user)} className="text-[10px] uppercase tracking-wider font-bold text-brand-blue hover:text-brand-highlight flex items-center gap-1 mt-0.5 transition-colors">
                                                     <UserIcon className="w-3 h-3" /> Ver Perfil
                                                 </button>
@@ -235,14 +240,21 @@ const UserManagement: React.FC<{
 
                             <div className="space-y-2">
                                 <label className="text-[10px] font-black text-brand-light uppercase tracking-widest ml-1">ID Asistencia (Reloj)</label>
-                                <input
-                                    type="text"
-                                    placeholder="Ej: 105"
+                                <select
                                     className="w-full bg-brand-secondary border border-brand-accent rounded-2xl px-4 py-3 font-bold text-brand-highlight focus:ring-2 focus:ring-brand-blue outline-none transition-all"
                                     value={editingUser.attendance_id || ''}
                                     onChange={(e) => setEditingUser({ ...editingUser, attendance_id: e.target.value })}
-                                />
-                                <p className="text-[9px] text-brand-light font-bold italic ml-1">* Vincula manualmente al técnico con el dispositivo facial.</p>
+                                >
+                                    <option value="">No vinculado (Automático por email)</option>
+                                    {attendanceUsers
+                                        .filter(au => !users.some(u => u.attendance_id === au.id && u.id !== editingUser.id))
+                                        .map(au => (
+                                            <option key={au.id} value={au.id}>
+                                                {au.name} - ({au.id})
+                                            </option>
+                                        ))}
+                                </select>
+                                <p className="text-[9px] text-brand-light font-bold italic ml-1">* Selecciona el perfil del reloj facial para vincularlo manualmente.</p>
                             </div>
 
                             <div className="flex gap-3 pt-2">

@@ -21,8 +21,8 @@ ALTER TABLE user_schedules ENABLE ROW LEVEL SECURITY;
 -- Políticas de RLS
 CREATE POLICY "Admins can manage all schedules" 
 ON user_schedules FOR ALL 
-USING (auth.uid() IN (SELECT id FROM profiles WHERE role = 'admin'))
-WITH CHECK (auth.uid() IN (SELECT id FROM profiles WHERE role = 'admin'));
+USING (auth.uid() IN (SELECT id FROM profiles WHERE role = 'administrador'))
+WITH CHECK (auth.uid() IN (SELECT id FROM profiles WHERE role = 'administrador'));
 
 CREATE POLICY "Users can view their own schedule" 
 ON user_schedules FOR SELECT 

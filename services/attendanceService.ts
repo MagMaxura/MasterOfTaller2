@@ -72,6 +72,23 @@ export const attendanceService = {
     },
 
     /**
+     * Obtiene todos los usuarios registrados en el sistema de asistencia.
+     */
+    async getAllUsers(): Promise<AttendanceUser[]> {
+        const { data, error } = await supabaseAttendance
+            .from('users')
+            .select('*')
+            .order('name', { ascending: true });
+
+        if (error) {
+            console.error('Error fetching all attendance users:', error);
+            return [];
+        }
+
+        return data || [];
+    },
+
+    /**
      * Obtiene los registros de acceso de un usuario por su ID de asistencia en un rango de fechas.
      */
     async getAccessLogsByRange(attendanceUserId: string, startDate: string, endDate: string): Promise<AttendanceRecord[]> {
@@ -85,6 +102,24 @@ export const attendanceService = {
 
         if (error) {
             console.error('Error fetching access logs by range:', error);
+            return [];
+        }
+
+        return data || [];
+    },
+
+    /**
+     * Obtiene los registros de acceso de un usuario (versión simplificada).
+     */
+    async getAccessLogs(attendanceUserId: string): Promise<AttendanceRecord[]> {
+        const { data, error } = await supabaseAttendance
+            .from('access_logs')
+            .select('*')
+            .eq('user_id', attendanceUserId)
+            .order('timestamp', { ascending: true });
+
+        if (error) {
+            console.error('Error fetching access logs:', error);
             return [];
         }
 
