@@ -456,20 +456,24 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const updateUser = async (userId: string, data: Partial<User>) => {
     if (currentUser?.id.startsWith('demo-')) { showToast('Acción simulada en modo demo.', 'success'); return; }
 
-    await api.updateUser(userId, {
-      name: data.name,
-      xp: data.xp,
-      level: data.level,
-      role: data.role as any,
-      company: data.company as any,
-      push_subscription: data.pushSubscription,
-      attendance_id: data.attendance_id
-    } as any);
+    const updateData: any = {};
+    if (data.name !== undefined) updateData.name = data.name;
+    if (data.xp !== undefined) updateData.xp = data.xp;
+    if (data.level !== undefined) updateData.level = data.level;
+    if (data.role !== undefined) updateData.role = data.role;
+    if (data.company !== undefined) updateData.company = data.company;
+    if (data.pushSubscription !== undefined) updateData.push_subscription = data.pushSubscription;
+    if (data.attendance_id !== undefined) updateData.attendance_id = data.attendance_id;
+
+    await api.updateUser(userId, updateData);
 
     // Update local state
     setUsers(prev => prev.map(u => u.id === userId ? { ...u, ...data } : u));
     if (currentUser?.id === userId) {
       setCurrentUser(prev => prev ? { ...prev, ...data } : null);
+    }
+    if (viewingProfileOf?.id === userId) {
+      setViewingProfileOf(prev => prev ? { ...prev, ...data } : null);
     }
   };
 

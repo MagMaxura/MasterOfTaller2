@@ -432,6 +432,7 @@ export interface Database {
           role: Database["public"]["Enums"]["role"]
           company: Database["public"]["Enums"]["company_name"] | null
           xp: number
+          attendance_id: string | null
         }
         Insert: {
           avatar: string

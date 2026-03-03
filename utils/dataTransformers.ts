@@ -37,6 +37,7 @@ export const transformSupabaseProfileToUser = (p: any): User => {
         } as InventoryItem
       })),
     location: p.lat && p.lng ? { lat: p.lat, lng: p.lng, lastUpdate: p.location_last_update } : undefined,
-    pushSubscription: p.push_subscription
+    pushSubscription: p.push_subscription,
+    attendance_id: p.attendance_id
   };
 };
