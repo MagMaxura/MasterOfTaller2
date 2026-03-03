@@ -9,6 +9,8 @@ const formatCurrency = (amount: number) => {
 };
 
 import UserTimeline from './UserTimeline';
+import ScheduleModal from './ScheduleModal';
+import { ClockIcon } from '../../Icons';
 
 const EventRow: React.FC<{ event: PayrollEvent }> = ({ event }) => {
     const isDeduction = [
@@ -58,8 +60,9 @@ const TechnicianPayRow: React.FC<{
     period: PaymentPeriod | undefined;
     onAddEvent: (user: User, date?: string) => void;
     onEditEvent?: (event: PayrollEvent) => void;
+    onEditSchedule: (user: User) => void;
     onMarkAsPaid: (periodId: string) => void;
-}> = ({ user, period, onAddEvent, onEditEvent, onMarkAsPaid }) => {
+}> = ({ user, period, onAddEvent, onEditEvent, onEditSchedule, onMarkAsPaid }) => {
     const [isExpanded, setIsExpanded] = useState(false);
 
     // Group events for summary
@@ -107,7 +110,16 @@ const TechnicianPayRow: React.FC<{
             <div onClick={() => setIsExpanded(!isExpanded)} className="flex items-center p-4 cursor-pointer hover:bg-brand-accent/20 transition-colors">
                 <img src={user.avatar} alt={user.name} className="w-10 h-10 rounded-full mr-4" />
                 <div className="flex-grow">
-                    <p className="font-bold">{user.name}</p>
+                    <div className="flex items-center gap-2">
+                        <p className="font-bold">{user.name}</p>
+                        <button
+                            onClick={(e) => { e.stopPropagation(); onEditSchedule(user); }}
+                            className="p-1 hover:bg-white/10 rounded text-brand-light hover:text-brand-blue transition-colors"
+                            title="Configurar Horario y Vacaciones"
+                        >
+                            <ClockIcon className="w-4 h-4" />
+                        </button>
+                    </div>
                     <p className="text-xs text-brand-light">
                         {period ?
                             `Período: ${new Date(period.fecha_inicio_periodo + 'T00:00:00').toLocaleDateString()} - ${new Date(period.fecha_fin_periodo + 'T00:00:00').toLocaleDateString()}`
@@ -217,8 +229,9 @@ interface PayrollManagementProps {
 }
 
 const PayrollManagement: React.FC<PayrollManagementProps> = ({ onAddEvent, onEditEvent }) => {
-    const { users, paymentPeriods, calculatePayPeriods, markPeriodAsPaid } = useData();
+    const { users, paymentPeriods, userSchedules, calculatePayPeriods, markPeriodAsPaid, updateUserSchedule } = useData();
     const [isLoading, setIsLoading] = useState<'calculating' | 'paying' | null>(null);
+    const [editingScheduleUser, setEditingScheduleUser] = useState<User | null>(null);
 
     const allUsersForPayroll = useMemo(() => [...users].sort((a, b) => a.name.localeCompare(b.name)), [users]);
 
@@ -373,10 +386,20 @@ const PayrollManagement: React.FC<PayrollManagementProps> = ({ onAddEvent, onEdi
                                 period={personPeriod}
                                 onAddEvent={onAddEvent}
                                 onEditEvent={onEditEvent}
+                                onEditSchedule={(u) => setEditingScheduleUser(u)}
                                 onMarkAsPaid={handleMarkSingleAsPaid}
                             />
                         })}
                     </div>
+
+                    {editingScheduleUser && (
+                        <ScheduleModal
+                            user={editingScheduleUser}
+                            schedule={userSchedules.find(s => s.user_id === editingScheduleUser.id)}
+                            onClose={() => setEditingScheduleUser(null)}
+                            onSave={updateUserSchedule}
+                        />
+                    )}
 
                     {/* ESTADÍSTICAS */}
                     {calculatedPeriods.length > 0 && (
@@ -449,6 +472,7 @@ const PayrollManagement: React.FC<PayrollManagementProps> = ({ onAddEvent, onEdi
                                             period={period}
                                             onAddEvent={() => { }} // No-op for history
                                             onEditEvent={() => { }} // No-op for history
+                                            onEditSchedule={() => { }} // Added missing prop
                                             onMarkAsPaid={() => { }} // No-op
                                         />
                                     );

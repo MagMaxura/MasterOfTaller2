@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect, useMemo, createContext, useContext } from 'react';
-import { User, Mission, InventoryItem, Chat, ChatMessage, EquipmentSlot, MissionMilestone, MissionStatus, UserInventoryItem, Supply, MissionSupply, Badge, Salary, PayrollEvent, PaymentPeriod, Role, MissionDifficulty, PayrollEventType, MissionRequirement, Company, AttendanceSummary } from '../types';
+import { User, Mission, InventoryItem, Chat, ChatMessage, EquipmentSlot, MissionMilestone, MissionStatus, UserInventoryItem, Supply, MissionSupply, Badge, Salary, PayrollEvent, PaymentPeriod, Role, MissionDifficulty, PayrollEventType, MissionRequirement, Company, AttendanceSummary, UserSchedule } from '../types';
 import { supabase } from '../config';
 import { Database } from '../database.types';
 import { transformSupabaseProfileToUser } from '../utils/dataTransformers';
@@ -22,6 +22,7 @@ interface DataContextType {
   salaries: Salary[];
   payrollEvents: PayrollEvent[];
   paymentPeriods: PaymentPeriod[];
+  userSchedules: UserSchedule[];
   chats: Chat[];
   chatMessages: ChatMessage[];
   loading: boolean;
@@ -71,6 +72,7 @@ interface DataContextType {
   addMissionRequirement: (missionId: string, description: string, quantity: number) => Promise<void>;
   updateMissionRequirement: (id: string, data: Partial<MissionRequirement>) => Promise<void>;
   deleteMissionRequirement: (id: string) => Promise<void>;
+  updateUserSchedule: (userId: string, data: Partial<UserSchedule>) => Promise<void>;
 }
 
 // --- CONTEXT CREATION ---
@@ -99,6 +101,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [salaries, setSalaries] = useState<Salary[]>([]);
   const [payrollEvents, setPayrollEvents] = useState<PayrollEvent[]>([]);
   const [paymentPeriods, setPaymentPeriods] = useState<PaymentPeriod[]>([]);
+  const [userSchedules, setUserSchedules] = useState<UserSchedule[]>([]);
   const [chats, setChats] = useState<Chat[]>([]);
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [loading, setLoading] = useState(true);
@@ -232,6 +235,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         salariesResult,
         payrollEventsResult,
         paymentPeriodsResult,
+        schedulesResult
       ] = results;
 
       if (profilesResult.error) throw new Error(`Al cargar perfiles: ${profilesResult.error.message}`);
@@ -247,6 +251,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (salariesResult.error) throw new Error(`Al cargar salarios: ${salariesResult.error.message}`);
       if (payrollEventsResult.error) throw new Error(`Al cargar eventos de nómina: ${payrollEventsResult.error.message}`);
       if (paymentPeriodsResult.error) throw new Error(`Al cargar períodos de pago: ${paymentPeriodsResult.error.message}`);
+      if (schedulesResult.error) throw new Error(`Al cargar horarios: ${schedulesResult.error.message}`);
 
 
       const profilesData = (profilesResult.data || []) as any[];
@@ -333,6 +338,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setMissionRequirements((missionRequirementsResult.data || []) as MissionRequirement[]);
       setSalaries((salariesResult.data || []) as Salary[]);
       setPayrollEvents((payrollEventsResult.data || []) as PayrollEvent[]);
+      setUserSchedules((schedulesResult.data || []) as UserSchedule[]);
 
       const rawPeriods = (paymentPeriodsResult.data || []) as PaymentPeriod[];
 
@@ -342,7 +348,11 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (!user || !user.email) return p;
 
         try {
-          const attUser = await attendanceService.getUserProfileByEmail(user.email);
+          // New: Try bridging by attendance_id first, fallback to email
+          const attUser = user.attendance_id
+            ? await attendanceService.getUserProfileById(user.attendance_id)
+            : (user.email ? await attendanceService.getUserProfileByEmail(user.email) : null);
+
           if (!attUser) return p;
 
           const logs = await attendanceService.getAccessLogsByRange(attUser.id, p.fecha_inicio_periodo, p.fecha_fin_periodo);
@@ -403,6 +413,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       supabase.channel('public:salarios').on('postgres_changes', { event: '*', schema: 'public', table: 'salarios' }, () => fetchData()).subscribe(),
       supabase.channel('public:eventos_nomina').on('postgres_changes', { event: '*', schema: 'public', table: 'eventos_nomina' }, () => fetchData()).subscribe(),
       supabase.channel('public:periodos_pago').on('postgres_changes', { event: '*', schema: 'public', table: 'periodos_pago' }, () => fetchData()).subscribe(),
+      supabase.channel('public:user_schedules').on('postgres_changes', { event: '*', schema: 'public', table: 'user_schedules' }, () => fetchData()).subscribe(),
     ];
     return () => { allChannels.forEach(channel => supabase.removeChannel(channel)); };
   }, [authUser, fetchData]);
@@ -444,8 +455,9 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       level: data.level,
       role: data.role as any,
       company: data.company as any,
-      push_subscription: data.pushSubscription
-    });
+      push_subscription: data.pushSubscription,
+      attendance_id: data.attendance_id
+    } as any);
 
     // Update local state
     setUsers(prev => prev.map(u => u.id === userId ? { ...u, ...data } : u));
@@ -789,37 +801,54 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (userSalary <= 0) continue;
         const penaltyAmount = userSalary / 10;
 
-        for (const date in logsByDay) {
-          const dayLogs = logsByDay[date];
-          const hasIn = dayLogs.some(l => {
-            const type = l.type.toUpperCase();
-            return type === 'IN' || type === 'ENTRADA';
-          });
-          const hasOut = dayLogs.some(l => {
-            const type = l.type.toUpperCase();
-            return type === 'OUT' || type === 'SALIDA';
-          });
+        // Detect total absences and incomplete logs
+        const dateIter = new Date(startDate);
+        while (dateIter <= endDate) {
+          const dateStr = formatDate(dateIter);
+          const dayOfWeek = dateIter.getDay(); // 0 (Sun) to 6 (Sat)
+          const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+          const userSched = userSchedules.find(s => s.user_id === user.id);
 
-          // New Rule: Missing entry or exit = Full day deduction
-          if ((hasIn && !hasOut) || (!hasIn && hasOut)) {
-            // Check if penalty already exists for this day to avoid duplicates
-            const existingPenalty = payrollEvents.find(e =>
-              e.user_id === user.id &&
-              e.fecha_evento === date &&
-              e.tipo === PayrollEventType.ABSENCE &&
-              e.descripcion.includes('Fichada incompleta')
-            );
+          if (logsByDay[dateStr]) {
+            const dayLogs = logsByDay[dateStr];
+            const hasIn = dayLogs.some(l => l.type.toUpperCase() === 'IN' || l.type.toUpperCase() === 'ENTRADA');
+            const hasOut = dayLogs.some(l => l.type.toUpperCase() === 'OUT' || l.type.toUpperCase() === 'SALIDA');
 
-            if (!existingPenalty) {
-              await api.addPayrollEvent({
-                user_id: user.id,
-                tipo: PayrollEventType.ABSENCE,
-                monto: penaltyAmount,
-                descripcion: `Fichada incompleta el ${date} (Auto-generado)`,
-                fecha_evento: date
-              });
+            if ((hasIn && !hasOut) || (!hasIn && hasOut)) {
+              const existingPenalty = payrollEvents.find(e =>
+                e.user_id === user.id && e.fecha_evento === dateStr &&
+                e.tipo === PayrollEventType.ABSENCE && e.descripcion.includes('Fichada incompleta')
+              );
+              if (!existingPenalty) {
+                await api.addPayrollEvent({
+                  user_id: user.id, tipo: PayrollEventType.ABSENCE, monto: penaltyAmount,
+                  descripcion: `Fichada incompleta el ${dateStr} (Auto-generado)`, fecha_evento: dateStr
+                });
+              }
+            }
+          } else if (!isWeekend && userSched && (userSched.daily_hours || 0) > 0) {
+            // Check for vacations
+            let onVacation = false;
+            if (userSched.vacation_start_date && userSched.vacation_end_date) {
+              if (dateStr >= userSched.vacation_start_date && dateStr <= userSched.vacation_end_date) {
+                onVacation = true;
+              }
+            }
+
+            if (!onVacation) {
+              const existingAbsence = payrollEvents.find(e =>
+                e.user_id === user.id && e.fecha_evento === dateStr &&
+                e.tipo === PayrollEventType.ABSENCE && e.descripcion.includes('Falta total')
+              );
+              if (!existingAbsence) {
+                await api.addPayrollEvent({
+                  user_id: user.id, tipo: PayrollEventType.ABSENCE, monto: penaltyAmount,
+                  descripcion: `Falta total el ${dateStr} (Auto-generado)`, fecha_evento: dateStr
+                });
+              }
             }
           }
+          dateIter.setDate(dateIter.getDate() + 1);
         }
       }
 
@@ -842,8 +871,20 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const updateUserSchedule = async (userId: string, data: Partial<UserSchedule>) => {
+    if (currentUser?.id.startsWith('demo-')) { showToast('Acción simulada en modo demo.', 'success'); return; }
+    try {
+      await api.updateUserSchedule(userId, data);
+      showToast('Horario actualizado correctamente.', 'success');
+      fetchData();
+    } catch (e) {
+      console.error(e);
+      showToast((e as Error).message, 'error');
+    }
+  };
+
   const value = {
-    currentUser, users, missions, allInventoryItems, allBadges, missionMilestones, supplies, missionSupplies, missionRequirements, salaries, payrollEvents, paymentPeriods, chats, chatMessages, loading, unreadMessagesCount, viewingProfileOf, setViewingProfileOf,
+    currentUser, users, missions, allInventoryItems, allBadges, missionMilestones, supplies, missionSupplies, missionRequirements, salaries, payrollEvents, paymentPeriods, userSchedules, chats, chatMessages, loading, unreadMessagesCount, viewingProfileOf, setViewingProfileOf,
     updateMission, updateUser, deactivateUser, updateUserAvatar, addMission, requestMission, technicianRequestMission, rejectMissionRequest, deleteMission, addMissionMilestone, toggleMilestoneSolution, assignInventoryItem, removeInventoryItem, disposeOfInventoryItem, updateInventoryItemQuantity, updateInventoryVariantQuantity, addInventoryItem, deleteInventoryItem, savePushSubscription, sendNotification, handleSelectOrCreateChat, handleSendMessage, handleMarkAsRead, requestToJoinMission, approveJoinRequest, rejectJoinRequest,
     addSupply, updateSupply, deleteSupply, assignSupplyToMission, updateMissionSupply, removeSupplyFromMission,
     assignBadge, revokeBadge,
@@ -859,7 +900,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     deleteMissionRequirement: async (id: string) => {
       if (currentUser?.id.startsWith('demo-')) { showToast('Acción simulada en modo demo.', 'success'); return; }
       await api.deleteMissionRequirement(id);
-    }
+    },
+    updateUserSchedule
   };
 
   return (

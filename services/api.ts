@@ -19,12 +19,14 @@ type SalaryUpdate = Database['public']['Tables']['salarios']['Update'];
 type PayrollEventInsert = Database['public']['Tables']['eventos_nomina']['Insert'];
 type PaymentPeriodInsert = Database['public']['Tables']['periodos_pago']['Insert'];
 type PaymentPeriodUpdate = Database['public']['Tables']['periodos_pago']['Update'];
+type UserScheduleUpdate = any; // Assuming it's not in types yet
+type UserScheduleInsert = any;
 
 
 export const api = {
   // --- FETCH ---
   async getInitialData(userId: string) {
-    const profileColumns = 'avatar, id, email, is_active, lat, level, lng, location_last_update, name, push_subscription, role, company, xp';
+    const profileColumns = 'avatar, id, email, is_active, lat, level, lng, location_last_update, name, push_subscription, role, company, xp, attendance_id';
     const missionColumns = 'id, created_at, title, description, status, difficulty, xp, bonus_monetario, assigned_to, start_date, deadline, required_skills, progress_photo_url, completed_date, bonus_xp, visible_to, company, role';
     const inventoryItemColumns = 'id, name, description, icon_url, slot, quantity';
     const badgeColumns = 'id, name, icon, description';
@@ -56,6 +58,7 @@ export const api = {
       supabase.from('salarios').select(salaryColumns),
       supabase.from('eventos_nomina').select(payrollEventColumns).order('fecha_evento', { ascending: false }),
       supabase.from('periodos_pago').select(`${paymentPeriodColumns}, events:eventos_nomina(*)`).order('fecha_pago', { ascending: false }),
+      (supabase as any).from('user_schedules').select('*'),
     ]);
   },
 
@@ -304,6 +307,14 @@ export const api = {
   },
   async deleteMissionRequirement(id: string) {
     const { error } = await supabase.from('mission_requirements').delete().eq('id', id);
+    if (error) throw new Error(error.message);
+  },
+  async updateUserSchedule(userId: string, data: any) {
+    const { error } = await (supabase as any).from('user_schedules').update(data).eq('user_id', userId);
+    if (error) throw new Error(error.message);
+  },
+  async createUserSchedule(data: any) {
+    const { error } = await (supabase as any).from('user_schedules').insert(data);
     if (error) throw new Error(error.message);
   }
 };

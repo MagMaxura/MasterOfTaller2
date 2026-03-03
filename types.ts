@@ -116,6 +116,7 @@ export interface User {
   inventory: UserInventoryItem[];
   location?: Location;
   pushSubscription?: any | null;
+  attendance_id?: string;
 }
 
 export interface Mission {
@@ -256,4 +257,18 @@ export interface PaymentPeriod {
   created_at: string;
   events: PayrollEvent[];
   attendanceHistory?: AttendanceSummary[];
+}
+
+export interface UserSchedule {
+  user_id: string;
+  schedule_type: 'FIJO' | 'FLEXIBLE';
+  start_time: string | null;
+  end_time: string | null;
+  daily_hours: number;
+  tolerance_minutes: number;
+  exit_tolerance_minutes: number;
+  vacation_start_date: string | null;
+  vacation_end_date: string | null;
+  created_at: string;
+  updated_at: string;
 }

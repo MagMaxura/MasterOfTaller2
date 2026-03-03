@@ -233,6 +233,18 @@ const UserManagement: React.FC<{
                                 </select>
                             </div>
 
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-black text-brand-light uppercase tracking-widest ml-1">ID Asistencia (Reloj)</label>
+                                <input
+                                    type="text"
+                                    placeholder="Ej: 105"
+                                    className="w-full bg-brand-secondary border border-brand-accent rounded-2xl px-4 py-3 font-bold text-brand-highlight focus:ring-2 focus:ring-brand-blue outline-none transition-all"
+                                    value={editingUser.attendance_id || ''}
+                                    onChange={(e) => setEditingUser({ ...editingUser, attendance_id: e.target.value })}
+                                />
+                                <p className="text-[9px] text-brand-light font-bold italic ml-1">* Vincula manualmente al técnico con el dispositivo facial.</p>
+                            </div>
+
                             <div className="flex gap-3 pt-2">
                                 <button
                                     type="button"

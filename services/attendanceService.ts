@@ -54,6 +54,24 @@ export const attendanceService = {
     },
 
     /**
+     * Obtiene el perfil de un usuario en la base de asistencia por su ID.
+     */
+    async getUserProfileById(id: string): Promise<AttendanceUser | null> {
+        const { data, error } = await supabaseAttendance
+            .from('users')
+            .select('*')
+            .eq('id', id)
+            .maybeSingle();
+
+        if (error) {
+            console.error('Error fetching attendance user by id:', error);
+            return null;
+        }
+
+        return data;
+    },
+
+    /**
      * Obtiene los registros de acceso de un usuario por su ID de asistencia en un rango de fechas.
      */
     async getAccessLogsByRange(attendanceUserId: string, startDate: string, endDate: string): Promise<AttendanceRecord[]> {
