@@ -58,7 +58,8 @@ const UserManagement: React.FC<{
         try {
             await updateUser(editingUser.id, {
                 role: editingUser.role,
-                company: editingUser.company
+                company: editingUser.company,
+                attendance_id: editingUser.attendance_id
             });
             showToast('Usuario actualizado correctamente.', 'success');
             setEditingUser(null);

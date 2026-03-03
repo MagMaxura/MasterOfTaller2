@@ -36,7 +36,6 @@ export interface Holiday {
 export const attendanceService = {
     /**
      * Obtiene el perfil de un usuario en la base de asistencia por su ID.
-     * Este es ahora el método ÚNICO de vinculación.
      */
     async getUserProfileById(id: string): Promise<AttendanceUser | null> {
         if (!id) return null;
@@ -48,6 +47,27 @@ export const attendanceService = {
 
         if (error) {
             console.error('Error fetching attendance user by id:', error);
+            return null;
+        }
+
+        return data;
+    },
+
+    /**
+     * Obtiene el perfil de un usuario en la base de asistencia por su email.
+     * (Mantener para compatibilidad con lógica de sincronización histórica)
+     */
+    async getUserProfileByEmail(email: string): Promise<AttendanceUser | null> {
+        if (!email) return null;
+        const cleanEmail = email.trim().toLowerCase();
+        const { data, error } = await supabaseAttendance
+            .from('users')
+            .select('*')
+            .ilike('email', cleanEmail)
+            .maybeSingle();
+
+        if (error) {
+            console.error('Error fetching attendance user by email:', error);
             return null;
         }
 
@@ -72,7 +92,28 @@ export const attendanceService = {
     },
 
     /**
-     * Obtiene los registros de acceso de un usuario por su ID de asistencia.
+     * Obtiene los registros de acceso de un usuario en un rango de fechas.
+     */
+    async getAccessLogsByRange(attendanceUserId: string, startDate: string, endDate: string): Promise<AttendanceRecord[]> {
+        if (!attendanceUserId) return [];
+        const { data, error } = await supabaseAttendance
+            .from('access_logs')
+            .select('*')
+            .eq('user_id', attendanceUserId)
+            .gte('timestamp', `${startDate}T00:00:00`)
+            .lte('timestamp', `${endDate}T23:59:59`)
+            .order('timestamp', { ascending: true });
+
+        if (error) {
+            console.error('Error fetching access logs by range:', error);
+            return [];
+        }
+
+        return data || [];
+    },
+
+    /**
+     * Obtiene todos los registros de acceso de un usuario.
      */
     async getAccessLogs(attendanceUserId: string): Promise<AttendanceRecord[]> {
         if (!attendanceUserId) return [];
