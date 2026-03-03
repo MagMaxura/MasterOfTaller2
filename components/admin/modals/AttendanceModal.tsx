@@ -15,8 +15,12 @@ const AttendanceModal: React.FC<{ user: User; onClose: () => void; }> = ({ user,
         const fetchData = async () => {
             setLoading(true);
             try {
-                // El email de MasterOfTaller2 se usa para machear con la base de asistencia
-                const data = await attendanceService.getFullAttendanceSummary(user.email);
+                // Prioridad 1: ID de asistencia vinculado manualmente
+                // Prioridad 2: Match por email (automático)
+                const data = user.attendance_id
+                    ? await attendanceService.getFullAttendanceSummaryById(user.attendance_id)
+                    : (user.email ? await attendanceService.getFullAttendanceSummary(user.email) : null);
+
                 if (data) {
                     setAttendanceData({
                         attendanceUser: data.user,

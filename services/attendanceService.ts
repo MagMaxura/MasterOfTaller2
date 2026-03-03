@@ -38,6 +38,7 @@ export const attendanceService = {
      * Obtiene el perfil de un usuario en la base de asistencia por su email.
      */
     async getUserProfileByEmail(email: string): Promise<AttendanceUser | null> {
+        if (!email) return null;
         const cleanEmail = email.trim().toLowerCase();
         const { data, error } = await supabaseAttendance
             .from('users')
@@ -144,7 +145,27 @@ export const attendanceService = {
     },
 
     /**
-     * Helper para obtener todo el resumen de asistencia de un usuario de MasterOfTaller.
+     * Helper para obtener todo el resumen de asistencia de un usuario de MasterOfTaller por su ID de asistencia.
+     */
+    async getFullAttendanceSummaryById(attendanceId: string) {
+        if (!attendanceId) return null;
+        const user = await this.getUserProfileById(attendanceId);
+        if (!user) return null;
+
+        const [logs, holidays] = await Promise.all([
+            this.getAccessLogs(user.id),
+            this.getHolidays()
+        ]);
+
+        return {
+            user,
+            logs,
+            holidays
+        };
+    },
+
+    /**
+     * Helper para obtener todo el resumen de asistencia de un usuario de MasterOfTaller por su email.
      */
     async getFullAttendanceSummary(email: string) {
         const user = await this.getUserProfileByEmail(email);
