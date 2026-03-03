@@ -245,7 +245,7 @@ const UserManagement: React.FC<{
                                     value={editingUser.attendance_id || ''}
                                     onChange={(e) => setEditingUser({ ...editingUser, attendance_id: e.target.value })}
                                 >
-                                    <option value="">No vinculado (Automático por email)</option>
+                                    <option value="">Sin vincular</option>
                                     {attendanceUsers
                                         .filter(au => !users.some(u => u.attendance_id === au.id && u.id !== editingUser.id))
                                         .map(au => (

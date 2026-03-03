@@ -35,29 +35,11 @@ export interface Holiday {
 
 export const attendanceService = {
     /**
-     * Obtiene el perfil de un usuario en la base de asistencia por su email.
-     */
-    async getUserProfileByEmail(email: string): Promise<AttendanceUser | null> {
-        if (!email) return null;
-        const cleanEmail = email.trim().toLowerCase();
-        const { data, error } = await supabaseAttendance
-            .from('users')
-            .select('*')
-            .ilike('email', cleanEmail)
-            .maybeSingle();
-
-        if (error) {
-            console.error('Error fetching attendance user:', error);
-            return null;
-        }
-
-        return data;
-    },
-
-    /**
      * Obtiene el perfil de un usuario en la base de asistencia por su ID.
+     * Este es ahora el método ÚNICO de vinculación.
      */
     async getUserProfileById(id: string): Promise<AttendanceUser | null> {
+        if (!id) return null;
         const { data, error } = await supabaseAttendance
             .from('users')
             .select('*')
@@ -90,29 +72,10 @@ export const attendanceService = {
     },
 
     /**
-     * Obtiene los registros de acceso de un usuario por su ID de asistencia en un rango de fechas.
-     */
-    async getAccessLogsByRange(attendanceUserId: string, startDate: string, endDate: string): Promise<AttendanceRecord[]> {
-        const { data, error } = await supabaseAttendance
-            .from('access_logs')
-            .select('*')
-            .eq('user_id', attendanceUserId)
-            .gte('timestamp', `${startDate}T00:00:00`)
-            .lte('timestamp', `${endDate}T23:59:59`)
-            .order('timestamp', { ascending: true });
-
-        if (error) {
-            console.error('Error fetching access logs by range:', error);
-            return [];
-        }
-
-        return data || [];
-    },
-
-    /**
-     * Obtiene los registros de acceso de un usuario (versión simplificada).
+     * Obtiene los registros de acceso de un usuario por su ID de asistencia.
      */
     async getAccessLogs(attendanceUserId: string): Promise<AttendanceRecord[]> {
+        if (!attendanceUserId) return [];
         const { data, error } = await supabaseAttendance
             .from('access_logs')
             .select('*')
@@ -145,30 +108,12 @@ export const attendanceService = {
     },
 
     /**
-     * Helper para obtener todo el resumen de asistencia de un usuario de MasterOfTaller por su ID de asistencia.
+     * Helper para obtener todo el resumen de asistencia por ID de asistencia.
      */
-    async getFullAttendanceSummaryById(attendanceId: string) {
+    async getFullAttendanceSummary(attendanceId: string) {
         if (!attendanceId) return null;
+
         const user = await this.getUserProfileById(attendanceId);
-        if (!user) return null;
-
-        const [logs, holidays] = await Promise.all([
-            this.getAccessLogs(user.id),
-            this.getHolidays()
-        ]);
-
-        return {
-            user,
-            logs,
-            holidays
-        };
-    },
-
-    /**
-     * Helper para obtener todo el resumen de asistencia de un usuario de MasterOfTaller por su email.
-     */
-    async getFullAttendanceSummary(email: string) {
-        const user = await this.getUserProfileByEmail(email);
         if (!user) return null;
 
         const [logs, holidays] = await Promise.all([

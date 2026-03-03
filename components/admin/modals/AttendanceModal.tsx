@@ -15,18 +15,17 @@ const AttendanceModal: React.FC<{ user: User; onClose: () => void; }> = ({ user,
         const fetchData = async () => {
             setLoading(true);
             try {
-                // Prioridad 1: ID de asistencia vinculado manualmente
-                // Prioridad 2: Match por email (automático)
-                const data = user.attendance_id
-                    ? await attendanceService.getFullAttendanceSummaryById(user.attendance_id)
-                    : (user.email ? await attendanceService.getFullAttendanceSummary(user.email) : null);
-
-                if (data) {
-                    setAttendanceData({
-                        attendanceUser: data.user,
-                        logs: data.logs,
-                        holidays: data.holidays
-                    });
+                if (user.attendance_id) {
+                    const data = await attendanceService.getFullAttendanceSummary(user.attendance_id);
+                    if (data) {
+                        setAttendanceData({
+                            attendanceUser: data.user,
+                            logs: data.logs,
+                            holidays: data.holidays
+                        });
+                    }
+                } else {
+                    setAttendanceData({ attendanceUser: null, logs: [], holidays: [] });
                 }
             } catch (error) {
                 console.error("Error fetching integrated attendance:", error);
@@ -35,7 +34,7 @@ const AttendanceModal: React.FC<{ user: User; onClose: () => void; }> = ({ user,
             }
         };
         fetchData();
-    }, [user.email]);
+    }, [user.attendance_id]);
 
     const formatDate = (dateStr: string) => {
         return new Date(dateStr).toLocaleString('es-AR', {
@@ -76,7 +75,7 @@ const AttendanceModal: React.FC<{ user: User; onClose: () => void; }> = ({ user,
                                 <MapPinIcon className="w-10 h-10" />
                             </div>
                             <h4 className="text-xl font-black text-brand-highlight mb-2">Usuario no vinculado</h4>
-                            <p className="text-brand-light max-w-sm mx-auto">No se encontró un registro de asistencia para <strong>{user.email}</strong> en la base de datos externa.</p>
+                            <p className="text-brand-light max-w-sm mx-auto">Este perfil no tiene un **ID de Asistencia** asignado. Por favor, realiza la vinculación manual en el panel de Gestión de Personal.</p>
                         </div>
                     ) : (
                         <div className="space-y-8">
