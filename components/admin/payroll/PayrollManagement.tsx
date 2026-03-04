@@ -10,7 +10,7 @@ const formatCurrency = (amount: number) => {
 
 import UserTimeline from './UserTimeline';
 import ScheduleModal from './ScheduleModal';
-import { ClockIcon } from '../../Icons';
+import { ClockIcon, CurrencyDollarIcon } from '../../Icons';
 
 const EventRow: React.FC<{ event: PayrollEvent }> = ({ event }) => {
     const isDeduction = [
@@ -106,46 +106,61 @@ const TechnicianPayRow: React.FC<{
     }, [period]);
 
     return (
-        <div className="bg-brand-primary rounded-lg overflow-hidden">
-            <div onClick={() => setIsExpanded(!isExpanded)} className="flex items-center p-4 cursor-pointer hover:bg-brand-accent/20 transition-colors">
-                <img src={user.avatar} alt={user.name} className="w-10 h-10 rounded-full mr-4" />
-                <div className="flex-grow">
-                    <div className="flex items-center gap-2">
-                        <p className="font-bold">{user.name}</p>
-                        <button
-                            onClick={(e) => { e.stopPropagation(); onEditSchedule(user); }}
-                            className="p-1 hover:bg-white/10 rounded text-brand-light hover:text-brand-blue transition-colors"
-                            title="Configurar Horario y Vacaciones"
-                        >
-                            <ClockIcon className="w-4 h-4" />
-                        </button>
+        <div className="bg-brand-primary rounded-lg overflow-hidden border border-white/5 transition-all">
+            <div
+                onClick={() => setIsExpanded(!isExpanded)}
+                className="flex flex-col sm:flex-row items-start sm:items-center p-4 cursor-pointer hover:bg-brand-accent/20 transition-colors gap-4"
+            >
+                <div className="flex items-center w-full sm:w-auto">
+                    <img src={user.avatar} alt={user.name} className="w-12 h-12 rounded-full mr-4 border border-white/10" />
+                    <div className="flex-grow">
+                        <div className="flex items-center gap-2">
+                            <p className="font-black text-white">{user.name}</p>
+                            <button
+                                onClick={(e) => { e.stopPropagation(); onEditSchedule(user); }}
+                                className="p-1.5 bg-white/5 hover:bg-brand-blue/10 rounded-lg text-brand-light hover:text-brand-blue transition-all"
+                                title="Configurar Horario y Vacaciones"
+                            >
+                                <ClockIcon className="w-4 h-4" />
+                            </button>
+                        </div>
+                        <p className="text-[10px] sm:text-xs text-brand-light opacity-80 mt-0.5">
+                            {period ?
+                                `Período: ${new Date(period.fecha_inicio_periodo + 'T00:00:00').toLocaleDateString()} - ${new Date(period.fecha_fin_periodo + 'T00:00:00').toLocaleDateString()}`
+                                : 'Sin pago calculado'}
+                        </p>
                     </div>
-                    <p className="text-xs text-brand-light">
-                        {period ?
-                            `Período: ${new Date(period.fecha_inicio_periodo + 'T00:00:00').toLocaleDateString()} - ${new Date(period.fecha_fin_periodo + 'T00:00:00').toLocaleDateString()}`
-                            : 'Sin pago calculado'}
-                    </p>
                 </div>
-                {period && (
-                    <span className={`px-3 py-1 text-xs font-bold rounded-full mr-4 ${period.estado === PaymentStatus.PAID ? 'bg-brand-green/20 text-brand-green' : 'bg-brand-orange/20 text-brand-orange'}`}>
-                        {period.estado}
-                    </span>
-                )}
-                <div className="font-bold text-lg mr-4">{period ? formatCurrency(period.monto_final_a_pagar) : '-'}</div>
 
-                <div className="flex gap-2">
-                    {period?.estado === PaymentStatus.CALCULATED && (
-                        <button
-                            onClick={(e) => { e.stopPropagation(); onMarkAsPaid(period.id); }}
-                            className="bg-brand-green text-brand-primary text-xs font-bold py-1 px-3 rounded hover:bg-green-400 border border-brand-green/50"
-                            title="Marcar como Pagado"
-                        >
-                            Pagar
-                        </button>
+                <div className="flex flex-wrap items-center justify-between w-full sm:w-auto sm:flex-grow sm:justify-end gap-3 sm:gap-6">
+                    {period && (
+                        <span className={`px-2.5 py-1 text-[10px] font-black uppercase tracking-wider rounded-full shadow-sm ${period.estado === PaymentStatus.PAID ? 'bg-brand-green/10 text-brand-green border border-brand-green/20' : 'bg-brand-orange/10 text-brand-orange border border-brand-orange/20'}`}>
+                            {period.estado}
+                        </span>
                     )}
-                    {period?.estado !== PaymentStatus.PAID && (
-                        <button onClick={(e) => { e.stopPropagation(); onAddEvent(user); }} className="bg-brand-blue text-white text-xs font-semibold py-1 px-3 rounded hover:bg-blue-700">Añadir Evento</button>
-                    )}
+
+                    <div className="font-black text-xl text-brand-gold">
+                        {period ? formatCurrency(period.monto_final_a_pagar) : '-'}
+                    </div>
+
+                    <div className="flex gap-2 w-full sm:w-auto justify-end">
+                        {period?.estado === PaymentStatus.CALCULATED && (
+                            <button
+                                onClick={(e) => { e.stopPropagation(); onMarkAsPaid(period.id); }}
+                                className="flex-1 sm:flex-none bg-brand-green text-brand-primary text-[10px] font-black uppercase px-4 py-2 rounded-xl hover:bg-green-400 transition-all shadow-lg active:scale-95"
+                            >
+                                Pagar
+                            </button>
+                        )}
+                        {period?.estado !== PaymentStatus.PAID && (
+                            <button
+                                onClick={(e) => { e.stopPropagation(); onAddEvent(user); }}
+                                className="flex-1 sm:flex-none bg-brand-blue text-white text-[10px] font-black uppercase px-4 py-2 rounded-xl hover:bg-blue-600 transition-all shadow-lg active:scale-95"
+                            >
+                                Evento
+                            </button>
+                        )}
+                    </div>
                 </div>
             </div>
 
@@ -306,22 +321,22 @@ const PayrollManagement: React.FC<PayrollManagementProps> = ({ onAddEvent, onEdi
     }, [paidPeriods]);
 
     return (
-        <div className="bg-brand-secondary p-6 rounded-lg shadow-xl">
-            <div className="flex justify-between items-center mb-6">
-                <div>
-                    <h2 className="text-3xl font-bold text-center sm:text-left">Gestión de Nómina</h2>
-                    <p className="text-brand-light">Calcula, revisa y gestiona los pagos quincenales.</p>
+        <div className="bg-brand-secondary p-4 sm:p-6 rounded-lg shadow-xl">
+            <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-8 gap-6">
+                <div className="space-y-1">
+                    <h2 className="text-3xl sm:text-4xl font-black text-white tracking-tight">Gestión de Nómina</h2>
+                    <p className="text-sm text-brand-light opacity-80 font-medium">Calcula, revisa y gestiona los pagos quincenales.</p>
                 </div>
-                <div className="flex bg-brand-primary p-1 rounded-lg">
+                <div className="flex bg-brand-primary p-1 rounded-xl w-full lg:w-auto shadow-inner border border-white/5">
                     <button
                         onClick={() => setShowHistory(false)}
-                        className={`px-4 py-2 rounded-md transition-all ${!showHistory ? 'bg-brand-blue text-white shadow' : 'text-brand-light hover:text-white'}`}
+                        className={`flex-1 lg:flex-none px-6 py-2.5 rounded-lg text-xs font-black uppercase tracking-wider transition-all ${!showHistory ? 'bg-brand-blue text-white shadow-lg scale-100' : 'text-brand-light hover:text-white'}`}
                     >
                         Pendientes
                     </button>
                     <button
                         onClick={() => setShowHistory(true)}
-                        className={`px-4 py-2 rounded-md transition-all ${showHistory ? 'bg-brand-blue text-white shadow' : 'text-brand-light hover:text-white'}`}
+                        className={`flex-1 lg:flex-none px-6 py-2.5 rounded-lg text-xs font-black uppercase tracking-wider transition-all ${showHistory ? 'bg-brand-blue text-white shadow-lg scale-100' : 'text-brand-light hover:text-white'}`}
                     >
                         Historial
                     </button>
@@ -330,13 +345,20 @@ const PayrollManagement: React.FC<PayrollManagementProps> = ({ onAddEvent, onEdi
 
             {!showHistory ? (
                 <>
-                    <div className="bg-brand-primary p-4 rounded-lg mb-6 flex flex-col sm:flex-row justify-between items-center gap-4">
-                        <div>
-                            <h4 className="font-bold text-lg">Próximo Pago: {nextPayDate.toLocaleDateString()}</h4>
-                            <p className="text-brand-light text-sm">Total calculado a pagar: <span className="font-bold text-brand-orange text-base">{formatCurrency(totalToPay)}</span></p>
+                    <div className="bg-brand-primary p-6 rounded-2xl mb-8 flex flex-col sm:flex-row justify-between items-center gap-6 border border-white/5 relative overflow-hidden group">
+                        <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:opacity-10 transition-opacity">
+                            <CurrencyDollarIcon className="w-24 h-24 text-white" />
                         </div>
-                        <div className="flex gap-2">
-                            <button onClick={handleCalculate} disabled={!!isLoading} className="bg-brand-blue text-white font-bold py-2 px-4 rounded-lg flex items-center justify-center gap-2 disabled:bg-brand-accent">
+                        <div className="relative z-10 w-full sm:w-auto text-center sm:text-left">
+                            <h4 className="font-black text-xl text-white mb-1">Próximo Pago: {nextPayDate.toLocaleDateString()}</h4>
+                            <p className="text-brand-light text-sm font-medium">Total calculado a pagar: <span className="font-black text-brand-gold text-lg ml-1">{formatCurrency(totalToPay)}</span></p>
+                        </div>
+                        <div className="relative z-10 w-full sm:w-auto flex gap-3">
+                            <button
+                                onClick={handleCalculate}
+                                disabled={!!isLoading}
+                                className="w-full sm:w-auto bg-brand-blue text-white font-black uppercase text-xs tracking-widest py-4 px-8 rounded-2xl flex items-center justify-center gap-3 disabled:opacity-50 shadow-xl hover:shadow-brand-blue/20 transition-all active:scale-95"
+                            >
                                 {isLoading === 'calculating' && <div className="w-5 h-5 border-2 border-t-transparent border-white rounded-full animate-spin"></div>}
                                 Calcular Nómina
                             </button>
@@ -409,47 +431,37 @@ const PayrollManagement: React.FC<PayrollManagementProps> = ({ onAddEvent, onEdi
                                 Estadísticas de Nómina
                             </h3>
 
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
                                 {/* Por Empresa */}
-                                <div className="space-y-4">
-                                    <h4 className="text-sm font-bold text-brand-light uppercase tracking-wider border-b border-brand-accent/30 pb-2">Por Empresa</h4>
-                                    <div className="space-y-3">
+                                <div className="space-y-6">
+                                    <h4 className="text-sm font-black text-brand-blue uppercase tracking-[0.2em] border-b border-white/10 pb-3">Por Empresa</h4>
+                                    <div className="space-y-4">
                                         {Object.entries(stats.byCompany).map(([name, total]) => (
                                             <div key={name} className="flex justify-between items-center group">
-                                                <span className="text-sm font-semibold group-hover:text-brand-blue transition-colors">{name}</span>
-                                                <div className="flex items-center gap-3">
-                                                    <div className="w-24 h-2 bg-brand-accent/20 rounded-full overflow-hidden hidden sm:block">
-                                                        <div className="h-full bg-brand-blue" style={{ width: `${(total / (stats.grandTotal || 1)) * 100}%` }}></div>
-                                                    </div>
-                                                    <span className="font-bold text-brand-light text-sm">{formatCurrency(total)}</span>
-                                                </div>
+                                                <span className="text-sm font-bold text-slate-300 group-hover:text-white transition-colors">{name}</span>
+                                                <span className="font-black text-white text-sm bg-white/5 py-1 px-3 rounded-lg">{formatCurrency(total)}</span>
                                             </div>
                                         ))}
                                     </div>
                                 </div>
 
                                 {/* Por Área */}
-                                <div className="space-y-4">
-                                    <h4 className="text-sm font-bold text-brand-light uppercase tracking-wider border-b border-brand-accent/30 pb-2">Por Área</h4>
-                                    <div className="space-y-3">
+                                <div className="space-y-6">
+                                    <h4 className="text-sm font-black text-brand-orange uppercase tracking-[0.2em] border-b border-white/10 pb-3">Por Área</h4>
+                                    <div className="space-y-4">
                                         {Object.entries(stats.byArea).map(([name, total]) => (
                                             <div key={name} className="flex justify-between items-center group">
-                                                <span className="text-sm font-semibold group-hover:text-brand-orange transition-colors capitalize">{name.toLowerCase()}</span>
-                                                <div className="flex items-center gap-3">
-                                                    <div className="w-24 h-2 bg-brand-accent/20 rounded-full overflow-hidden hidden sm:block">
-                                                        <div className="h-full bg-brand-orange" style={{ width: `${(total / (stats.grandTotal || 1)) * 100}%` }}></div>
-                                                    </div>
-                                                    <span className="font-bold text-brand-light text-sm">{formatCurrency(total)}</span>
-                                                </div>
+                                                <span className="text-sm font-bold text-slate-300 group-hover:text-white transition-colors capitalize">{name.toLowerCase()}</span>
+                                                <span className="font-black text-white text-sm bg-white/5 py-1 px-3 rounded-lg">{formatCurrency(total)}</span>
                                             </div>
                                         ))}
                                     </div>
                                 </div>
                             </div>
 
-                            <div className="mt-8 pt-6 border-t border-brand-accent/50 flex justify-between items-center">
-                                <span className="text-lg font-bold">TOTAL GLOBAL PROYECTADO</span>
-                                <span className="text-2xl font-black text-brand-orange">{formatCurrency(stats.grandTotal)}</span>
+                            <div className="mt-10 pt-8 border-t border-white/10 flex flex-col sm:flex-row justify-between items-center gap-4">
+                                <span className="text-sm font-black text-brand-light uppercase tracking-widest opacity-60">TOTAL GLOBAL PROYECTADO</span>
+                                <span className="text-3xl font-black text-brand-gold drop-shadow-[0_0_15px_rgba(255,191,0,0.3)]">{formatCurrency(stats.grandTotal)}</span>
                             </div>
                         </div>
                     )}
