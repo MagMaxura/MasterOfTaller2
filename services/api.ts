@@ -139,10 +139,10 @@ export const api = {
   async addInventoryItem(itemData: Omit<InventoryItemInsert, 'icon_url'>, iconFile: File) {
     const fileExt = iconFile.name.split('.').pop();
     const filePath = `public/${itemData.name.replace(/\s+/g, '_')}-${Date.now()}.${fileExt}`;
-    const { error: uploadError } = await supabase.storage.from('inventory_icons').upload(filePath, iconFile);
+    const { error: uploadError } = await supabase.storage.from('iconos-equipamiento').upload(filePath, iconFile);
     if (uploadError) throw new Error(`Error subiendo ícono: ${uploadError.message}`);
 
-    const { data: urlData } = supabase.storage.from('inventory_icons').getPublicUrl(filePath);
+    const { data: urlData } = supabase.storage.from('iconos-equipamiento').getPublicUrl(filePath);
     if (!urlData.publicUrl) throw new Error("No se pudo obtener la URL del ícono.");
 
     const { error: dbError } = await supabase.from('inventory_items').insert({ ...itemData, icon_url: urlData.publicUrl });
@@ -153,8 +153,8 @@ export const api = {
     if (dbError) throw new Error(dbError.message);
 
     try {
-      const filePath = new URL(iconUrl).pathname.split('/inventory_icons/')[1];
-      if (filePath) await supabase.storage.from('inventory_icons').remove([filePath]);
+      const filePath = new URL(iconUrl).pathname.split('/iconos-equipamiento/')[1];
+      if (filePath) await supabase.storage.from('iconos-equipamiento').remove([filePath]);
     } catch (e) { console.warn("Could not delete storage item, it might not exist:", e); }
   },
   async addSupply(supplyData: Omit<SupplyInsert, 'photo_url'>, photoFile: File | null) {
