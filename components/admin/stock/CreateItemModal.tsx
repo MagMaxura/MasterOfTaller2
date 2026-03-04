@@ -47,7 +47,7 @@ const CreateItemModal: React.FC<{ onClose: () => void; }> = ({ onClose }) => {
             setIsLoading(false);
         }
     };
-    
+
     return (
         <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
             <form onSubmit={handleSubmit} className="bg-brand-secondary rounded-lg max-w-lg w-full p-6 relative">
@@ -64,9 +64,21 @@ const CreateItemModal: React.FC<{ onClose: () => void; }> = ({ onClose }) => {
                         <select value={slot} onChange={e => setSlot(e.target.value as EquipmentSlot)} className="w-full bg-brand-primary p-3 rounded border border-brand-accent">
                             {Object.values(EquipmentSlot).map(s => <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>)}
                         </select>
-                        <label className="w-full h-40 flex flex-col items-center justify-center bg-brand-primary p-3 rounded border-2 border-dashed border-brand-accent cursor-pointer hover:border-brand-blue">
-                            {previewUrl ? <img src={previewUrl} alt="Preview" className="max-h-full max-w-full object-contain" /> : <div className="text-center text-brand-light"><BoxIcon className="w-10 h-10 mx-auto mb-2" /><span>Subir Ícono (PNG, 2MB max)</span></div>}
-                            <input type="file" accept="image/png" className="hidden" onChange={handleFileChange} required />
+                        <label className="w-full h-40 flex flex-col items-center justify-center bg-brand-primary p-4 rounded-3xl border-2 border-dashed border-brand-accent/50 cursor-pointer hover:border-brand-blue hover:bg-brand-blue/5 transition-all group overflow-hidden">
+                            {previewUrl ? (
+                                <div className="relative w-full h-full">
+                                    <img src={previewUrl} alt="Preview" className="w-full h-full object-cover rounded-2xl" />
+                                    <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <span className="text-[10px] font-black text-white uppercase tracking-widest">Cambiar Foto</span>
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="text-center">
+                                    <BoxIcon className="w-10 h-10 mx-auto mb-2 text-brand-light group-hover:text-brand-blue transition-colors" />
+                                    <span className="text-[10px] font-black uppercase tracking-widest text-brand-light">Tocar para Foto / Subir</span>
+                                </div>
+                            )}
+                            <input type="file" accept="image/*" className="hidden" onChange={handleFileChange} required />
                         </label>
                     </div>
                 </div>

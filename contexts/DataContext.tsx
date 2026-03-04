@@ -6,6 +6,7 @@ import { useAuth } from './AuthContext';
 import { useToast } from './ToastContext';
 import { api } from '../services/api';
 import { attendanceService, AttendanceUser } from '../services/attendanceService';
+import { Database } from '../database.types';
 
 // --- CONTEXT INTERFACE ---
 interface DataContextType {
@@ -516,9 +517,19 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (currentUser?.id.startsWith('demo-')) { showToast('Acción simulada en modo demo.', 'success'); return Promise.resolve(); }
     return api.disposeOfInventoryItem(userInventoryId, itemId);
   }
-  const updateInventoryItemQuantity = (itemId: string, newQuantity: number) => {
+  const updateInventoryItemQuantity = async (itemId: string, newQuantity: number) => {
     if (currentUser?.id.startsWith('demo-')) { showToast('Acción simulada en modo demo.', 'success'); return Promise.resolve(); }
-    return api.updateInventoryItemQuantity(itemId, newQuantity);
+
+    // Optimistic update
+    setAllInventoryItems(prev => prev.map(item => item.id === itemId ? { ...item, quantity: newQuantity } : item));
+
+    try {
+      await api.updateInventoryItemQuantity(itemId, newQuantity);
+    } catch (error) {
+      // Revert if error (fetchData will eventually sync it anyway, but this is cleaner)
+      fetchData();
+      throw error;
+    }
   }
   const updateInventoryVariantQuantity = (variantId: string, newQuantity: number) => {
     if (currentUser?.id.startsWith('demo-')) { showToast('Acción simulada en modo demo.', 'success'); return Promise.resolve(); }
