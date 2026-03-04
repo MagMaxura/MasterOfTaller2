@@ -424,11 +424,11 @@ const PayrollManagement: React.FC<PayrollManagementProps> = ({ onAddEvent, onEdi
                     )}
 
                     {/* ESTADÍSTICAS */}
-                    {calculatedPeriods.length > 0 && (
-                        <div className="mt-12 p-6 bg-brand-primary rounded-xl border border-brand-accent/30 shadow-2xl animation-fade-in-up">
-                            <h3 className="text-xl font-bold text-brand-orange mb-6 flex items-center gap-2 uppercase tracking-widest">
+                    {(showHistory ? paidPeriods : calculatedPeriods).length > 0 && (
+                        <div className="mt-12 p-6 bg-brand-primary rounded-xl border border-white/5 shadow-2xl animation-fade-in-up">
+                            <h3 className="text-xl font-black text-brand-orange mb-6 flex items-center gap-2 uppercase tracking-widest">
                                 <span className="w-2 h-8 bg-brand-orange rounded-full"></span>
-                                Estadísticas de Nómina
+                                {showHistory ? 'Resumen Histórico' : 'Estadísticas de Nómina'}
                             </h3>
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
@@ -436,7 +436,14 @@ const PayrollManagement: React.FC<PayrollManagementProps> = ({ onAddEvent, onEdi
                                 <div className="space-y-6">
                                     <h4 className="text-sm font-black text-brand-blue uppercase tracking-[0.2em] border-b border-white/10 pb-3">Por Empresa</h4>
                                     <div className="space-y-4">
-                                        {Object.entries(stats.byCompany).map(([name, total]) => (
+                                        {Object.entries((showHistory ? (
+                                            paidPeriods.reduce((acc: Record<string, number>, p) => {
+                                                const u = users.find(user => user.id === p.user_id);
+                                                const company = u?.company || 'PÚBLICO/SIN EMPRESA';
+                                                acc[company] = (acc[company] || 0) + p.monto_final_a_pagar;
+                                                return acc;
+                                            }, {})
+                                        ) : stats.byCompany)).map(([name, total]) => (
                                             <div key={name} className="flex justify-between items-center group">
                                                 <span className="text-sm font-bold text-slate-300 group-hover:text-white transition-colors">{name}</span>
                                                 <span className="font-black text-white text-sm bg-white/5 py-1 px-3 rounded-lg">{formatCurrency(total)}</span>
@@ -449,7 +456,14 @@ const PayrollManagement: React.FC<PayrollManagementProps> = ({ onAddEvent, onEdi
                                 <div className="space-y-6">
                                     <h4 className="text-sm font-black text-brand-orange uppercase tracking-[0.2em] border-b border-white/10 pb-3">Por Área</h4>
                                     <div className="space-y-4">
-                                        {Object.entries(stats.byArea).map(([name, total]) => (
+                                        {Object.entries((showHistory ? (
+                                            paidPeriods.reduce((acc: Record<string, number>, p) => {
+                                                const u = users.find(user => user.id === p.user_id);
+                                                const area = u?.role || 'SIN ÁREA';
+                                                acc[area] = (acc[area] || 0) + p.monto_final_a_pagar;
+                                                return acc;
+                                            }, {})
+                                        ) : stats.byArea)).map(([name, total]) => (
                                             <div key={name} className="flex justify-between items-center group">
                                                 <span className="text-sm font-bold text-slate-300 group-hover:text-white transition-colors capitalize">{name.toLowerCase()}</span>
                                                 <span className="font-black text-white text-sm bg-white/5 py-1 px-3 rounded-lg">{formatCurrency(total)}</span>
@@ -460,8 +474,12 @@ const PayrollManagement: React.FC<PayrollManagementProps> = ({ onAddEvent, onEdi
                             </div>
 
                             <div className="mt-10 pt-8 border-t border-white/10 flex flex-col sm:flex-row justify-between items-center gap-4">
-                                <span className="text-sm font-black text-brand-light uppercase tracking-widest opacity-60">TOTAL GLOBAL PROYECTADO</span>
-                                <span className="text-3xl font-black text-brand-gold drop-shadow-[0_0_15px_rgba(255,191,0,0.3)]">{formatCurrency(stats.grandTotal)}</span>
+                                <span className="text-sm font-black text-brand-light uppercase tracking-widest opacity-60">
+                                    {showHistory ? 'TOTAL PAGADO HISTÓRICO' : 'TOTAL GLOBAL PROYECTADO'}
+                                </span>
+                                <span className="text-3xl font-black text-brand-gold drop-shadow-[0_0_15px_rgba(255,191,0,0.3)]">
+                                    {formatCurrency(showHistory ? paidPeriods.reduce((sum, p) => sum + p.monto_final_a_pagar, 0) : stats.grandTotal)}
+                                </span>
                             </div>
                         </div>
                     )}
