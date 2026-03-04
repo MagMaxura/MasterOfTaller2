@@ -280,7 +280,7 @@ export const api = {
       .delete()
       .eq('user_id', userId)
       .eq('fecha_evento', date)
-      .eq('tipo', type)
+      .eq('tipo', type as any)
       .ilike('descripcion', `%${descriptionLike}%`);
     if (error) throw new Error(error.message);
   },
