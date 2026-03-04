@@ -203,7 +203,7 @@ const MissionDetailsModal: React.FC<{
                     const updatedUserData: Partial<User> = { id: assignedUser.id, xp: assignedUser.xp + totalXpGained };
                     const nextLevelXp = LEVEL_THRESHOLDS[assignedUser.level] || Infinity;
                     if ((updatedUserData.xp || 0) >= nextLevelXp) updatedUserData.level = assignedUser.level + 1;
-                    await updateUser(updatedUserData);
+                    await updateUser(assignedUser.id, updatedUserData);
                     // Monetary Bonus
                     if (mission.bonusMonetario && mission.bonusMonetario > 0) {
                         await createMissionBonusEvent(assignedUser.id, mission);
