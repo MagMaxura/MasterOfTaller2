@@ -22,7 +22,7 @@ type UserScheduleInsert = any;
 
 
 export const api = {
-  // --- FETCH ---
+  // --- FETCH (Utilizando Supabase para sincronización en tiempo real) ---
   async getInitialData(userId: string) {
     const profileColumns = 'avatar, id, email, is_active, lat, level, lng, location_last_update, name, push_subscription, role, company, xp, attendance_id, joining_date, vacation_total_days, vacation_remaining_days';
     const missionColumns = 'id, created_at, title, description, status, difficulty, xp, bonus_monetario, assigned_to, start_date, deadline, required_skills, progress_photo_url, completed_date, bonus_xp, visible_to, company, role';
