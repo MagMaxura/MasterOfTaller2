@@ -31,7 +31,7 @@ import { supabaseAttendance } from '../config';
 import { api } from '../services/api';
 import { Role as UserRole } from '../types';
 
-import { PlusIcon, BoxIcon, CalendarIcon, MapPinIcon, UserIcon, ChatIcon, TasksIcon, BookOpenIcon, LogoutIcon, MenuIcon, ChartIcon, HallOfFameIcon, CurrencyDollarIcon } from './Icons';
+import { PlusIcon, BoxIcon, CalendarIcon, MapPinIcon, UserIcon, ChatIcon, TasksIcon, BookOpenIcon, LogoutIcon, MenuIcon, ChartIcon, HallOfFameIcon, CurrencyDollarIcon, CogIcon } from './Icons';
 
 // --- MAIN COMPONENT ---
 const AdminView: React.FC = () => {
@@ -96,6 +96,7 @@ const AdminView: React.FC = () => {
         { id: 'chat', label: 'Chat', icon: <ChatIcon />, notification: unreadMessagesCount > 0 },
         { id: 'calendar', label: 'Calendario', icon: <CalendarIcon /> },
         { id: 'live_map', label: 'Mapa', icon: <MapPinIcon /> },
+        { id: 'settings', label: 'Configuración', icon: <CogIcon /> },
     ];
 
     const activeTabLabel = useMemo(() => TABS.find(tab => tab.id === activeTab)?.label || 'Panel de Administrador', [activeTab]);
@@ -113,10 +114,6 @@ const AdminView: React.FC = () => {
                     <h2 className="font-black text-xl truncate tracking-tight">{currentUser.name}</h2>
                     <p className="text-[10px] text-brand-blue uppercase font-black tracking-widest opacity-80">Administrador</p>
                 </div>
-            </div>
-
-            <div className="px-4 mb-4">
-                <NotificationSubscriber />
             </div>
 
             <nav className="flex-grow flex flex-col space-y-1.5 overflow-y-auto px-4 custom-scrollbar">
@@ -235,6 +232,22 @@ const AdminView: React.FC = () => {
                         </div>
                         <div className={activeTab === 'live_map' ? 'block' : 'hidden'}>
                             <LiveLocationMap users={users} isVisible={activeTab === 'live_map'} />
+                        </div>
+                        <div className={activeTab === 'settings' ? 'block' : 'hidden'}>
+                            <div className="max-w-2xl mx-auto space-y-8">
+                                <div className="bg-slate-800/50 backdrop-blur-xl border border-white/10 rounded-3xl p-8 shadow-2xl overflow-hidden relative group">
+                                    <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:opacity-10 transition-opacity">
+                                        <CogIcon className="w-32 h-32 text-white" />
+                                    </div>
+                                    <h2 className="text-3xl font-black text-white mb-2">Configuración</h2>
+                                    <p className="text-slate-400 mb-8">Administra tus preferencias y dispositivos vinculados.</p>
+
+                                    <div className="space-y-6">
+                                        <h3 className="text-lg font-black text-brand-blue uppercase tracking-widest py-2 border-b border-white/5">Alertas y Notificaciones</h3>
+                                        <NotificationSubscriber />
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </main>
