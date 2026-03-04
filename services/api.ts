@@ -47,8 +47,6 @@ export const api = {
       supabase.from('inventory_items').select(`${inventoryItemColumns}, variants:inventory_variants(id, item_id, size, quantity)`),
       supabase.from('badges').select(badgeColumns),
       supabase.from('mission_milestones').select('id, mission_id, user_id, description, image_url, created_at, is_solution, mission:missions(title, required_skills)').order('created_at', { ascending: true }),
-      supabase.from('chats').select('id, created_at, participant_1, participant_2').or(`participant_1.eq.${userId},participant_2.eq.${userId}`),
-      supabase.from('chat_messages').select('id, chat_id, sender_id, content, created_at, is_read').order('created_at', { ascending: true }),
       supabase.from('supplies').select(supplyColumns).order('general_category').order('specific_category'),
       supabase.from('mission_supplies').select(`id, created_at, mission_id, supply_id, quantity_assigned, quantity_used, supplies(${supplyColumns})`),
       supabase.from('mission_requirements').select('id, mission_id, description, quantity, is_purchased, created_at'),
@@ -205,18 +203,6 @@ export const api = {
     const { error } = await supabase.from('mission_supplies').delete().eq('id', missionSupplyId);
     if (error) throw new Error(error.message);
   },
-  async createChat(participant_1: string, participant_2: string) {
-    return supabase.from('chats').insert({ participant_1, participant_2 }).select().single();
-  },
-  async sendMessage(chatId: string, senderId: string, content: string) {
-    const { error } = await supabase.from('chat_messages').insert({ chat_id: chatId, sender_id: senderId, content });
-    if (error) throw new Error(error.message);
-  },
-  async markMessagesAsRead(chatId: string, currentUserId: string) {
-    const { error } = await supabase.from('chat_messages').update({ is_read: true }).eq('chat_id', chatId).neq('sender_id', currentUserId);
-    if (error) console.error("Error marking messages as read:", error);
-  },
-
   // --- STORAGE ---
   async updateUserAvatar(userId: string, file: File) {
     const fileExt = file.name.split('.').pop();

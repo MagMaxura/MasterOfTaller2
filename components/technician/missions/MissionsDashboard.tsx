@@ -4,7 +4,8 @@ import { Mission, MissionStatus, User } from '../../../types';
 import { useData } from '../../../contexts/DataContext';
 import MissionColumn from './MissionColumn';
 import RequestMissionModal from './RequestMissionModal';
-import { PlusIcon, StarIcon, ArrowUpIcon, BoxIcon } from '../../Icons';
+import KnowledgeBase from '../../knowledge/KnowledgeBase';
+import { PlusIcon, StarIcon, ArrowUpIcon, BoxIcon, BookOpenIcon, TasksIcon } from '../../Icons';
 
 const AvailableMissionCard: React.FC<{
     mission: Mission;
@@ -78,6 +79,7 @@ interface MissionsDashboardProps {
 const MissionsDashboard: React.FC<MissionsDashboardProps> = ({ user, onOpenMission }) => {
     const { missions, technicianRequestMission, requestToJoinMission } = useData();
     const [isRequestModalOpen, setIsRequestModalOpen] = useState(false);
+    const [showKnowledgeBase, setShowKnowledgeBase] = useState(false);
     const [activeTab, setActiveTab] = useState<MissionStatus>(MissionStatus.IN_PROGRESS);
 
     const { available, otherInProgress, requested, pending, inProgress, completed } = useMemo(() => {
@@ -108,49 +110,72 @@ const MissionsDashboard: React.FC<MissionsDashboardProps> = ({ user, onOpenMissi
             <div>
                 <div className="flex justify-between items-end mb-8">
                     <div>
-                        <h2 className="text-4xl font-black text-brand-highlight tracking-tight">Mis Misiones</h2>
-                        <p className="text-sm text-brand-light mt-1">Sigue tu progreso y gestiona tus tareas activas.</p>
+                        <h2 className="text-4xl font-black text-brand-highlight tracking-tight">
+                            {showKnowledgeBase ? 'Base de Saber' : 'Mis Misiones'}
+                        </h2>
+                        <p className="text-sm text-brand-light mt-1">
+                            {showKnowledgeBase ? 'Consulta el aprendizaje colectivo del equipo.' : 'Sigue tu progreso y gestiona tus tareas activas.'}
+                        </p>
                     </div>
-                    <button
-                        onClick={() => setIsRequestModalOpen(true)}
-                        className="bg-brand-highlight text-white font-black p-3.5 rounded-2xl flex items-center gap-2 hover:bg-brand-blue transition-all shadow-lg active:scale-95 sm:px-6"
-                    >
-                        <PlusIcon className="w-5 h-5" />
-                        <span className="hidden sm:inline">Solicitar Custom</span>
-                    </button>
-                </div>
-
-                {/* Mobile View: Tabbed Board */}
-                <div className="md:hidden space-y-6">
-                    <div className="flex gap-2 p-1.5 bg-brand-accent/30 rounded-2xl overflow-x-auto no-scrollbar">
-                        {TABS_CONFIG.map(tab => (
+                    <div className="flex gap-2">
+                        <button
+                            onClick={() => setShowKnowledgeBase(!showKnowledgeBase)}
+                            className={`p-3.5 rounded-2xl flex items-center gap-2 transition-all shadow-lg active:scale-95 sm:px-6 font-black ${showKnowledgeBase ? 'bg-brand-blue text-white' : 'bg-brand-secondary text-brand-highlight border border-brand-accent'}`}
+                        >
+                            {showKnowledgeBase ? <TasksIcon className="w-5 h-5" /> : <BookOpenIcon className="w-5 h-5" />}
+                            <span className="hidden sm:inline">{showKnowledgeBase ? 'Ver Misiones' : 'Base de Saber'}</span>
+                        </button>
+                        {!showKnowledgeBase && (
                             <button
-                                key={tab.id}
-                                onClick={() => setActiveTab(tab.id as MissionStatus)}
-                                className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-tighter whitespace-nowrap transition-all ${activeTab === tab.id ? 'bg-white text-brand-blue shadow-premium' : 'text-brand-light'}`}
+                                onClick={() => setIsRequestModalOpen(true)}
+                                className="bg-brand-highlight text-white font-black p-3.5 rounded-2xl flex items-center gap-2 hover:bg-brand-blue transition-all shadow-lg active:scale-95 sm:px-6"
                             >
-                                {tab.label}
-                                <span className={`px-1.5 py-0.5 rounded-md text-[10px] ${activeTab === tab.id ? 'bg-brand-blue/10 text-brand-blue' : 'bg-brand-accent/50'}`}>
-                                    {tab.count}
-                                </span>
+                                <PlusIcon className="w-5 h-5" />
+                                <span className="hidden sm:inline">Solicitar Custom</span>
                             </button>
-                        ))}
-                    </div>
-                    <div className="animate-fadeIn">
-                        <MissionColumn
-                            title={activeTab}
-                            missions={TABS_CONFIG.find(t => t.id === activeTab)?.missions || []}
-                            onOpenMission={onOpenMission}
-                        />
+                        )}
                     </div>
                 </div>
 
-                {/* Desktop View: Grid Columns */}
-                <div className="hidden md:grid grid-cols-4 gap-8">
-                    {TABS_CONFIG.map(tab => (
-                        <MissionColumn key={tab.id} title={tab.id as MissionStatus} missions={tab.missions} onOpenMission={onOpenMission} />
-                    ))}
-                </div>
+                {showKnowledgeBase ? (
+                    <div className="animate-fadeIn">
+                        <KnowledgeBase />
+                    </div>
+                ) : (
+                    <>
+                        {/* Mobile View: Tabbed Board */}
+                        <div className="md:hidden space-y-6">
+                            <div className="flex gap-2 p-1.5 bg-brand-accent/30 rounded-2xl overflow-x-auto no-scrollbar">
+                                {TABS_CONFIG.map(tab => (
+                                    <button
+                                        key={tab.id}
+                                        onClick={() => setActiveTab(tab.id as MissionStatus)}
+                                        className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-tighter whitespace-nowrap transition-all ${activeTab === tab.id ? 'bg-white text-brand-blue shadow-premium' : 'text-brand-light'}`}
+                                    >
+                                        {tab.label}
+                                        <span className={`px-1.5 py-0.5 rounded-md text-[10px] ${activeTab === tab.id ? 'bg-brand-blue/10 text-brand-blue' : 'bg-brand-accent/50'}`}>
+                                            {tab.count}
+                                        </span>
+                                    </button>
+                                ))}
+                            </div>
+                            <div className="animate-fadeIn">
+                                <MissionColumn
+                                    title={activeTab}
+                                    missions={TABS_CONFIG.find(t => t.id === activeTab)?.missions || []}
+                                    onOpenMission={onOpenMission}
+                                />
+                            </div>
+                        </div>
+
+                        {/* Desktop View: Grid Columns */}
+                        <div className="hidden md:grid grid-cols-4 gap-8">
+                            {TABS_CONFIG.map(tab => (
+                                <MissionColumn key={tab.id} title={tab.id as MissionStatus} missions={tab.missions} onOpenMission={onOpenMission} />
+                            ))}
+                        </div>
+                    </>
+                )}
             </div>
 
             {(available.length > 0 || otherInProgress.length > 0) && <div className="h-px bg-brand-accent w-full"></div>}

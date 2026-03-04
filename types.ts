@@ -168,21 +168,6 @@ export interface MissionRequirement {
   created_at: string;
 }
 
-export interface Chat {
-  id: string;
-  created_at: string;
-  participant_1: string;
-  participant_2: string;
-}
-
-export interface ChatMessage {
-  id: string;
-  chat_id: string;
-  sender_id: string;
-  content: string;
-  created_at: string;
-  is_read: boolean;
-}
 
 export interface Toast {
   id: number;

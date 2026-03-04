@@ -13,12 +13,10 @@ import BadgeManagementModal from './admin/modals/BadgeManagementModal';
 import NotificationModal from './admin/modals/NotificationModal';
 import MissionCalendar from './MissionCalendar';
 import LiveLocationMap from './LiveLocationMap';
-import ChatView from './ChatView';
 import MissionRequests from './admin/MissionRequests';
 import ApproveMissionModal from './admin/modals/ApproveMissionModal';
 import MissionsManager from './admin/MissionsManager';
 import MissionDetailsModal from './technician/missions/MissionDetailsModal';
-import KnowledgeBase from './knowledge/KnowledgeBase';
 import SuppliesManagement from './admin/supplies/SuppliesManagement';
 import Leaderboard from './common/Leaderboard';
 import HallOfFame from './common/HallOfFame';
@@ -31,12 +29,12 @@ import { supabaseAttendance } from '../config';
 import { api } from '../services/api';
 import { Role as UserRole } from '../types';
 
-import { PlusIcon, BoxIcon, CalendarIcon, MapPinIcon, UserIcon, ChatIcon, TasksIcon, BookOpenIcon, LogoutIcon, MenuIcon, ChartIcon, HallOfFameIcon, CurrencyDollarIcon, CogIcon } from './Icons';
+import { PlusIcon, BoxIcon, CalendarIcon, MapPinIcon, UserIcon, TasksIcon, BookOpenIcon, LogoutIcon, MenuIcon, ChartIcon, HallOfFameIcon, CurrencyDollarIcon, CogIcon } from './Icons';
 
 // --- MAIN COMPONENT ---
 const AdminView: React.FC = () => {
     const { handleLogout } = useAuth();
-    const { currentUser, missions, users, unreadMessagesCount, vacationRequests, payrollEvents } = useData();
+    const { currentUser, missions, users, vacationRequests, payrollEvents } = useData();
     const [activeTab, setActiveTab] = useState('manage');
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const [managingInventoryFor, setManagingInventoryFor] = useState<User | null>(null);
@@ -92,8 +90,6 @@ const AdminView: React.FC = () => {
         { id: 'create', label: 'Crear Misión', icon: <PlusIcon /> },
         { id: 'stock', label: 'Stock (Equipo)', icon: <BoxIcon /> },
         { id: 'supplies', label: 'Insumos', icon: <BoxIcon /> },
-        { id: 'knowledge', label: 'Conocimiento', icon: <BookOpenIcon /> },
-        { id: 'chat', label: 'Chat', icon: <ChatIcon />, notification: unreadMessagesCount > 0 },
         { id: 'calendar', label: 'Calendario', icon: <CalendarIcon /> },
         { id: 'live_map', label: 'Mapa', icon: <MapPinIcon /> },
         { id: 'settings', label: 'Configuración', icon: <CogIcon /> },
@@ -133,9 +129,6 @@ const AdminView: React.FC = () => {
 
                         {tab.id === 'requests' && tab.notification && missionRequestsCount > 0 &&
                             <span className="ml-auto h-6 min-w-[1.5rem] px-2 text-[10px] flex items-center justify-center rounded-full bg-brand-red text-white font-black shadow-lg animate-pulse">{missionRequestsCount}</span>}
-
-                        {tab.id === 'chat' && tab.notification && unreadMessagesCount > 0 &&
-                            <span className="ml-auto block h-3 w-3 rounded-full bg-brand-red ring-2 ring-slate-900" />}
                     </button>
                 ))}
             </nav>
@@ -209,17 +202,8 @@ const AdminView: React.FC = () => {
                         <div className={activeTab === 'create' ? 'block' : 'hidden'}>
                             <MissionCreator users={users} />
                         </div>
-                        <div className={activeTab === 'chat' ? 'block' : 'hidden'}>
-                            <ChatView currentUser={currentUser} />
-                        </div>
-                        <div className={activeTab === 'stock' ? 'block' : 'hidden'}>
-                            <StockManagement onOpenCreateModal={() => setIsCreateItemModalOpen(true)} />
-                        </div>
                         <div className={activeTab === 'supplies' ? 'block' : 'hidden'}>
                             <SuppliesManagement />
-                        </div>
-                        <div className={activeTab === 'knowledge' ? 'block' : 'hidden'}>
-                            <KnowledgeBase />
                         </div>
                         <div className={activeTab === 'calendar' ? 'block' : 'hidden'}>
                             <MissionCalendar

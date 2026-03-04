@@ -13,12 +13,10 @@ import BadgeManagementModal from './modals/BadgeManagementModal';
 import NotificationModal from './modals/NotificationModal';
 import MissionCalendar from '../MissionCalendar';
 import LiveLocationMap from '../LiveLocationMap';
-import ChatView from '../ChatView';
 import MissionRequests from './MissionRequests';
 import ApproveMissionModal from './modals/ApproveMissionModal';
 import MissionsManager from './MissionsManager';
 import MissionDetailsModal from '../technician/missions/MissionDetailsModal';
-import KnowledgeBase from '../knowledge/KnowledgeBase';
 import SuppliesManagement from './supplies/SuppliesManagement';
 import Leaderboard from '../common/Leaderboard';
 import HallOfFame from '../common/HallOfFame';
@@ -29,8 +27,8 @@ import { PlusIcon, BoxIcon, CalendarIcon, MapPinIcon, UserIcon, ChatIcon, TasksI
 
 // --- MAIN COMPONENT ---
 const AdminView: React.FC = () => {
-    const { currentUser, handleLogout } = useAuth();
-    const { missions, users, unreadMessagesCount, payrollEvents } = useData();
+    const { handleLogout } = useAuth();
+    const { missions, users, payrollEvents, currentUser } = useData();
     const [activeTab, setActiveTab] = useState('manage');
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const [managingInventoryFor, setManagingInventoryFor] = useState<User | null>(null);
@@ -55,8 +53,6 @@ const AdminView: React.FC = () => {
         { id: 'create', label: 'Crear Misión', icon: <PlusIcon /> },
         { id: 'stock', label: 'Stock (Equipo)', icon: <BoxIcon /> },
         { id: 'supplies', label: 'Insumos', icon: <BoxIcon /> },
-        { id: 'knowledge', label: 'Conocimiento', icon: <BookOpenIcon /> },
-        { id: 'chat', label: 'Chat', icon: <ChatIcon />, notification: unreadMessagesCount > 0 },
         { id: 'calendar', label: 'Calendario', icon: <CalendarIcon /> },
         { id: 'live_map', label: 'Mapa', icon: <MapPinIcon /> },
     ];
@@ -88,8 +84,6 @@ const AdminView: React.FC = () => {
                         <span>{tab.label}</span>
                         {tab.id === 'requests' && tab.notification && missionRequestsCount > 0 &&
                             <span className="ml-auto h-5 min-w-[1.25rem] px-1.5 text-xs flex items-center justify-center rounded-full bg-brand-red text-white font-bold">{missionRequestsCount}</span>}
-                        {tab.id === 'chat' && tab.notification && unreadMessagesCount > 0 &&
-                            <span className="ml-auto block h-2.5 w-2.5 rounded-full bg-brand-red ring-2 ring-brand-secondary" />}
                     </button>
                 ))}
             </nav>
@@ -139,7 +133,16 @@ const AdminView: React.FC = () => {
                         />
                     </div>
                     <div className={activeTab === 'manage' ? 'block' : 'hidden'}>
-                        <UserManagement onManageInventory={setManagingInventoryFor} onManageBadges={setManagingBadgesFor} onNotifyUser={setNotifyingUser} />
+                        <UserManagement
+                            onManageInventory={setManagingInventoryFor}
+                            onManageBadges={setManagingBadgesFor}
+                            onNotifyUser={setNotifyingUser}
+                            onSetSalary={setAddingPayrollEventFor}
+                            onShowAttendance={(user) => {
+                                // Logic for showing attendance if needed, but for now matching the prop
+                                console.log('Show attendance for', user.name);
+                            }}
+                        />
                     </div>
                     <div className={activeTab === 'missions' ? 'block' : 'hidden'}>
                         <MissionsManager onOpenMission={setSelectedMission} onEditMission={setEditingMission} />
@@ -156,17 +159,11 @@ const AdminView: React.FC = () => {
                     <div className={activeTab === 'create' ? 'block' : 'hidden'}>
                         <MissionCreator users={users} />
                     </div>
-                    <div className={activeTab === 'chat' ? 'block' : 'hidden'}>
-                        <ChatView currentUser={currentUser} />
-                    </div>
                     <div className={activeTab === 'stock' ? 'block' : 'hidden'}>
                         <StockManagement onOpenCreateModal={() => setIsCreateItemModalOpen(true)} />
                     </div>
                     <div className={activeTab === 'supplies' ? 'block' : 'hidden'}>
                         <SuppliesManagement />
-                    </div>
-                    <div className={activeTab === 'knowledge' ? 'block' : 'hidden'}>
-                        <KnowledgeBase />
                     </div>
                     <div className={activeTab === 'calendar' ? 'block' : 'hidden'}>
                         <MissionCalendar
@@ -192,8 +189,8 @@ const AdminView: React.FC = () => {
             {editingPayrollEvent && (
                 <AddPayrollEventModal
                     user={users.find(u => u.id === editingPayrollEvent.user_id)!}
-                    existingEvent={editingPayrollEvent}
                     onClose={() => setEditingPayrollEvent(null)}
+                    initialDate={editingPayrollEvent.fecha_evento}
                 />
             )}
             {addingPayrollEventFor && (

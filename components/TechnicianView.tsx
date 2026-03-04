@@ -12,8 +12,6 @@ import PermissionsGuard from './technician/PermissionsGuard';
 import Leaderboard from './common/Leaderboard';
 import HallOfFame from './common/HallOfFame';
 import MissionCalendar from './MissionCalendar';
-import ChatView from './ChatView';
-import KnowledgeBase from './knowledge/KnowledgeBase';
 import TechnicianSuppliesView from './technician/TechnicianSuppliesView';
 import PaymentsView from './technician/payments/PaymentsView';
 import RequestVacationModal from './technician/modals/RequestVacationModal';
@@ -35,7 +33,7 @@ interface TechnicianUIProps {
 }
 
 const TechnicianUI: React.FC<TechnicianUIProps> = ({ user, isAdminViewing = false, onBackToAdmin }) => {
-    const { missions, users, unreadMessagesCount, vacationRequests, payrollEvents } = useData();
+    const { missions, users, vacationRequests, payrollEvents } = useData();
     const [activeTab, setActiveTab] = useState('missions');
     const [selectedMission, setSelectedMission] = useState<Mission | null>(null);
     const [isCreateStockItemModalOpen, setIsCreateStockItemModalOpen] = useState(false);
@@ -92,19 +90,17 @@ const TechnicianUI: React.FC<TechnicianUIProps> = ({ user, isAdminViewing = fals
             { id: 'missions', label: 'Misiones', icon: <TasksIcon /> },
             { id: 'profile', label: 'Perfil', icon: <UserIcon /> },
             { id: 'payments', label: 'Pagos', icon: <CurrencyDollarIcon /> },
-            { id: 'knowledge', label: 'Saber', icon: <BookOpenIcon /> },
-            { id: 'chat', label: 'Chat', icon: <ChatIcon />, notification: unreadMessagesCount > 0 },
             { id: 'leaderboard', label: 'Top', icon: <ChartIcon /> },
         ];
 
         if (userHasSupplyBadge && !isAdminViewing) {
-            baseTabs.splice(3, 0, { id: 'supplies', label: 'Insumos', icon: <BoxIcon />, notification: false });
+            baseTabs.splice(3, 0, { id: 'supplies', label: 'Insumos', icon: <BoxIcon /> });
         }
         if (userHasEquipmentBadge && !isAdminViewing) {
-            baseTabs.splice(3, 0, { id: 'stock', label: 'Stock EPP', icon: <BoxIcon />, notification: false });
+            baseTabs.splice(3, 0, { id: 'stock', label: 'Stock EPP', icon: <BoxIcon /> });
         }
         if (isCook && !isAdminViewing) {
-            baseTabs.splice(3, 0, { id: 'kitchen', label: 'Cocina', icon: <ChefIcon />, notification: false });
+            baseTabs.splice(3, 0, { id: 'kitchen', label: 'Cocina', icon: <ChefIcon /> });
         }
 
         // Add less critical tabs for larger screens
@@ -119,7 +115,7 @@ const TechnicianUI: React.FC<TechnicianUIProps> = ({ user, isAdminViewing = fals
 
         return { mobile: baseTabs, desktop: desktopTabs }; // Using baseTabs for mobile to ensure all are accessible with scroll
 
-    }, [userHasSupplyBadge, userHasEquipmentBadge, unreadMessagesCount, isAdminViewing]);
+    }, [userHasSupplyBadge, userHasEquipmentBadge, isAdminViewing]);
 
     const renderContent = () => {
         switch (activeTab) {
@@ -129,8 +125,6 @@ const TechnicianUI: React.FC<TechnicianUIProps> = ({ user, isAdminViewing = fals
             case 'supplies': return <TechnicianSuppliesView />;
             case 'stock': return <StockManagement onOpenCreateModal={() => setIsCreateStockItemModalOpen(true)} />;
             case 'kitchen': return <KitchenManagement />;
-            case 'knowledge': return <KnowledgeBase />;
-            case 'chat': return <ChatView currentUser={user} />;
             case 'leaderboard': return <Leaderboard users={users} />;
             case 'hall_of_fame': return <HallOfFame missions={missions} users={users} />;
             case 'calendar': return (
@@ -164,7 +158,6 @@ const TechnicianUI: React.FC<TechnicianUIProps> = ({ user, isAdminViewing = fals
                                 >
                                     {React.cloneElement(tab.icon as React.ReactElement, { className: 'w-5 h-5' })}
                                     <span>{tab.label}</span>
-                                    {tab.notification && <span className="absolute -top-1 -right-1 block h-3 w-3 rounded-full bg-brand-red border-2 border-white animate-pulse" />}
                                 </button>
                             ))}
                         </div>
@@ -194,7 +187,6 @@ const TechnicianUI: React.FC<TechnicianUIProps> = ({ user, isAdminViewing = fals
                         >
                             <div className="relative">
                                 {React.cloneElement(tab.icon as React.ReactElement, { className: activeTab === tab.id ? 'w-6 h-6' : 'w-5 h-5' })}
-                                {tab.notification && <span className="absolute -top-1 -right-1 block h-2.5 w-2.5 rounded-full bg-brand-red ring-2 ring-white animate-pulse" />}
                             </div>
                             <span className="text-[9px] mt-1 font-black uppercase tracking-tighter leading-none">{tab.label}</span>
                         </button>

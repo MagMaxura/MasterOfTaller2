@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect, useMemo, createContext, useContext } from 'react';
-import { User, Mission, InventoryItem, Chat, ChatMessage, EquipmentSlot, MissionMilestone, MissionStatus, UserInventoryItem, Supply, MissionSupply, Badge, Salary, PayrollEvent, PaymentPeriod, Role, MissionDifficulty, PayrollEventType, MissionRequirement, Company, AttendanceSummary, UserSchedule, VacationRequest } from '../types';
+import { User, Mission, InventoryItem, EquipmentSlot, MissionMilestone, MissionStatus, UserInventoryItem, Supply, MissionSupply, Badge, Salary, PayrollEvent, PaymentPeriod, Role, MissionDifficulty, PayrollEventType, MissionRequirement, Company, AttendanceSummary, UserSchedule, VacationRequest } from '../types';
 import { supabase } from '../config';
 import { transformSupabaseProfileToUser } from '../utils/dataTransformers';
 import { useAuth } from './AuthContext';
@@ -23,12 +23,9 @@ interface DataContextType {
   payrollEvents: PayrollEvent[];
   paymentPeriods: PaymentPeriod[];
   userSchedules: UserSchedule[];
-  chats: Chat[];
-  chatMessages: ChatMessage[];
   attendanceUsers: AttendanceUser[];
   vacationRequests: VacationRequest[];
   loading: boolean;
-  unreadMessagesCount: number;
   viewingProfileOf: User | null;
   setViewingProfileOf: (user: User | null) => void;
   updateMission: (updatedMission: Partial<Mission>) => Promise<void>;
@@ -54,9 +51,6 @@ interface DataContextType {
   deleteInventoryItem: (itemId: string, iconUrl: string) => Promise<void>;
   savePushSubscription: (userId: string, subscription: PushSubscription) => Promise<void>;
   sendNotification: (technicianId: string, title: string, body: string) => Promise<void>;
-  handleSelectOrCreateChat: (otherParticipantId: string) => Promise<Chat | null>;
-  handleSendMessage: (chatId: string, content: string) => Promise<void>;
-  handleMarkAsRead: (chatId: string) => Promise<void>;
   addSupply: (data: Omit<Supply, 'id' | 'created_at' | 'stock_quantity'>, photoFile: File | null) => Promise<void>;
   updateSupply: (supplyId: string, data: Partial<Supply>, photoFile: File | null) => Promise<void>;
   deleteSupply: (supply: Supply) => Promise<void>;
@@ -107,8 +101,6 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [payrollEvents, setPayrollEvents] = useState<PayrollEvent[]>([]);
   const [paymentPeriods, setPaymentPeriods] = useState<PaymentPeriod[]>([]);
   const [userSchedules, setUserSchedules] = useState<UserSchedule[]>([]);
-  const [chats, setChats] = useState<Chat[]>([]);
-  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [attendanceUsers, setAttendanceUsers] = useState<AttendanceUser[]>([]);
   const [vacationRequests, setVacationRequests] = useState<VacationRequest[]>([]);
   const [loading, setLoading] = useState(true);
@@ -263,8 +255,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setSalaries([]);
       setPayrollEvents([]);
       setPaymentPeriods([]);
-      setChats([]);
-      setChatMessages([]);
+      setPaymentPeriods([]);
       setAttendanceUsers([]);
 
       setLoading(false);
@@ -280,8 +271,6 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         inventoryItemsResult,
         badgesResult,
         milestonesResult,
-        chatsResult,
-        messagesResult,
         suppliesResult,
         missionSuppliesResult,
         missionRequirementsResult,
@@ -359,22 +348,17 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (inventoryItemsResult.error) throw new Error(`Al cargar inventario: ${inventoryItemsResult.error.message}`);
       if (badgesResult.error) throw new Error(`Al cargar insignias: ${badgesResult.error.message}`);
       if (milestonesResult.error) throw new Error(`Al cargar hitos: ${milestonesResult.error.message}`);
-      if (chatsResult.error) throw new Error(`Al cargar chats: ${chatsResult.error.message}`);
-      if (messagesResult.error) throw new Error(`Al cargar mensajes: ${messagesResult.error.message}`);
       if (suppliesResult.error) throw new Error(`Al cargar insumos: ${suppliesResult.error.message}`);
       if (missionSuppliesResult.error) throw new Error(`Al cargar insumos de misión: ${missionSuppliesResult.error.message}`);
       if (missionRequirementsResult.error) throw new Error(`Al cargar requerimientos de misión: ${missionRequirementsResult.error.message}`);
       if (salariesResult.error) throw new Error(`Al cargar salarios: ${salariesResult.error.message}`);
       if (paymentPeriodsResult.error) throw new Error(`Al cargar períodos de pago: ${paymentPeriodsResult.error.message}`);
-      if (schedulesResult.error) throw new Error(`Al cargar horarios: ${schedulesResult.error.message}`);
 
       const transformedMissions = (missionsResult.data || []).map((m: any) => ({ ...m, assignedTo: m.assigned_to, startDate: m.start_date, deadline: m.deadline, skills: m.required_skills, progressPhoto: m.progress_photo_url, completedDate: m.completed_date, bonusXp: m.bonus_xp, visibleTo: m.visible_to, }));
       setMissions(transformedMissions);
       setAllInventoryItems((inventoryItemsResult.data || []).map((item: any) => ({ ...item, quantity: item.quantity ?? 0 })));
       setAllBadges((badgesResult.data || []) as Badge[]);
       setMissionMilestones((milestonesResult.data || []).map((m: any) => ({ ...m, is_solution: m.is_solution ?? false })) as MissionMilestone[]);
-      setChats((chatsResult.data || []) as Chat[]);
-      setChatMessages((messagesResult.data || []) as ChatMessage[]);
       setSupplies((suppliesResult.data || []) as Supply[]);
       setMissionSupplies((missionSuppliesResult.data || []) as MissionSupply[]);
       setMissionRequirements((missionRequirementsResult.data || []) as MissionRequirement[]);
@@ -437,8 +421,6 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       supabase.channel('public:supplies').on('postgres_changes', { event: '*', schema: 'public', table: 'supplies' }, () => fetchData()).subscribe(),
       supabase.channel('public:mission_supplies').on('postgres_changes', { event: '*', schema: 'public', table: 'mission_supplies' }, () => fetchData()).subscribe(),
       supabase.channel('public:mission_requirements').on('postgres_changes', { event: '*', schema: 'public', table: 'mission_requirements' }, () => fetchData()).subscribe(),
-      supabase.channel('public:chat_messages').on('postgres_changes', { event: '*', schema: 'public', table: 'chat_messages' }, () => fetchData()).subscribe(),
-      supabase.channel('public:chats').on('postgres_changes', { event: '*', schema: 'public', table: 'chats' }, () => fetchData()).subscribe(),
       supabase.channel('public:user_badges').on('postgres_changes', { event: '*', schema: 'public', table: 'user_badges' }, () => fetchData()).subscribe(),
       supabase.channel('public:profile_skills').on('postgres_changes', { event: '*', schema: 'public', table: 'profile_skills' }, () => fetchData()).subscribe(),
       supabase.channel('public:salarios').on('postgres_changes', { event: '*', schema: 'public', table: 'salarios' }, () => fetchData()).subscribe(),
@@ -450,12 +432,6 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return () => { allChannels.forEach(channel => supabase.removeChannel(channel)); };
   }, [authUser, fetchData]);
 
-
-  const unreadMessagesCount = useMemo(() => {
-    if (!currentUser) return 0;
-    const myChatIds = chats.map(c => c.id);
-    return chatMessages.filter(msg => myChatIds.includes(msg.chat_id) && msg.sender_id !== currentUser.id && !msg.is_read).length;
-  }, [chats, chatMessages, currentUser]);
 
   // --- MUTATIONS ---
   const updateMission = async (updatedMission: Partial<Mission>) => {
@@ -692,38 +668,6 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return api.revokeBadge(userId, badgeId);
   }
 
-  const handleSelectOrCreateChat = async (otherParticipantId: string): Promise<Chat | null> => {
-    if (currentUser?.id.startsWith('demo-')) {
-      const existing = chats.find(c => (c.participant_1 === currentUser.id && c.participant_2 === otherParticipantId) || (c.participant_1 === otherParticipantId && c.participant_2 === currentUser.id));
-      if (existing) return existing;
-      const newChat: Chat = { id: `chat-${Date.now()}`, participant_1: currentUser.id, participant_2: otherParticipantId, created_at: new Date().toISOString() };
-      setChats(prev => [...prev, newChat]);
-      return newChat;
-    }
-    if (!currentUser) return null;
-    const existingChat = chats.find(c => (c.participant_1 === currentUser.id && c.participant_2 === otherParticipantId) || (c.participant_1 === otherParticipantId && c.participant_2 === currentUser.id));
-    if (existingChat) return existingChat;
-    const { data, error } = await api.createChat(currentUser.id, otherParticipantId);
-    if (error) { showToast(error.message, 'error'); return null; }
-    return data as Chat;
-  };
-
-  const handleSendMessage = async (chatId: string, content: string) => {
-    if (!currentUser) return;
-    if (currentUser.id.startsWith('demo-')) {
-      const msg: ChatMessage = { id: `msg-${Date.now()}`, chat_id: chatId, sender_id: currentUser.id, content, created_at: new Date().toISOString(), is_read: false };
-      setChatMessages(prev => [...prev, msg]);
-      return;
-    }
-    try { await api.sendMessage(chatId, currentUser.id, content); }
-    catch (e) { showToast((e as Error).message, 'error'); }
-  };
-
-  const handleMarkAsRead = (chatId: string) => {
-    if (!currentUser) return Promise.resolve();
-    if (currentUser.id.startsWith('demo-')) { return Promise.resolve(); }
-    return api.markMessagesAsRead(chatId, currentUser.id);
-  };
 
   const setSalary = (userId: string, amount: number, salaryId?: string) => {
     if (currentUser?.id.startsWith('demo-')) { showToast('Acción simulada en modo demo.', 'success'); return Promise.resolve(); }
@@ -862,12 +806,9 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     payrollEvents,
     paymentPeriods,
     userSchedules,
-    chats,
-    chatMessages,
     attendanceUsers,
     vacationRequests,
     loading,
-    unreadMessagesCount,
     viewingProfileOf,
     setViewingProfileOf,
     updateMission,
@@ -893,9 +834,6 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     deleteInventoryItem,
     savePushSubscription,
     sendNotification,
-    handleSelectOrCreateChat,
-    handleSendMessage,
-    handleMarkAsRead,
     addSupply,
     updateSupply,
     deleteSupply,

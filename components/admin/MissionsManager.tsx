@@ -2,12 +2,14 @@ import React, { useMemo, useState } from 'react';
 import { Mission, MissionStatus } from '../../types';
 import { useData } from '../../contexts/DataContext';
 import AdminMissionCard from './missions/AdminMissionCard';
+import KnowledgeBase from '../knowledge/KnowledgeBase';
+import { BookOpenIcon, TasksIcon } from '../Icons';
 
 const MissionColumn: React.FC<{
     title: string;
     missions: Mission[];
-    onOpenMission: (mission) => void;
-    onEditMission: (mission) => void;
+    onOpenMission: (mission: Mission) => void;
+    onEditMission: (mission: Mission) => void;
 }> = ({ title, missions, onOpenMission, onEditMission }) => {
     const config: { [key: string]: { color: string, label: string } } = {
         [MissionStatus.PENDING]: { color: 'border-brand-light bg-brand-light/5 text-brand-light', label: 'Pendientes' },
@@ -46,6 +48,7 @@ interface MissionsManagerProps {
 const MissionsManager: React.FC<MissionsManagerProps> = ({ onOpenMission, onEditMission }) => {
     const { missions } = useData();
     const [activeTab, setActiveTab] = useState<MissionStatus>(MissionStatus.IN_PROGRESS);
+    const [showKnowledgeBase, setShowKnowledgeBase] = useState(false);
 
     const { pending, inProgress, completed } = useMemo(() => {
         const missionsToShow = missions.filter(m => m.status !== MissionStatus.REQUESTED);
@@ -64,47 +67,68 @@ const MissionsManager: React.FC<MissionsManagerProps> = ({ onOpenMission, onEdit
 
     return (
         <div className="space-y-8">
-            <div className="flex flex-col gap-2">
-                <h2 className="text-3xl font-black text-brand-highlight tracking-tight">Estado de Misiones</h2>
-                <p className="text-sm text-brand-light leading-none">Supervisa el avance global de todos los proyectos.</p>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div className="flex flex-col gap-2">
+                    <h2 className="text-3xl font-black text-brand-highlight tracking-tight">
+                        {showKnowledgeBase ? 'Base de Saber' : 'Estado de Misiones'}
+                    </h2>
+                    <p className="text-sm text-brand-light leading-none">
+                        {showKnowledgeBase ? 'Consulta y gestiona el aprendizaje colectivo del equipo.' : 'Supervisa el avance global de todos los proyectos.'}
+                    </p>
+                </div>
+                <button
+                    onClick={() => setShowKnowledgeBase(!showKnowledgeBase)}
+                    className={`px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all duration-300 flex items-center gap-2 ${showKnowledgeBase ? 'bg-brand-blue text-white shadow-premium' : 'bg-brand-secondary text-brand-light border border-brand-accent hover:text-brand-highlight'}`}
+                >
+                    {showKnowledgeBase ? <TasksIcon className="w-4 h-4" /> : <BookOpenIcon className="w-4 h-4" />}
+                    {showKnowledgeBase ? 'Ver Misiones' : 'Base de Saber'}
+                </button>
             </div>
 
-            {/* Mobile Tabs */}
-            <div className="md:hidden">
-                <div className="flex gap-2 p-1.5 bg-brand-accent/30 rounded-2xl mb-6 overflow-x-auto no-scrollbar">
-                    {TABS.map(tab => (
-                        <button
-                            key={tab.id}
-                            onClick={() => setActiveTab(tab.id as MissionStatus)}
-                            className={`flex items-center gap-2 px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === tab.id ? 'bg-white text-brand-blue shadow-premium scale-105' : 'text-brand-light'}`}
-                        >
-                            {tab.label}
-                            <span className={`px-1.5 py-0.5 rounded-md ${activeTab === tab.id ? 'bg-brand-blue/10' : 'bg-brand-accent/50'}`}>{tab.missions.length}</span>
-                        </button>
-                    ))}
-                </div>
+            {showKnowledgeBase ? (
                 <div className="animate-fadeIn">
-                    <MissionColumn
-                        title={activeTab}
-                        missions={TABS.find(t => t.id === activeTab)?.missions || []}
-                        onOpenMission={onOpenMission}
-                        onEditMission={onEditMission}
-                    />
+                    <KnowledgeBase />
                 </div>
-            </div>
+            ) : (
+                <>
+                    {/* Mobile Tabs */}
+                    <div className="md:hidden">
+                        <div className="flex gap-2 p-1.5 bg-brand-accent/30 rounded-2xl mb-6 overflow-x-auto no-scrollbar">
+                            {TABS.map(tab => (
+                                <button
+                                    key={tab.id}
+                                    onClick={() => setActiveTab(tab.id as MissionStatus)}
+                                    className={`flex items-center gap-2 px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === tab.id ? 'bg-white text-brand-blue shadow-premium scale-105' : 'text-brand-light'}`}
+                                >
+                                    {tab.label}
+                                    <span className={`px-1.5 py-0.5 rounded-md ${activeTab === tab.id ? 'bg-brand-blue/10' : 'bg-brand-accent/50'}`}>{tab.missions.length}</span>
+                                </button>
+                            ))}
+                        </div>
+                        <div className="animate-fadeIn">
+                            <MissionColumn
+                                title={activeTab}
+                                missions={TABS.find(t => t.id === activeTab)?.missions || []}
+                                onOpenMission={onOpenMission}
+                                onEditMission={onEditMission}
+                            />
+                        </div>
+                    </div>
 
-            {/* Desktop Grid */}
-            <div className="hidden md:flex gap-10">
-                {TABS.map(tab => (
-                    <MissionColumn
-                        key={tab.id}
-                        title={tab.id as MissionStatus}
-                        missions={tab.missions}
-                        onOpenMission={onOpenMission}
-                        onEditMission={onEditMission}
-                    />
-                ))}
-            </div>
+                    {/* Desktop Grid */}
+                    <div className="hidden md:flex gap-10">
+                        {TABS.map(tab => (
+                            <MissionColumn
+                                key={tab.id}
+                                title={tab.id as MissionStatus}
+                                missions={tab.missions}
+                                onOpenMission={onOpenMission}
+                                onEditMission={onEditMission}
+                            />
+                        ))}
+                    </div>
+                </>
+            )}
         </div>
     );
 };
