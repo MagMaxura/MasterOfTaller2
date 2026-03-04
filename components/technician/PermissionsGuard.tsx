@@ -196,7 +196,7 @@ const PermissionsGuard: React.FC<{ user: User; children: React.ReactNode; }> = (
                         const updatedUser = { ...user, xp: user.xp + bonusXp };
                         const nextLevelXp = LEVEL_THRESHOLDS[user.level] || Infinity;
                         if (updatedUser.xp >= nextLevelXp) updatedUser.level += 1;
-                        await updateUser(updatedUser);
+                        await updateUser(user.id, updatedUser);
                         localStorage.setItem(bonusClaimedKey, 'true');
                         showToast(`¡Bonus reclamado! Has ganado ${bonusXp} XP.`, 'success');
                     } catch (error) {
