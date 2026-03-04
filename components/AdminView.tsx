@@ -26,6 +26,10 @@ import PayrollManagement from './admin/payroll/PayrollManagement';
 import SetSalaryModal from './admin/payroll/SetSalaryModal';
 import AddPayrollEventModal from './admin/payroll/AddPayrollEventModal';
 import AttendanceModal from './admin/modals/AttendanceModal';
+import NotificationSubscriber from './admin/NotificationSubscriber';
+import { supabaseAttendance } from '../config';
+import { api } from '../services/api';
+import { Role as UserRole } from '../types';
 
 import { PlusIcon, BoxIcon, CalendarIcon, MapPinIcon, UserIcon, ChatIcon, TasksIcon, BookOpenIcon, LogoutIcon, MenuIcon, ChartIcon, HallOfFameIcon, CurrencyDollarIcon } from './Icons';
 
@@ -45,7 +49,36 @@ const AdminView: React.FC = () => {
     const [editingMission, setEditingMission] = useState<Mission | null>(null);
     const [selectedMission, setSelectedMission] = useState<Mission | null>(null);
 
-    // Removed package.json fetch to avoid 404 errors in production
+    // real-time attendance monitor for admin notifications
+    useEffect(() => {
+        if (currentUser?.role === UserRole.ADMIN) {
+            const channel = supabaseAttendance
+                .channel('admin-attendance-monitor')
+                .on(
+                    'postgres_changes',
+                    { event: 'INSERT', schema: 'public', table: 'access_logs' },
+                    async (payload) => {
+                        const newLog = payload.new;
+                        if (newLog.type.toUpperCase() === 'IN' || newLog.type.toUpperCase() === 'ENTRADA') {
+                            try {
+                                await api.sendNotification(
+                                    currentUser.id,
+                                    '🔔 Nuevo Ingreso',
+                                    `${newLog.user_name} ha ingresado a las ${new Date(newLog.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
+                                );
+                            } catch (e) {
+                                console.error("Error sending push notification:", e);
+                            }
+                        }
+                    }
+                )
+                .subscribe();
+
+            return () => {
+                supabaseAttendance.removeChannel(channel);
+            };
+        }
+    }, [currentUser]);
 
     const missionRequestsCount = useMemo(() => missions.filter(m => m.status === MissionStatus.REQUESTED).length, [missions]);
 
@@ -80,6 +113,10 @@ const AdminView: React.FC = () => {
                     <h2 className="font-black text-xl truncate tracking-tight">{currentUser.name}</h2>
                     <p className="text-[10px] text-brand-blue uppercase font-black tracking-widest opacity-80">Administrador</p>
                 </div>
+            </div>
+
+            <div className="px-4 mb-4">
+                <NotificationSubscriber />
             </div>
 
             <nav className="flex-grow flex flex-col space-y-1.5 overflow-y-auto px-4 custom-scrollbar">

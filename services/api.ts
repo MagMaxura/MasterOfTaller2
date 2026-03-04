@@ -1,5 +1,3 @@
-
-
 import { supabase } from '../config';
 import { User, Mission, EquipmentSlot, Supply, MissionSupply, MissionRequirement } from '../types';
 import { Database } from '../database.types';
@@ -26,7 +24,7 @@ type UserScheduleInsert = any;
 export const api = {
   // --- FETCH ---
   async getInitialData(userId: string) {
-    const profileColumns = 'avatar, id, email, is_active, lat, level, lng, location_last_update, name, push_subscription, role, company, xp, attendance_id';
+    const profileColumns = 'avatar, id, email, is_active, lat, level, lng, location_last_update, name, push_subscription, role, company, xp, attendance_id, joining_date, vacation_total_days, vacation_remaining_days';
     const missionColumns = 'id, created_at, title, description, status, difficulty, xp, bonus_monetario, assigned_to, start_date, deadline, required_skills, progress_photo_url, completed_date, bonus_xp, visible_to, company, role';
     const inventoryItemColumns = 'id, name, description, icon_url, slot, quantity';
     const badgeColumns = 'id, name, icon, description';
@@ -35,7 +33,6 @@ export const api = {
     const payrollEventColumns = 'id, user_id, tipo, descripcion, monto, fecha_evento, periodo_pago_id, mission_id, created_at';
     const paymentPeriodColumns = 'id, user_id, fecha_inicio_periodo, fecha_fin_periodo, fecha_pago, salario_base_calculado, total_adiciones, total_deducciones, monto_final_a_pagar, estado, created_at';
 
-    // NEW: Combined query for profiles using relationships. This is more efficient and robust.
     // NEW: Combined query for profiles using relationships. This is more efficient and robust.
     const profilesQuery = supabase.from('profiles').select(`
         ${profileColumns},
@@ -72,8 +69,6 @@ export const api = {
     if (error) throw new Error(error.message);
   },
   async deleteMission(missionId: string) {
-    // First, delete dependencies to ensure referential integrity
-    // if ON DELETE CASCADE is not configured.
     const { error: eventsError } = await supabase.from('eventos_nomina').delete().eq('mission_id', missionId);
     if (eventsError) throw new Error(`Error deleting associated payroll events: ${eventsError.message}`);
 
@@ -93,10 +88,9 @@ export const api = {
     }
   },
   async createProfile(insertData: { id: string, name: string, avatar: string, role: Database['public']['Enums']['role'] }) {
-    // Usamos upsert para ser más resilientes ante reintentos accidentales
     const { error } = await supabase.from('profiles').upsert({
       ...insertData,
-      is_active: true // Aseguramos que el perfil sea visible de inmediato
+      is_active: true
     });
     if (error) throw new Error(error.message);
   },
@@ -279,6 +273,17 @@ export const api = {
     const { error } = await supabase.from('eventos_nomina').update(data).eq('id', id);
     if (error) throw new Error(error.message);
   },
+  async deletePayrollEventByCriteria(userId: string, date: string, type: string, descriptionLike: string) {
+    // @ts-ignore
+    const { error } = await supabase
+      .from('eventos_nomina')
+      .delete()
+      .eq('user_id', userId)
+      .eq('fecha_evento', date)
+      .eq('tipo', type)
+      .ilike('descripcion', `%${descriptionLike}%`);
+    if (error) throw new Error(error.message);
+  },
   async addPaymentPeriod(data: PaymentPeriodInsert) {
     const { data: newPeriod, error } = await supabase.from('periodos_pago').insert(data).select().single();
     if (error) throw new Error(error.message);
@@ -339,6 +344,11 @@ export const api = {
   },
   async deleteVacationRequest(id: string) {
     const { error } = await supabase.from('vacation_requests').delete().eq('id', id);
+    if (error) throw new Error(error.message);
+  },
+  async generateDailyAbsences(date: string) {
+    // @ts-ignore
+    const { error } = await supabase.rpc('generate_daily_absences', { p_date: date });
     if (error) throw new Error(error.message);
   }
 };

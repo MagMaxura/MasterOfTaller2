@@ -119,6 +119,7 @@ export interface User {
   attendance_id?: string;
   vacation_total_days?: number;
   vacation_remaining_days?: number;
+  joining_date?: string;
 }
 
 export interface Mission {

@@ -9,10 +9,13 @@ interface VacationApprovalModalProps {
     onClose: () => void;
 }
 
-const VacationApprovalModal: React.FC<VacationApprovalModalProps> = ({ user, onClose }) => {
-    const { vacationRequests, updateVacationStatus, deleteVacationRequest, requestVacation, updateUser } = useData();
+const VacationApprovalModal: React.FC<VacationApprovalModalProps> = ({ user: initialUser, onClose }) => {
+    const { users, vacationRequests, updateVacationStatus, deleteVacationRequest, requestVacation, updateUser } = useData();
     const { showToast } = useToast();
     const [isAddingPast, setIsAddingPast] = useState(false);
+
+    // Always use the latest data from context
+    const user = users.find(u => u.id === initialUser.id) || initialUser;
     const [pastStart, setPastStart] = useState('');
     const [pastEnd, setPastEnd] = useState('');
     const [pastReason, setPastReason] = useState('Registro histórico');
@@ -49,20 +52,14 @@ const VacationApprovalModal: React.FC<VacationApprovalModalProps> = ({ user, onC
             await requestVacation({
                 user_id: user.id,
                 start_date: pastStart,
-                end_date: pastEnd,
+                end_date: end.toISOString().split('T')[0],
                 days_count: daysCount,
                 reason: pastReason,
-                reviewed_by: null,
-                reviewed_at: null
+                status: 'APROBADA'
             });
 
-            // Note: Since requestVacation doesn't return the ID easily in this context
-            // and realtime will trigger a refresh, we rely on the fact that
-            // for historical records, we might want to manually subtract days
-            // from the remaining balance too if the user's balance wasn't already updated.
-
-            const newRemaining = (user.vacation_remaining_days || 0) - daysCount;
-            await updateUser(user.id, { vacation_remaining_days: newRemaining });
+            // Note: DataContext.requestVacation now handles the balance update 
+            // when status is 'APROBADA'
 
             showToast("Vacaciones históricas registradas", "success");
             setIsAddingPast(false);

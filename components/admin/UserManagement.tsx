@@ -5,6 +5,7 @@ import { useData } from '../../contexts/DataContext';
 import { useToast } from '../../contexts/ToastContext';
 import { PlusIcon, StarIcon, BoxIcon, BadgeIcon, CurrencyDollarIcon, BellIcon, LogoutIcon, UserIcon, ClockIcon, EditIcon, CalendarIcon } from '../Icons';
 import VacationApprovalModal from './modals/VacationApprovalModal';
+import { calculateTotalVacationDays } from '../../utils/vacation';
 
 const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS' }).format(amount);
@@ -64,7 +65,8 @@ const UserManagement: React.FC<{
                 company: editingUser.company,
                 attendance_id: editingUser.attendance_id,
                 vacation_total_days: editingUser.vacation_total_days,
-                vacation_remaining_days: editingUser.vacation_remaining_days
+                vacation_remaining_days: editingUser.vacation_remaining_days,
+                joining_date: editingUser.joining_date
             });
             showToast('Usuario actualizado correctamente.', 'success');
             setEditingUser(null);
@@ -267,6 +269,25 @@ const UserManagement: React.FC<{
                                         ))}
                                 </select>
                                 <p className="text-[9px] text-brand-light font-bold italic ml-1">* Selecciona el perfil del reloj facial para vincularlo manualmente.</p>
+                            </div>
+
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-black text-brand-light uppercase tracking-widest ml-1">Fecha de Ingreso</label>
+                                <input
+                                    type="date"
+                                    className="w-full bg-brand-secondary border border-brand-accent rounded-2xl px-4 py-3 font-bold text-brand-highlight focus:ring-2 focus:ring-brand-blue outline-none transition-all"
+                                    value={editingUser.joining_date || ''}
+                                    onChange={(e) => {
+                                        const newDate = e.target.value;
+                                        const suggestedTotal = calculateTotalVacationDays(newDate);
+                                        setEditingUser({
+                                            ...editingUser,
+                                            joining_date: newDate,
+                                            vacation_total_days: suggestedTotal,
+                                            vacation_remaining_days: suggestedTotal // Reset remaining to total if changing date? Or just total?
+                                        });
+                                    }}
+                                />
                             </div>
 
                             <div className="grid grid-cols-2 gap-4">

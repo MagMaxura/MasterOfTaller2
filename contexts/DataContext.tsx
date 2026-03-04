@@ -1,7 +1,6 @@
 import React, { useState, useCallback, useEffect, useMemo, createContext, useContext } from 'react';
 import { User, Mission, InventoryItem, Chat, ChatMessage, EquipmentSlot, MissionMilestone, MissionStatus, UserInventoryItem, Supply, MissionSupply, Badge, Salary, PayrollEvent, PaymentPeriod, Role, MissionDifficulty, PayrollEventType, MissionRequirement, Company, AttendanceSummary, UserSchedule, VacationRequest } from '../types';
 import { supabase } from '../config';
-import { Database } from '../database.types';
 import { transformSupabaseProfileToUser } from '../utils/dataTransformers';
 import { useAuth } from './AuthContext';
 import { useToast } from './ToastContext';
@@ -75,7 +74,7 @@ interface DataContextType {
   updateMissionRequirement: (id: string, data: Partial<MissionRequirement>) => Promise<void>;
   deleteMissionRequirement: (id: string) => Promise<void>;
   updateUserSchedule: (userId: string, data: Partial<UserSchedule>) => Promise<void>;
-  requestVacation: (data: Omit<VacationRequest, 'id' | 'status' | 'created_at'>) => Promise<void>;
+  requestVacation: (data: Omit<VacationRequest, 'id' | 'status' | 'created_at'> & { status?: VacationRequest['status'] }) => Promise<void>;
   updateVacationStatus: (requestId: string, status: VacationRequest['status'], reason?: string) => Promise<void>;
   deleteVacationRequest: (requestId: string) => Promise<void>;
 }
@@ -113,6 +112,49 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [vacationRequests, setVacationRequests] = useState<VacationRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [viewingProfileOf, setViewingProfileOf] = useState<User | null>(null);
+
+  const checkAndGenerateDailyAbsences = useCallback(async () => {
+    if (!authUser || authUser.id.startsWith('demo-')) return;
+    const todayStr = new Date().toISOString().split('T')[0];
+    try {
+      await api.generateDailyAbsences(todayStr);
+    } catch (e) {
+      console.error("Error generating daily absences:", e);
+    }
+  }, [authUser]);
+
+  const reconcileDailyAttendance = useCallback(async (currentUsers: User[], currentEvents: PayrollEvent[]) => {
+    if (!authUser || authUser.id.startsWith('demo-')) return false;
+    const todayStr = new Date().toISOString().split('T')[0];
+    let changed = false;
+
+    for (const user of currentUsers) {
+      if (user.role !== Role.TECHNICIAN) continue;
+      try {
+        const attUser = user.attendance_id
+          ? await attendanceService.getUserProfileById(user.attendance_id)
+          : (user.email ? await attendanceService.getUserProfileByEmail(user.email) : null);
+        if (!attUser) continue;
+
+        const logs = await attendanceService.getAccessLogsByRange(attUser.id, todayStr, todayStr);
+        const hasIn = logs.some(l => l.type.toUpperCase() === 'IN' || l.type.toUpperCase() === 'ENTRADA');
+
+        if (hasIn) {
+          const autoAbsence = currentEvents.find(e =>
+            e.user_id === user.id &&
+            e.fecha_evento === todayStr &&
+            e.tipo === PayrollEventType.ABSENCE &&
+            e.descripcion.includes('Auto-generada')
+          );
+          if (autoAbsence) {
+            await api.deletePayrollEventByCriteria(user.id, todayStr, PayrollEventType.ABSENCE, 'Auto-generada');
+            changed = true;
+          }
+        }
+      } catch (e) { console.warn("Reconciliation error:", e); }
+    }
+    return changed;
+  }, [authUser]);
 
   const fetchData = useCallback(async () => {
     if (!authUser?.id) return;
@@ -248,6 +290,68 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       ] = await Promise.all([...results, api.getVacationRequests()]);
 
       if (profilesResult.error) throw new Error(`Al cargar perfiles: ${profilesResult.error.message}`);
+      const rawProfilesData = (profilesResult.data || []) as any[];
+      const transformedUsers = rawProfilesData.map(transformSupabaseProfileToUser);
+      setUsers(transformedUsers);
+
+      let foundUser = transformedUsers.find(u => u.id === authUser.id);
+
+      // AUTO-REGISTRATION or ACCESS CONTROL
+      if (!foundUser && !authUser.id.startsWith('demo-')) {
+        try {
+          const { data: existingProfile, error: checkError } = await supabase
+            .from('profiles')
+            .select('id, is_active')
+            .eq('id', authUser.id)
+            .maybeSingle();
+
+          if (checkError) throw checkError;
+
+          if (existingProfile && existingProfile.is_active === false) {
+            showToast('USTED NO TIENE ACCESO A LA HERRAMIENTA', 'error');
+            await supabase.auth.signOut();
+            setLoading(false);
+            return;
+          }
+
+          if (!existingProfile) {
+            const userName = authUser.user_metadata?.full_name || authUser.user_metadata?.name || authUser.email?.split('@')[0] || 'Nuevo Usuario';
+            const userAvatar = authUser.user_metadata?.avatar_url || authUser.user_metadata?.picture || `https://ui-avatars.com/api/?name=${encodeURIComponent(userName)}&background=random`;
+
+            await api.createProfile({ id: authUser.id, name: userName, avatar: userAvatar, role: 'tecnico' });
+
+            const { data: newProfileData } = await supabase.from('profiles').select(`
+                avatar, id, email, is_active, lat, level, lng, location_last_update, name, push_subscription, role, company, xp,
+                profile_skills ( level, skills ( id, name ) ),
+                user_badges ( badges ( id, name, icon, description ) ),
+                user_inventory ( id, assigned_at, variant_id, inventory_items ( id, name, description, icon_url, slot, quantity ), variant:inventory_variants ( id, size, quantity ) )
+            `).eq('id', authUser.id).maybeSingle();
+
+            if (newProfileData) {
+              foundUser = transformSupabaseProfileToUser(newProfileData);
+              setUsers(prev => [...prev.filter(u => u.id !== foundUser!.id), foundUser!]);
+            }
+          }
+        } catch (regError) { console.error("Error during profile processing:", regError); }
+      }
+
+      setCurrentUser(foundUser || null);
+
+      // --- AUTO-GENERATION & RECONCILIATION ---
+      if (foundUser?.role === Role.ADMIN) {
+        await checkAndGenerateDailyAbsences();
+      }
+
+      const initialEvents = (payrollEventsResult.data || []) as PayrollEvent[];
+      const wasReconciled = await reconcileDailyAttendance(transformedUsers, initialEvents);
+
+      let finalEvents = initialEvents;
+      if (wasReconciled) {
+        const refreshEvents = await supabase.from('eventos_nomina').select('*').order('fecha_evento', { ascending: false });
+        if (!refreshEvents.error) finalEvents = refreshEvents.data as PayrollEvent[];
+      }
+      setPayrollEvents(finalEvents);
+
       if (missionsResult.error) throw new Error(`Al cargar misiones: ${missionsResult.error.message}`);
       if (inventoryItemsResult.error) throw new Error(`Al cargar inventario: ${inventoryItemsResult.error.message}`);
       if (badgesResult.error) throw new Error(`Al cargar insignias: ${badgesResult.error.message}`);
@@ -258,85 +362,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (missionSuppliesResult.error) throw new Error(`Al cargar insumos de misión: ${missionSuppliesResult.error.message}`);
       if (missionRequirementsResult.error) throw new Error(`Al cargar requerimientos de misión: ${missionRequirementsResult.error.message}`);
       if (salariesResult.error) throw new Error(`Al cargar salarios: ${salariesResult.error.message}`);
-      if (payrollEventsResult.error) throw new Error(`Al cargar eventos de nómina: ${payrollEventsResult.error.message}`);
       if (paymentPeriodsResult.error) throw new Error(`Al cargar períodos de pago: ${paymentPeriodsResult.error.message}`);
       if (schedulesResult.error) throw new Error(`Al cargar horarios: ${schedulesResult.error.message}`);
-      // vacationRequestsResult doesn't have .error if it's from api.getVacationRequests() directly (it throws or returns data)
-      // but if I use Promise.all with results from getInitialData, I should be careful.
-      // Actually api.getVacationRequests() returns data directly.
-
-
-      const profilesData = (profilesResult.data || []) as any[];
-      const combinedUsers = profilesData.map(p => transformSupabaseProfileToUser(p));
-      setUsers(combinedUsers);
-
-      let foundUser = combinedUsers.find(u => u.id === authUser.id);
-
-      // AUTO-REGISTRATION or ACCESS CONTROL for Users not in the 'active' list
-      if (!foundUser && !authUser.id.startsWith('demo-')) {
-        console.log("Profile not found in active list. Checking existence/status...");
-        try {
-          // Explicitly check for the profile regardless of 'is_active' status
-          const { data: existingProfile, error: checkError } = await supabase
-            .from('profiles')
-            .select('id, is_active')
-            .eq('id', authUser.id)
-            .maybeSingle();
-
-          if (checkError) throw checkError;
-
-          if (existingProfile) {
-            // User exists but is NOT active (since they weren't in combinedUsers)
-            if (existingProfile.is_active === false) {
-              console.error("User is deactivated.");
-              showToast('USTED NO TIENE ACCESO A LA HERRAMIENTA', 'error');
-              await supabase.auth.signOut();
-              setLoading(false);
-              return;
-            }
-          }
-
-          // If NO profile exists at all, proceed with auto-registration
-          if (!existingProfile) {
-            console.log("No profile found at all. Attempting auto-registration...");
-            const userName = authUser.user_metadata?.full_name || authUser.user_metadata?.name || authUser.email?.split('@')[0] || 'Nuevo Usuario';
-            const userAvatar = authUser.user_metadata?.avatar_url || authUser.user_metadata?.picture || `https://ui-avatars.com/api/?name=${encodeURIComponent(userName)}&background=random`;
-
-            await api.createProfile({
-              id: authUser.id,
-              name: userName,
-              avatar: userAvatar,
-              role: 'tecnico'
-            });
-
-            // Re-fetch to confirm and load
-            const newProfilesResult = await supabase.from('profiles').select(`
-                avatar, id, email, is_active, lat, level, lng, location_last_update, name, push_subscription, role, company, xp,
-                profile_skills ( level, skills ( id, name ) ),
-                user_badges ( badges ( id, name, icon, description ) ),
-                user_inventory ( id, assigned_at, variant_id, inventory_items ( id, name, description, icon_url, slot, quantity ), variant:inventory_variants ( id, size, quantity ) )
-            `).eq('id', authUser.id).maybeSingle();
-
-            if (newProfilesResult.data) {
-              const newUser = transformSupabaseProfileToUser(newProfilesResult.data);
-              setUsers(prev => [...prev.filter(u => u.id !== newUser.id), newUser]);
-              foundUser = newUser;
-              showToast('¡Bienvenido! Tu perfil ha sido creado.', 'success');
-            }
-          }
-        } catch (regError) {
-          console.error("Error during profile processing:", regError);
-          showToast('Error al procesar tu acceso. Contacta a soporte.', 'error');
-        }
-      }
-
-      setCurrentUser(foundUser || null);
-
-      if (!foundUser && !loading && !authUser.id.startsWith('demo-')) {
-        console.error("Profile missing or inaccessible.");
-        showToast('No se pudo encontrar un perfil activo.', 'error');
-        supabase.auth.signOut();
-      }
 
       const transformedMissions = (missionsResult.data || []).map((m: any) => ({ ...m, assignedTo: m.assigned_to, startDate: m.start_date, deadline: m.deadline, skills: m.required_skills, progressPhoto: m.progress_photo_url, completedDate: m.completed_date, bonusXp: m.bonus_xp, visibleTo: m.visible_to, }));
       setMissions(transformedMissions);
@@ -349,49 +376,33 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setMissionSupplies((missionSuppliesResult.data || []) as MissionSupply[]);
       setMissionRequirements((missionRequirementsResult.data || []) as MissionRequirement[]);
       setSalaries((salariesResult.data || []) as Salary[]);
-      setPayrollEvents((payrollEventsResult.data || []) as PayrollEvent[]);
       setUserSchedules((schedulesResult.data || []) as UserSchedule[]);
       setVacationRequests(vacationRequestsResult || []);
 
-      // NEW: Fetch all attendance users for linking mapping
       const attUsers = await attendanceService.getAllUsers();
       setAttendanceUsers(attUsers);
 
       const rawPeriods = (paymentPeriodsResult.data || []) as PaymentPeriod[];
-
-      // Enrich periods with attendance history (lazily or in parallel)
       const enrichedPeriods = await Promise.all(rawPeriods.map(async (p): Promise<PaymentPeriod> => {
-        const user = profilesData.find(u => u.id === p.user_id);
+        const user = rawProfilesData.find(u => u.id === p.user_id);
         if (!user || !user.email) return p;
-
         try {
-          // New: Try bridging by attendance_id first, fallback to email
           const attUser = user.attendance_id
             ? await attendanceService.getUserProfileById(user.attendance_id)
             : (user.email ? await attendanceService.getUserProfileByEmail(user.email) : null);
-
           if (!attUser) return p;
-
           const logs = await attendanceService.getAccessLogsByRange(attUser.id, p.fecha_inicio_periodo, p.fecha_fin_periodo);
-
           const summaryMap: Record<string, AttendanceSummary> = {};
           logs.forEach(l => {
             const date = l.timestamp.split('T')[0];
-            if (!summaryMap[date]) {
-              summaryMap[date] = { date, totalHours: 0, isTardy: !!l.tardiness_hours, isAbsent: false };
-            }
+            if (!summaryMap[date]) summaryMap[date] = { date, totalHours: 0, isTardy: !!l.tardiness_hours, isAbsent: false };
             const type = l.type.toUpperCase();
             if (type === 'IN' || type === 'ENTRADA') summaryMap[date].checkIn = l.timestamp;
             if (type === 'OUT' || type === 'SALIDA') summaryMap[date].checkOut = l.timestamp;
-
             if (l.hours_worked) summaryMap[date].totalHours += l.hours_worked;
           });
-
           return { ...p, attendanceHistory: Object.values(summaryMap) };
-        } catch (e) {
-          console.warn("Could not enrich period with attendance:", e);
-          return p;
-        }
+        } catch (e) { return p; }
       }));
 
       setPaymentPeriods(enrichedPeriods);
@@ -400,7 +411,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.error("Error fetching data:", error);
       showToast(error instanceof Error ? error.message : "Error al cargar datos", 'error');
     }
-  }, [authUser, showToast]);
+  }, [authUser, showToast, checkAndGenerateDailyAbsences, reconcileDailyAttendance]);
 
   useEffect(() => {
     if (authUser) {
@@ -449,7 +460,6 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (!updatedMission.id) return;
     const { id, assignedTo, startDate, deadline, skills, progressPhoto, completedDate, bonusXp, bonusMonetario, visibleTo, ...rest } = updatedMission;
 
-    // Explicitly map all camelCase fields to snake_case for the DB
     await api.updateMission(id, {
       ...rest,
       assigned_to: assignedTo,
@@ -459,7 +469,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       progress_photo_url: progressPhoto,
       completed_date: completedDate,
       bonus_xp: bonusXp,
-      bonus_monetario: bonusMonetario, // Fix: Map this field
+      bonus_monetario: bonusMonetario,
       visible_to: visibleTo,
     });
   };
@@ -475,23 +485,19 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (data.company !== undefined) updateData.company = data.company;
     if (data.pushSubscription !== undefined) updateData.push_subscription = data.pushSubscription;
     if (data.attendance_id !== undefined) updateData.attendance_id = data.attendance_id;
+    if (data.joining_date !== undefined) updateData.joining_date = data.joining_date;
 
     await api.updateUser(userId, updateData);
 
-    // Update local state
     setUsers(prev => prev.map(u => u.id === userId ? { ...u, ...data } : u));
-    if (currentUser?.id === userId) {
-      setCurrentUser(prev => prev ? { ...prev, ...data } : null);
-    }
-    if (viewingProfileOf?.id === userId) {
-      setViewingProfileOf(prev => prev ? { ...prev, ...data } : null);
-    }
+    if (currentUser?.id === userId) setCurrentUser(prev => prev ? { ...prev, ...data } : null);
+    if (viewingProfileOf?.id === userId) setViewingProfileOf(prev => prev ? { ...prev, ...data } : null);
   };
 
   const deactivateUser = async (userId: string) => {
     if (currentUser?.id.startsWith('demo-')) { showToast('Acción simulada en modo demo.', 'success'); return; }
     await api.deactivateUser(userId);
-    fetchData(); // Refresh data to remove the user from the UI
+    fetchData();
   };
 
   const updateUserAvatar = (userId: string, file: File) => {
@@ -537,17 +543,11 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }
   const assignInventoryItem = async (userId: string, itemId: string, variantId?: string) => {
     if (currentUser?.id.startsWith('demo-')) { showToast('Acción simulada en modo demo.', 'success'); return; }
-
-    // 1. Get the item definition to add to local state
     const inventoryItem = allInventoryItems.find(i => i.id === itemId);
     if (!inventoryItem) { showToast('Ítem de inventario no encontrado.', 'error'); return; }
-
     try {
-      // 2. Call API (returns the new DB row)
       const assignedAt = new Date().toISOString();
       const newDbRow = await api.assignInventoryItem(userId, itemId, assignedAt, variantId);
-
-      // 3. Create the object for local state (UserInventoryItem)
       const newUserInventoryItem: UserInventoryItem = {
         id: newDbRow?.id || `temp-${Date.now()}`,
         assigned_at: assignedAt,
@@ -555,25 +555,14 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         variant_id: variantId,
         variant: variantId ? inventoryItem.variants?.find(v => v.id === variantId) : undefined
       };
-
-      // 4. Helper to update a user object
       const updateUserState = (u: User) => {
         if (u.id !== userId) return u;
-        return {
-          ...u,
-          inventory: [...u.inventory, newUserInventoryItem]
-        };
+        return { ...u, inventory: [...u.inventory, newUserInventoryItem] };
       };
-
-      // 5. Update all relevant states
       setUsers(prev => prev.map(updateUserState));
       if (currentUser?.id === userId) setCurrentUser(prev => prev ? updateUserState(prev) : null);
       if (viewingProfileOf?.id === userId) setViewingProfileOf(prev => prev ? updateUserState(prev) : null);
-
-    } catch (error) {
-      console.error("Error assigning inventory:", error);
-      throw error; // Re-throw so the modal can handle it (show toast etc)
-    }
+    } catch (error) { throw error; }
   };
   const toggleMilestoneSolution = (milestoneId: string, isSolution: boolean) => {
     if (currentUser?.id.startsWith('demo-')) { showToast('Acción simulada en modo demo.', 'success'); return Promise.resolve(); }
@@ -582,10 +571,6 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const addMission = async (newMission: Omit<Mission, 'id' | 'status'>) => {
     if (currentUser?.id.startsWith('demo-')) { showToast('Acción simulada en modo demo.', 'success'); return; }
-    // FIX: Manually map camelCase properties from the frontend `Mission` type
-    // to the snake_case columns expected by the Supabase database schema (`MissionInsert` type).
-    // Spreading `...newMission` was incorrectly sending the `assignedTo` (camelCase)
-    // property, which caused the "column not found" error from PostgREST.
     const missionDataForDb: Database['public']['Tables']['missions']['Insert'] = {
       title: newMission.title,
       description: newMission.description,
@@ -599,7 +584,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       visible_to: newMission.visibleTo || null,
       company: newMission.company as any,
       role: newMission.role as any,
-      status: 'Pendiente', // Set default status here
+      status: 'Pendiente',
     };
     await api.addMission(missionDataForDb);
   };
@@ -631,9 +616,9 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (currentUser?.id.startsWith('demo-')) { showToast('Acción simulada en modo demo.', 'success'); return; }
     const originalMissionId = requestMission.description.split('ID: ')[1]?.split('.')[0];
     const userIdToJoin = requestMission.assignedTo?.[0];
-    if (!originalMissionId || !userIdToJoin) { showToast('La solicitud de unión es inválida.', 'error'); await deleteMission(requestMission.id); return; }
+    if (!originalMissionId || !userIdToJoin) { await deleteMission(requestMission.id); return; }
     const originalMission = missions.find(m => m.id === originalMissionId);
-    if (!originalMission) { showToast('La misión original ya no existe.', 'error'); await deleteMission(requestMission.id); return; }
+    if (!originalMission) { await deleteMission(requestMission.id); return; }
     const newAssignees = [...new Set([...(originalMission.assignedTo || []), userIdToJoin])];
     await api.updateMission(originalMissionId, { assigned_to: newAssignees });
     await deleteMission(requestMission.id);
@@ -752,38 +737,16 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const calculatePayPeriods = async () => {
     if (currentUser?.id.startsWith('demo-')) { showToast('Acción simulada en modo demo.', 'success'); return; }
-
-    // Determine current period based on user rule:
-    // Period 1: 6th to 20th of current month
-    // Period 2: 21st of current month to 5th of NEXT month (or Prev 21 to Curr 5)
-
-    // Logic: calculate the period that covers "Today" or ends "Today".
     let startDate: Date;
     let endDate: Date;
-
     const today = new Date();
     const day = today.getDate();
     const year = today.getFullYear();
-    const month = today.getMonth(); // 0-indexed
+    const month = today.getMonth();
+    if (day <= 5) { startDate = new Date(year, month - 1, 21); endDate = new Date(year, month, 5); }
+    else if (day <= 20) { startDate = new Date(year, month, 6); endDate = new Date(year, month, 20); }
+    else { startDate = new Date(year, month, 21); endDate = new Date(year, month + 1, 5); }
 
-    if (day <= 5) {
-      // We are in the end of the "21 to 5" period.
-      // Start: 21st of PREVIOUS month. End: 5th of CURRENT month.
-      startDate = new Date(year, month - 1, 21);
-      endDate = new Date(year, month, 5);
-    } else if (day <= 20) {
-      // We are in the "6 to 20" period.
-      // Start: 6th of CURRENT month. End: 20th of CURRENT month.
-      startDate = new Date(year, month, 6);
-      endDate = new Date(year, month, 20);
-    } else {
-      // We are in the start of the "21 to 5" period (after the 20th).
-      // Start: 21st of CURRENT month. End: 5th of NEXT month.
-      startDate = new Date(year, month, 21);
-      endDate = new Date(year, month + 1, 5);
-    }
-
-    // Format YYYY-MM-DD (local time simple conversion)
     const formatDate = (d: Date) => {
       const y = d.getFullYear();
       const m = String(d.getMonth() + 1).padStart(2, '0');
@@ -794,92 +757,10 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       const startStr = formatDate(startDate);
       const endStr = formatDate(endDate);
-
-      // 1. Core payroll calculation (Server-side RPC)
       await api.calculatePayroll(startStr, endStr);
-
-      // 2. Attendance-based penalties (Client-side logic for flexibility)
-      for (const user of users) {
-        if (!user.email) continue;
-
-        // Find attendance profile
-        const attUser = await attendanceService.getUserProfileByEmail(user.email);
-        if (!attUser) continue;
-
-        // Fetch logs for the period
-        const logs = await attendanceService.getAccessLogsByRange(attUser.id, startStr, endStr);
-        if (logs.length === 0) continue;
-
-        // Group by day
-        const logsByDay: Record<string, typeof logs> = {};
-        logs.forEach(l => {
-          const date = l.timestamp.split('T')[0];
-          if (!logsByDay[date]) logsByDay[date] = [];
-          logsByDay[date].push(l);
-        });
-
-        // Get user's base salary
-        const userSalary = salaries.find(s => s.user_id === user.id)?.monto_base_quincenal || 0;
-        if (userSalary <= 0) continue;
-        const penaltyAmount = userSalary / 10;
-
-        // Detect total absences and incomplete logs
-        const dateIter = new Date(startDate);
-        while (dateIter <= endDate) {
-          const dateStr = formatDate(dateIter);
-          const dayOfWeek = dateIter.getDay(); // 0 (Sun) to 6 (Sat)
-          const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
-          const userSched = userSchedules.find(s => s.user_id === user.id);
-
-          if (logsByDay[dateStr]) {
-            const dayLogs = logsByDay[dateStr];
-            const hasIn = dayLogs.some(l => l.type.toUpperCase() === 'IN' || l.type.toUpperCase() === 'ENTRADA');
-            const hasOut = dayLogs.some(l => l.type.toUpperCase() === 'OUT' || l.type.toUpperCase() === 'SALIDA');
-
-            if ((hasIn && !hasOut) || (!hasIn && hasOut)) {
-              const existingPenalty = payrollEvents.find(e =>
-                e.user_id === user.id && e.fecha_evento === dateStr &&
-                e.tipo === PayrollEventType.ABSENCE && e.descripcion.includes('Fichada incompleta')
-              );
-              if (!existingPenalty) {
-                await api.addPayrollEvent({
-                  user_id: user.id, tipo: PayrollEventType.ABSENCE, monto: penaltyAmount,
-                  descripcion: `Fichada incompleta el ${dateStr} (Auto-generado)`, fecha_evento: dateStr
-                });
-              }
-            }
-          } else if (!isWeekend && userSched && (userSched.daily_hours || 0) > 0) {
-            // Check for vacations
-            let onVacation = false;
-            if (userSched.vacation_start_date && userSched.vacation_end_date) {
-              if (dateStr >= userSched.vacation_start_date && dateStr <= userSched.vacation_end_date) {
-                onVacation = true;
-              }
-            }
-
-            if (!onVacation) {
-              const existingAbsence = payrollEvents.find(e =>
-                e.user_id === user.id && e.fecha_evento === dateStr &&
-                e.tipo === PayrollEventType.ABSENCE && e.descripcion.includes('Falta total')
-              );
-              if (!existingAbsence) {
-                await api.addPayrollEvent({
-                  user_id: user.id, tipo: PayrollEventType.ABSENCE, monto: penaltyAmount,
-                  descripcion: `Falta total el ${dateStr} (Auto-generado)`, fecha_evento: dateStr
-                });
-              }
-            }
-          }
-          dateIter.setDate(dateIter.getDate() + 1);
-        }
-      }
-
-      await fetchData(); // Refresh local state to show new periods and events
+      await fetchData();
       showToast(`Nómina y asistencia calculadas para el período ${startStr} al ${endStr}`, 'success');
-    } catch (e) {
-      console.error(e);
-      showToast((e as Error).message, 'error');
-    }
+    } catch (e) { showToast((e as Error).message, 'error'); }
   };
   const markPeriodAsPaid = async (periodId: string) => {
     if (currentUser?.id.startsWith('demo-')) { showToast('Acción simulada en modo demo.', 'success'); return; }
@@ -887,10 +768,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       await api.updatePaymentPeriod(periodId, { estado: 'PAGADO', fecha_pago: new Date().toISOString() });
       showToast('Nómina marcada como PAGADA.', 'success');
       fetchData();
-    } catch (e) {
-      console.error(e);
-      showToast((e as Error).message, 'error');
-    }
+    } catch (e) { showToast((e as Error).message, 'error'); }
   };
 
   const updateUserSchedule = (userId: string, data: Partial<UserSchedule>) => {
@@ -898,15 +776,20 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return api.updateUserSchedule(userId, data);
   }
 
-  const requestVacation = async (data: Omit<VacationRequest, 'id' | 'status' | 'created_at'>) => {
+  const requestVacation = async (data: Omit<VacationRequest, 'id' | 'status' | 'created_at'> & { status?: VacationRequest['status'] }) => {
     if (currentUser?.id.startsWith('demo-')) { showToast('Acción simulada en modo demo.', 'success'); return; }
     try {
       await api.createVacationRequest(data);
-      showToast('Solicitud de vacaciones enviada.', 'success');
+      if (data.status === 'APROBADA') {
+        const user = users.find(u => u.id === data.user_id);
+        if (user) {
+          const newRemaining = (user.vacation_remaining_days || 0) - data.days_count;
+          await updateUser(user.id, { vacation_remaining_days: newRemaining });
+        }
+      }
+      showToast('Solicitud procesada correctamente.', 'success');
       fetchData();
-    } catch (e) {
-      showToast('Error al solicitar vacaciones.', 'error');
-    }
+    } catch (e) { showToast('Error al solicitar vacaciones.', 'error'); }
   };
 
   const updateVacationStatus = async (requestId: string, status: VacationRequest['status'], reason?: string) => {
@@ -915,10 +798,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       const request = vacationRequests.find(r => r.id === requestId);
       if (!request) return;
-
       await api.updateVacationStatus(requestId, status, currentUser.id);
-
-      // If approved, update remaining days
       if (status === 'APROBADA') {
         const user = users.find(u => u.id === request.user_id);
         if (user) {
@@ -926,12 +806,9 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
           await updateUser(user.id, { vacation_remaining_days: newRemaining });
         }
       }
-
       showToast(`Solicitud ${status.toLowerCase()}.`, 'success');
       fetchData();
-    } catch (e) {
-      showToast('Error al actualizar solicitud.', 'error');
-    }
+    } catch (e) { showToast('Error al actualizar solicitud.', 'error'); }
   };
 
   const deleteVacationRequest = async (requestId: string) => {
@@ -940,9 +817,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       await api.deleteVacationRequest(requestId);
       showToast('Solicitud eliminada.', 'success');
       fetchData();
-    } catch (e) {
-      showToast('Error al eliminar solicitud.', 'error');
-    }
+    } catch (e) { showToast('Error al eliminar solicitud.', 'error'); }
   };
 
   const addMissionRequirement = async (missionId: string, description: string, quantity: number) => {
