@@ -31,7 +31,7 @@ const AssignSuppliesModal: React.FC<AssignSuppliesModalProps> = ({ mission, onCl
         const lowercasedFilter = searchTerm.toLowerCase();
         const baseSupplies = supplies.sort((a, b) => a.type.localeCompare(b.type));
         if (!lowercasedFilter) return baseSupplies;
-        return baseSupplies.filter(supply => 
+        return baseSupplies.filter(supply =>
             supply.general_category.toLowerCase().includes(lowercasedFilter) ||
             supply.specific_category.toLowerCase().includes(lowercasedFilter) ||
             supply.type.toLowerCase().includes(lowercasedFilter) ||
@@ -68,7 +68,7 @@ const AssignSuppliesModal: React.FC<AssignSuppliesModalProps> = ({ mission, onCl
                 await assignSupplyToMission(mission.id, supply.id, quantityToAdd);
                 showToast('Insumo asignado.', 'success');
             }
-            
+
             setAssignQuantities(prev => ({ ...prev, [supply.id]: '1' })); // Reset to 1
         } catch (error) {
             showToast(error instanceof Error ? error.message : "Error al asignar.", 'error');
@@ -91,10 +91,10 @@ const AssignSuppliesModal: React.FC<AssignSuppliesModalProps> = ({ mission, onCl
 
     const handleQuantityChange = (supply: Supply, valueStr: string) => {
         if (valueStr === '') {
-            setAssignQuantities(prev => ({ ...prev, [supply.id]: ''}));
+            setAssignQuantities(prev => ({ ...prev, [supply.id]: '' }));
             return;
         }
-        
+
         const totalAssigned = totalAssignedQuantitiesToAllMissions.get(supply.id) || 0;
         const availableStock = supply.stock_quantity - totalAssigned;
         let value = parseInt(valueStr, 10);
@@ -113,11 +113,11 @@ const AssignSuppliesModal: React.FC<AssignSuppliesModalProps> = ({ mission, onCl
                 <h3 className="text-2xl font-bold mb-4">Gestionar Insumos para "{mission.title}"</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 flex-grow overflow-hidden">
                     {/* Assigned Supplies */}
-                    <div className="bg-brand-primary p-4 rounded-lg flex flex-col"><h4 className="font-bold mb-3 text-lg">Insumos Asignados</h4><div className="space-y-2 overflow-y-auto">
+                    <div className="bg-slate-900/50 p-4 rounded-lg border border-white/5 flex flex-col"><h4 className="font-bold mb-3 text-lg text-white">Insumos Asignados</h4><div className="space-y-2 overflow-y-auto">
                         {suppliesForThisMission.length === 0 && <p className="text-brand-light italic text-center p-4">No hay insumos asignados.</p>}
                         {suppliesForThisMission.map((ms) => (
-                            <div key={ms.id} className="flex items-center bg-brand-secondary p-2 rounded gap-3">
-                                <img src={ms.supplies.photo_url || 'https://placehold.co/64x64/1b263b/e0e1dd?text=?'} alt={ms.supplies.model} className="w-10 h-10 rounded object-cover flex-shrink-0"/>
+                            <div key={ms.id} className="flex items-center bg-slate-800/50 p-2 rounded gap-3 border border-white/5">
+                                <img src={ms.supplies.photo_url || 'https://placehold.co/64x64/1b263b/e0e1dd?text=?'} alt={ms.supplies.model} className="w-10 h-10 rounded object-cover flex-shrink-0" />
                                 <div className="flex-grow">
                                     <p className="font-semibold">{ms.supplies.type} - {ms.supplies.model}</p>
                                     <p className="text-xs text-brand-light">Asignados: {ms.quantity_assigned}</p>
@@ -130,7 +130,7 @@ const AssignSuppliesModal: React.FC<AssignSuppliesModalProps> = ({ mission, onCl
                     </div></div>
 
                     {/* Available Supplies */}
-                    <div className="bg-brand-primary p-4 rounded-lg flex flex-col">
+                    <div className="bg-slate-900/50 p-4 rounded-lg border border-white/5 flex flex-col">
                         <h4 className="font-bold text-lg">Insumos Disponibles</h4>
                         <div className="my-3">
                             <input
@@ -138,7 +138,7 @@ const AssignSuppliesModal: React.FC<AssignSuppliesModalProps> = ({ mission, onCl
                                 placeholder="Buscar por modelo, categoría, tipo..."
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
-                                className="w-full bg-brand-secondary p-2 rounded-lg border border-brand-accent focus:outline-none focus:ring-2 focus:ring-brand-blue"
+                                className="w-full bg-slate-800 p-2 rounded-lg border border-white/10 text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-blue"
                             />
                         </div>
                         <div className="space-y-2 overflow-y-auto">
@@ -152,8 +152,8 @@ const AssignSuppliesModal: React.FC<AssignSuppliesModalProps> = ({ mission, onCl
                                 const availableStock = supply.stock_quantity - totalAssigned;
                                 const isAlreadyAssigned = suppliesForThisMission.some(ms => ms.supply_id === supply.id);
                                 return (
-                                    <div key={supply.id} className={`flex items-center bg-brand-secondary p-2 rounded gap-2 ${availableStock <= 0 ? 'opacity-50' : ''} ${isAlreadyAssigned ? 'ring-2 ring-brand-blue/50' : ''}`}>
-                                        <img src={supply.photo_url || 'https://placehold.co/64x64/1b263b/e0e1dd?text=?'} alt={supply.model} className="w-10 h-10 rounded mr-2 object-cover flex-shrink-0"/>
+                                    <div key={supply.id} className={`flex items-center bg-slate-800/50 p-2 rounded gap-2 border border-white/5 ${availableStock <= 0 ? 'opacity-50' : ''} ${isAlreadyAssigned ? 'ring-2 ring-brand-blue/50' : ''}`}>
+                                        <img src={supply.photo_url || 'https://placehold.co/64x64/1b263b/e0e1dd?text=?'} alt={supply.model} className="w-10 h-10 rounded mr-2 object-cover flex-shrink-0" />
                                         <div className="flex-grow">
                                             <p className="font-semibold">{supply.type} - {supply.model}</p>
                                             <p className="text-xs text-brand-light">Stock Disponible: {availableStock}</p>
@@ -162,16 +162,16 @@ const AssignSuppliesModal: React.FC<AssignSuppliesModalProps> = ({ mission, onCl
                                             type="number"
                                             value={assignQuantities[supply.id] ?? '1'}
                                             onChange={(e) => handleQuantityChange(supply, e.target.value)}
-                                            onBlur={(e) => { if(e.target.value === '') setAssignQuantities(prev => ({ ...prev, [supply.id]: 1})) }}
+                                            onBlur={(e) => { if (e.target.value === '') setAssignQuantities(prev => ({ ...prev, [supply.id]: 1 })) }}
                                             min="1"
                                             max={availableStock}
                                             disabled={availableStock <= 0}
-                                            className="w-16 bg-brand-primary p-2 rounded border border-brand-accent text-center"
+                                            className="w-16 bg-slate-700 p-2 rounded border border-white/10 text-center text-white"
                                             aria-label={`Cantidad para ${supply.model}`}
                                         />
-                                        <button 
-                                            onClick={() => handleAssign(supply)} 
-                                            disabled={loading[supply.id] || availableStock <= 0 || assignQuantities[supply.id] === ''} 
+                                        <button
+                                            onClick={() => handleAssign(supply)}
+                                            disabled={loading[supply.id] || availableStock <= 0 || assignQuantities[supply.id] === ''}
                                             className="bg-brand-green text-brand-primary px-3 py-2 text-sm font-bold rounded hover:bg-green-300 disabled:opacity-50 disabled:cursor-not-allowed w-28 text-center"
                                         >
                                             {loading[supply.id] ? '...' : (isAlreadyAssigned ? 'Añadir Más' : 'Asignar')}

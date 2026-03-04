@@ -24,7 +24,7 @@ const SupplyFormModal: React.FC<SupplyFormModalProps> = ({ supply, onClose }) =>
     const [previewUrl, setPreviewUrl] = useState<string | null>(supply?.photo_url || null);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState('');
-    
+
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
     };
@@ -70,30 +70,30 @@ const SupplyFormModal: React.FC<SupplyFormModalProps> = ({ supply, onClose }) =>
             setIsLoading(false);
         }
     };
-    
+
     return (
         <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
-            <form onSubmit={handleSubmit} className="bg-brand-secondary rounded-lg max-w-2xl w-full p-6 relative">
+            <form onSubmit={handleSubmit} className="bg-slate-900 rounded-3xl max-w-2xl w-full p-8 relative border border-white/10 shadow-2xl">
                 <button type="button" onClick={onClose} className="absolute top-4 right-4 text-brand-light hover:text-white text-3xl">&times;</button>
                 <h3 className="text-2xl font-bold mb-6">{supply ? 'Editar' : 'Crear'} Insumo</h3>
                 {error && <p className="bg-brand-red/20 text-brand-red p-2 rounded-md mb-4 text-sm">{error}</p>}
-                
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-4">
-                        <input type="text" name="general_category" placeholder="Categoría General *" value={formData.general_category} onChange={handleChange} className="w-full bg-brand-primary p-3 rounded border border-brand-accent" required />
-                        <input type="text" name="specific_category" placeholder="Categoría Particular *" value={formData.specific_category} onChange={handleChange} className="w-full bg-brand-primary p-3 rounded border border-brand-accent" required />
-                        <input type="text" name="type" placeholder="Tipo *" value={formData.type} onChange={handleChange} className="w-full bg-brand-primary p-3 rounded border border-brand-accent" required />
-                        <input type="text" name="model" placeholder="Modelo *" value={formData.model} onChange={handleChange} className="w-full bg-brand-primary p-3 rounded border border-brand-accent" required />
+                        <input type="text" name="general_category" placeholder="Categoría General *" value={formData.general_category} onChange={handleChange} className="w-full bg-slate-800 p-3 rounded-xl border border-white/10 text-white placeholder-slate-400 focus:outline-none focus:border-brand-blue/50" required />
+                        <input type="text" name="specific_category" placeholder="Categoría Particular *" value={formData.specific_category} onChange={handleChange} className="w-full bg-slate-800 p-3 rounded-xl border border-white/10 text-white placeholder-slate-400 focus:outline-none focus:border-brand-blue/50" required />
+                        <input type="text" name="type" placeholder="Tipo *" value={formData.type} onChange={handleChange} className="w-full bg-slate-800 p-3 rounded-xl border border-white/10 text-white placeholder-slate-400 focus:outline-none focus:border-brand-blue/50" required />
+                        <input type="text" name="model" placeholder="Modelo *" value={formData.model} onChange={handleChange} className="w-full bg-slate-800 p-3 rounded-xl border border-white/10 text-white placeholder-slate-400 focus:outline-none focus:border-brand-blue/50" required />
                     </div>
                     <div className="space-y-4">
-                        <textarea name="details" placeholder="Detalles adicionales" value={formData.details} onChange={handleChange} className="w-full bg-brand-primary p-3 rounded border border-brand-accent h-24"></textarea>
-                        <label className="w-full h-40 flex flex-col items-center justify-center bg-brand-primary p-3 rounded border-2 border-dashed border-brand-accent cursor-pointer hover:border-brand-blue">
+                        <textarea name="details" placeholder="Detalles adicionales" value={formData.details} onChange={handleChange} className="w-full bg-slate-800 p-3 rounded-xl border border-white/10 text-white placeholder-slate-400 focus:outline-none focus:border-brand-blue/50 h-24 resize-none"></textarea>
+                        <label className="w-full h-40 flex flex-col items-center justify-center bg-slate-800 p-3 rounded-xl border-2 border-dashed border-white/10 cursor-pointer hover:border-brand-blue/50 transition-colors">
                             {previewUrl ? <img src={previewUrl} alt="Preview" className="max-h-full max-w-full object-contain" /> : <div className="text-center text-brand-light"><BoxIcon className="w-10 h-10 mx-auto mb-2" /><span>Subir Foto *</span></div>}
                             <input type="file" accept="image/*" className="hidden" onChange={handleFileChange} />
                         </label>
                     </div>
                 </div>
-                
+
                 <button type="submit" disabled={isLoading} className="w-full mt-6 bg-brand-green text-brand-primary font-bold py-3 px-4 rounded-lg flex items-center justify-center gap-2 disabled:bg-brand-accent">
                     {isLoading && <div className="w-5 h-5 border-2 border-t-transparent border-white rounded-full animate-spin"></div>}
                     {isLoading ? 'Guardando...' : 'Guardar Insumo'}

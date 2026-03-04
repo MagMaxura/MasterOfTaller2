@@ -40,7 +40,7 @@ const SupplyUsageRow: React.FC<{ missionSupply: MissionSupply, canEdit: boolean 
     }, [missionSupply.quantity_used]);
 
     return (
-        <div className="bg-brand-primary p-3 rounded-lg flex items-center gap-4">
+        <div className="bg-slate-800/50 p-3 rounded-lg flex items-center gap-4 border border-white/5">
             <img src={missionSupply.supplies.photo_url || 'https://placehold.co/64x64/1b263b/e0e1dd?text=?'} alt={missionSupply.supplies.model} className="w-12 h-12 object-cover rounded-md flex-shrink-0" />
             <div className="flex-grow">
                 <p className="font-bold">{missionSupply.supplies.type} - {missionSupply.supplies.model}</p>
@@ -114,7 +114,7 @@ const RequirementsPanel: React.FC<{ mission: Mission }> = ({ mission }) => {
                     value={newItem}
                     onChange={e => setNewItem(e.target.value)}
                     placeholder="Ej: Rodamiento NTN 42..."
-                    className="flex-grow bg-brand-primary p-2 rounded-lg border border-brand-accent/30 text-white"
+                    className="flex-grow bg-slate-800 p-2 rounded-lg border border-white/10 text-white placeholder-slate-400 focus:outline-none focus:border-brand-blue/50"
                 />
                 <button
                     type="submit"
@@ -128,7 +128,7 @@ const RequirementsPanel: React.FC<{ mission: Mission }> = ({ mission }) => {
             <div className="space-y-2">
                 {items.length === 0 && <p className="text-brand-light italic text-center py-4">No hay solicitudes pendientes.</p>}
                 {items.map(item => (
-                    <div key={item.id} className="flex items-center justify-between bg-brand-primary p-3 rounded-lg border border-brand-accent/20">
+                    <div key={item.id} className="flex items-center justify-between bg-slate-800/50 p-3 rounded-lg border border-white/5 group hover:bg-slate-800 transition-colors">
                         <div className="flex items-center gap-3">
                             <input
                                 type="checkbox"
