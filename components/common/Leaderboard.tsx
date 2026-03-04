@@ -2,8 +2,8 @@
 import React, { useMemo } from 'react';
 import { User, Role } from '../../types';
 
-const Leaderboard: React.FC<{users: User[]}> = ({users}) => {
-    const sortedUsers = useMemo(() => users.filter(u => u.role === Role.TECHNICIAN).sort((a,b) => b.xp - a.xp), [users]);
+const Leaderboard: React.FC<{ users: User[] }> = ({ users }) => {
+    const sortedUsers = useMemo(() => users.filter(u => u.role === Role.TECHNICIAN || u.role === Role.CLEANING).sort((a, b) => b.xp - a.xp), [users]);
     return (
         <div className="bg-brand-secondary p-6 rounded-lg shadow-lg">
             <h3 className="text-2xl font-bold mb-6 text-center text-brand-orange">Clasificación de Maestros</h3>

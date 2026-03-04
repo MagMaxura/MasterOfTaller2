@@ -32,6 +32,7 @@ const UserManagement: React.FC<{
         { id: Role.ADMINISTRATIVE, label: 'Administración' },
         { id: Role.MARKETING, label: 'Marketing' },
         { id: Role.SALES, label: 'Ventas' },
+        { id: Role.CLEANING, label: 'Limpieza' },
     ];
 
     const companies = Object.values(Company);
@@ -236,6 +237,7 @@ const UserManagement: React.FC<{
                                     onChange={(e) => setEditingUser({ ...editingUser, role: e.target.value as Role })}
                                 >
                                     {roles.map(r => <option key={r.id} value={r.id}>{r.label}</option>)}
+                                    <option value={Role.CLEANING}>Limpieza</option>
                                     <option value={Role.ADMIN}>Administrador Total</option>
                                 </select>
                             </div>
