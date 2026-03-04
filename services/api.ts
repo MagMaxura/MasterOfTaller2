@@ -138,7 +138,7 @@ export const api = {
   },
   async addInventoryItem(itemData: Omit<InventoryItemInsert, 'icon_url'>, iconFile: File) {
     const fileExt = iconFile.name.split('.').pop();
-    const filePath = `public/${itemData.name.replace(/\s+/g, '_')}-${Date.now()}.${fileExt}`;
+    const filePath = `${itemData.name.replace(/\s+/g, '_')}-${Date.now()}.${fileExt}`;
     const { error: uploadError } = await supabase.storage.from('iconos-equipamiento').upload(filePath, iconFile);
     if (uploadError) throw new Error(`Error subiendo ícono: ${uploadError.message}`);
 

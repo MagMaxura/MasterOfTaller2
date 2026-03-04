@@ -176,7 +176,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         skills: [],
         badges: [],
         inventory: [],
-        pushSubscription: null
+        pushSubscription: null,
+        is_active: true
       };
       const mockTech: User = {
         id: 'demo-technician',
@@ -184,6 +185,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         email: 'tech@demo.com',
         role: Role.TECHNICIAN,
         company: Company.GREEN_HABITAT,
+        is_active: true,
         avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Felix',
         xp: 2450,
         level: 8,
@@ -487,6 +489,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (data.pushSubscription !== undefined) updateData.push_subscription = data.pushSubscription;
     if (data.attendance_id !== undefined) updateData.attendance_id = data.attendance_id;
     if (data.joining_date !== undefined) updateData.joining_date = data.joining_date;
+    if (data.vacation_total_days !== undefined) updateData.vacation_total_days = data.vacation_total_days;
+    if (data.vacation_remaining_days !== undefined) updateData.vacation_remaining_days = data.vacation_remaining_days;
 
     await api.updateUser(userId, updateData);
 
