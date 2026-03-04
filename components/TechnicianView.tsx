@@ -17,12 +17,14 @@ import KnowledgeBase from './knowledge/KnowledgeBase';
 import TechnicianSuppliesView from './technician/TechnicianSuppliesView';
 import PaymentsView from './technician/payments/PaymentsView';
 import RequestVacationModal from './technician/modals/RequestVacationModal';
-import { hasSupplyAdminBadge, hasEquipmentAdminBadge } from '../utils/ranks';
+import { hasSupplyAdminBadge, hasEquipmentAdminBadge, COOK_BADGE_NAME, DINER_BADGE_NAME } from '../utils/ranks';
 import StockManagement from './admin/stock/StockManagement';
 import CreateItemModal from './admin/stock/CreateItemModal';
+import KitchenManagement from './admin/KitchenManagement';
+import LunchConfirmationCard from './technician/LunchConfirmationCard';
 
 
-import { TasksIcon, UserIcon, ChartIcon, HallOfFameIcon, CalendarIcon, ChatIcon, BookOpenIcon, BoxIcon, CurrencyDollarIcon } from './Icons';
+import { TasksIcon, UserIcon, ChartIcon, HallOfFameIcon, CalendarIcon, ChatIcon, BookOpenIcon, BoxIcon, CurrencyDollarIcon, ChefIcon } from './Icons';
 
 
 // --- MAIN UI COMPONENT ---
@@ -40,6 +42,8 @@ const TechnicianUI: React.FC<TechnicianUIProps> = ({ user, isAdminViewing = fals
     const [isRequestingVacation, setIsRequestingVacation] = useState(false);
     const userHasSupplyBadge = useMemo(() => hasSupplyAdminBadge(user), [user]);
     const userHasEquipmentBadge = useMemo(() => hasEquipmentAdminBadge(user), [user]);
+    const isCook = useMemo(() => user.badges.some(b => b.name === COOK_BADGE_NAME), [user]);
+    const isDiner = useMemo(() => user.badges.some(b => b.name === DINER_BADGE_NAME), [user]);
 
     // Removed package.json fetch to avoid 404 errors
 
@@ -99,6 +103,9 @@ const TechnicianUI: React.FC<TechnicianUIProps> = ({ user, isAdminViewing = fals
         if (userHasEquipmentBadge && !isAdminViewing) {
             baseTabs.splice(3, 0, { id: 'stock', label: 'Stock EPP', icon: <BoxIcon />, notification: false });
         }
+        if (isCook && !isAdminViewing) {
+            baseTabs.splice(3, 0, { id: 'kitchen', label: 'Cocina', icon: <ChefIcon />, notification: false });
+        }
 
         // Add less critical tabs for larger screens
         const desktopTabs = [
@@ -121,6 +128,7 @@ const TechnicianUI: React.FC<TechnicianUIProps> = ({ user, isAdminViewing = fals
             case 'payments': return <PaymentsView />;
             case 'supplies': return <TechnicianSuppliesView />;
             case 'stock': return <StockManagement onOpenCreateModal={() => setIsCreateStockItemModalOpen(true)} />;
+            case 'kitchen': return <KitchenManagement />;
             case 'knowledge': return <KnowledgeBase />;
             case 'chat': return <ChatView currentUser={user} />;
             case 'leaderboard': return <Leaderboard users={users} />;
@@ -164,7 +172,8 @@ const TechnicianUI: React.FC<TechnicianUIProps> = ({ user, isAdminViewing = fals
                 </div>
             </nav>
 
-            <main className="p-4 md:p-8 max-w-7xl mx-auto animate-fadeIn">
+            <main className="p-4 md:p-8 max-w-7xl mx-auto animate-fadeIn space-y-4">
+                {activeTab === 'missions' && isDiner && <LunchConfirmationCard userId={user.id} />}
                 {renderContent()}
                 <footer className="text-center text-[10px] font-bold text-brand-light/50 uppercase tracking-[0.2em] pt-12 pb-6">
                     Herramienta de Proyecto y Gestion Gamificada &copy; 2026

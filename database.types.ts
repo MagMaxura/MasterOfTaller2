@@ -752,6 +752,38 @@ export interface Database {
           }
         ]
       }
+      lunch_confirmations: {
+        Row: {
+          id: string
+          user_id: string
+          date: string
+          confirmed: boolean
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          date: string
+          confirmed?: boolean
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          date?: string
+          confirmed?: boolean
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lunch_confirmations_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -790,7 +822,7 @@ export interface Database {
       | "accessory"
       mission_difficulty: "Bajo" | "Medio" | "Alto"
       mission_status: "Solicitada" | "Pendiente" | "En Progreso" | "Completada"
-      role: "tecnico" | "administrador" | "administrativo" | "marketing" | "ventas"
+      role: "tecnico" | "administrador" | "administrativo" | "marketing" | "ventas" | "limpieza"
       company_name: "GREEN HABITAT" | "POTABILIZAR" | "ROSERMAN" | "ULTRASHINE"
       tipo_evento_nomina: "HORA_EXTRA" | "BONO" | "FALTA" | "TARDANZA" | "APERCIBIMIENTO"
       estado_pago: "CALCULADO" | "PAGADO"

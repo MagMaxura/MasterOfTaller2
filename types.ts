@@ -5,6 +5,7 @@ export enum Role {
   ADMINISTRATIVE = 'administrativo',
   MARKETING = 'marketing',
   SALES = 'ventas',
+  CLEANING = 'limpieza',
 }
 
 export enum Company {
@@ -106,6 +107,7 @@ export interface User {
   id: string;
   name: string;
   email?: string;
+  is_active: boolean;
   role: Role;
   company?: Company;
   avatar: string;
@@ -287,4 +289,12 @@ export interface VacationRequest {
   created_at: string;
   reviewed_by?: string;
   reviewed_at?: string;
+}
+
+export interface LunchConfirmation {
+  id: string;
+  user_id: string;
+  date: string;
+  confirmed: boolean;
+  created_at: string;
 }

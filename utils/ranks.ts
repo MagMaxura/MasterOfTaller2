@@ -2,6 +2,8 @@ import { User } from '../types';
 
 export const SUPPLY_ADMIN_BADGE_NAME = 'Administrador de Insumos';
 export const EQUIPMENT_ADMIN_BADGE_NAME = 'Administrador de EPP';
+export const COOK_BADGE_NAME = 'cocinero';
+export const DINER_BADGE_NAME = 'comensal';
 
 /**
  * Checks if a user has the specific "Administrador de Insumos" badge.
