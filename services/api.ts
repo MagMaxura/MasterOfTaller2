@@ -1,5 +1,5 @@
 import { supabase } from '../config';
-import { User, Mission, EquipmentSlot, Supply, MissionSupply, MissionRequirement } from '../types';
+import { User, Mission, EquipmentSlot, Supply, MissionSupply, MissionRequirement, Reward } from '../types';
 import { Database } from '../database.types';
 
 type RequirementInsert = Database['public']['Tables']['mission_requirements']['Insert'];
@@ -384,5 +384,17 @@ export const api = {
 
     const { error: updateError } = await supabase.rpc('deduct_success_points', { p_user_id: userId, p_amount: cost });
     if (updateError) throw new Error(updateError.message);
+  },
+  async addReward(reward: Omit<Reward, 'id' | 'created_at'>) {
+    const { error } = await supabase.from('reward_items').insert(reward as any);
+    if (error) throw new Error(error.message);
+  },
+  async updateReward(id: string, reward: Partial<Reward>) {
+    const { error } = await supabase.from('reward_items').update(reward as any).eq('id', id);
+    if (error) throw new Error(error.message);
+  },
+  async deleteReward(id: string) {
+    const { error } = await supabase.from('reward_items').delete().eq('id', id);
+    if (error) throw new Error(error.message);
   }
 };

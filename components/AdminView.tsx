@@ -21,6 +21,7 @@ import SuppliesManagement from './admin/supplies/SuppliesManagement';
 import Leaderboard from './common/Leaderboard';
 import HallOfFame from './common/HallOfFame';
 import PayrollManagement from './admin/payroll/PayrollManagement';
+import RewardManagement from './admin/rewards/RewardManagement';
 import SetSalaryModal from './admin/payroll/SetSalaryModal';
 import AddPayrollEventModal from './admin/payroll/AddPayrollEventModal';
 import AttendanceModal from './admin/modals/AttendanceModal';
@@ -30,7 +31,7 @@ import { api } from '../services/api';
 import { Role as UserRole } from '../types';
 import LunchConfirmationCard from './technician/LunchConfirmationCard';
 
-import { PlusIcon, BoxIcon, CalendarIcon, MapPinIcon, UserIcon, TasksIcon, BookOpenIcon, LogoutIcon, MenuIcon, ChartIcon, HallOfFameIcon, CurrencyDollarIcon, CogIcon } from './Icons';
+import { PlusIcon, BoxIcon, CalendarIcon, MapPinIcon, UserIcon, TasksIcon, BookOpenIcon, LogoutIcon, MenuIcon, ChartIcon, HallOfFameIcon, CurrencyDollarIcon, CogIcon, StarIcon } from './Icons';
 
 // --- MAIN COMPONENT ---
 const AdminView: React.FC = () => {
@@ -92,6 +93,7 @@ const AdminView: React.FC = () => {
         { id: 'hall_of_fame', label: 'Muro de la Fama', icon: <HallOfFameIcon /> },
         { id: 'create', label: 'Crear Misión', icon: <PlusIcon /> },
         { id: 'stock', label: 'Stock (Equipo)', icon: <BoxIcon /> },
+        { id: 'rewards', label: 'Premios', icon: <StarIcon /> },
         { id: 'supplies', label: 'Insumos', icon: <BoxIcon /> },
         { id: 'calendar', label: 'Calendario', icon: <CalendarIcon /> },
         { id: 'live_map', label: 'Mapa', icon: <MapPinIcon /> },
@@ -212,6 +214,9 @@ const AdminView: React.FC = () => {
                         </div>
                         <div className={activeTab === 'supplies' ? 'block' : 'hidden'}>
                             <SuppliesManagement />
+                        </div>
+                        <div className={activeTab === 'rewards' ? 'block' : 'hidden'}>
+                            <RewardManagement />
                         </div>
                         <div className={activeTab === 'calendar' ? 'block' : 'hidden'}>
                             <MissionCalendar

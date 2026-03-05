@@ -75,6 +75,9 @@ interface DataContextType {
   updateVacationStatus: (requestId: string, status: VacationRequest['status'], reason?: string) => Promise<void>;
   deleteVacationRequest: (requestId: string) => Promise<void>;
   purchaseReward: (reward: Reward) => Promise<void>;
+  addReward: (reward: Omit<Reward, 'id' | 'created_at'>) => Promise<void>;
+  updateReward: (id: string, reward: Partial<Reward>) => Promise<void>;
+  deleteReward: (id: string) => Promise<void>;
 }
 
 // --- CONTEXT CREATION ---
@@ -811,6 +814,35 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const addReward = async (reward: Omit<Reward, 'id' | 'created_at'>) => {
+    if (currentUser?.id.startsWith('demo-')) { showToast('Acción simulada en modo demo.', 'success'); return; }
+    try {
+      await api.addReward(reward);
+      showToast('Recompensa añadida con éxito.', 'success');
+      fetchData();
+    } catch (e) { showToast('Error al añadir recompensa.', 'error'); }
+  };
+
+  const updateReward = async (id: string, reward: Partial<Reward>) => {
+    if (currentUser?.id.startsWith('demo-')) { showToast('Acción simulada en modo demo.', 'success'); return; }
+    try {
+      await api.updateReward(id, reward);
+      showToast('Recompensa actualizada con éxito.', 'success');
+      fetchData();
+    } catch (e) { showToast('Error al actualizar recompensa.', 'error'); }
+  };
+
+  const deleteReward = async (id: string) => {
+    if (currentUser?.id.startsWith('demo-')) { showToast('Acción simulada en modo demo.', 'success'); return; }
+    try {
+      if (window.confirm('¿Estás seguro de que quieres eliminar esta recompensa?')) {
+        await api.deleteReward(id);
+        showToast('Recompensa eliminada con éxito.', 'success');
+        fetchData();
+      }
+    } catch (e) { showToast('Error al eliminar recompensa.', 'error'); }
+  };
+
   const addMissionRequirement = async (missionId: string, description: string, quantity: number) => {
     if (currentUser?.id.startsWith('demo-')) { showToast('Acción simulada en modo demo.', 'success'); return; }
     await api.addMissionRequirement({ mission_id: missionId, description, quantity });
@@ -889,7 +921,10 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     requestVacation,
     updateVacationStatus,
     deleteVacationRequest,
-    purchaseReward
+    purchaseReward,
+    addReward,
+    updateReward,
+    deleteReward
   };
 
 
