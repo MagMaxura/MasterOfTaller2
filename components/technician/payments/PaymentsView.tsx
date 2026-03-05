@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import { useData } from '../../../contexts/DataContext';
 import { PaymentPeriod, PayrollEvent, PayrollEventType, PaymentStatus } from '../../../types';
-import { ArrowUpIcon, ArrowDownIcon, CalendarIcon, CurrencyDollarIcon } from '../../Icons';
+import { ArrowUpIcon, ArrowDownIcon, CalendarIcon, CurrencyDollarIcon, QuestionMarkIcon } from '../../Icons';
 import UserTimeline from '../../admin/payroll/UserTimeline';
 
 const EventRow: React.FC<{ event: PayrollEvent }> = ({ event }) => {
@@ -133,6 +133,7 @@ const PaymentPeriodCard: React.FC<{ period: PaymentPeriod, defaultExpanded?: boo
 
 const PaymentsView: React.FC = () => {
     const { currentUser, paymentPeriods, payrollEvents, salaries } = useData();
+    const [showHelp, setShowHelp] = React.useState(false);
 
     const userPaymentPeriods = useMemo(() => {
         if (!currentUser) return [];
@@ -191,20 +192,33 @@ const PaymentsView: React.FC = () => {
     if (!currentUser) return null;
 
     return (
-        <div className="space-y-8 animate-fadeIn">
-            <div className="flex flex-col items-center text-center space-y-2 mb-8">
-                <div className="w-16 h-16 bg-brand-blue/10 rounded-2xl flex items-center justify-center text-brand-blue shadow-inner border border-brand-blue/20">
-                    <CurrencyDollarIcon className="w-10 h-10" />
+        <div className="space-y-6 animate-fadeIn">
+            <div className="flex flex-col items-center text-center space-y-1 mb-6">
+                <div className="w-12 h-12 bg-brand-blue/10 rounded-xl flex items-center justify-center text-brand-blue shadow-inner border border-brand-blue/20">
+                    <CurrencyDollarIcon className="w-8 h-8" />
                 </div>
-                <h2 className="text-3xl font-black text-brand-highlight tracking-tight">Centro de Pagos</h2>
-                <p className="text-sm text-brand-light max-w-md">Consulta tu historial de haberes, premios y deducciones en tiempo real.</p>
+                <div className="flex items-center gap-2">
+                    <h2 className="text-2xl font-black text-brand-highlight tracking-tight">Centro de Pagos</h2>
+                    <button
+                        onClick={() => setShowHelp(!showHelp)}
+                        className={`p-1 rounded-full transition-colors ${showHelp ? 'bg-brand-blue/10 text-brand-blue' : 'text-brand-light hover:bg-brand-accent'}`}
+                        title="Mostrar ayuda"
+                    >
+                        <QuestionMarkIcon className="w-5 h-5" />
+                    </button>
+                </div>
+                {showHelp && (
+                    <p className="text-[11px] text-brand-light max-w-sm animate-fadeIn bg-brand-accent/20 p-2 rounded-lg border border-brand-accent/30">
+                        Consulta tu historial de haberes, premios y deducciones en tiempo real.
+                    </p>
+                )}
             </div>
 
             <div className="grid grid-cols-1 gap-10">
                 <section>
-                    <div className="flex items-center gap-2 mb-4">
-                        <div className="w-1.5 h-6 bg-brand-blue rounded-full"></div>
-                        <h3 className="text-xl font-black text-brand-highlight uppercase tracking-tight">Liquidación en Curso</h3>
+                    <div className="flex items-center gap-2 mb-3">
+                        <div className="w-1 h-5 bg-brand-blue rounded-full"></div>
+                        <h3 className="text-lg font-black text-brand-highlight uppercase tracking-tight">Liquidación en Curso</h3>
                     </div>
                     {nextPayment ? (
                         <PaymentPeriodCard period={nextPayment} defaultExpanded={true} />
@@ -229,9 +243,9 @@ const PaymentsView: React.FC = () => {
                 </section>
 
                 <section>
-                    <div className="flex items-center gap-2 mb-4">
-                        <div className="w-1.5 h-6 bg-brand-highlight rounded-full"></div>
-                        <h3 className="text-xl font-black text-brand-highlight uppercase tracking-tight">Historial de Pagos</h3>
+                    <div className="flex items-center gap-2 mb-3">
+                        <div className="w-1 h-5 bg-brand-highlight rounded-full"></div>
+                        <h3 className="text-lg font-black text-brand-highlight uppercase tracking-tight">Historial de Pagos</h3>
                     </div>
                     {pastPayments.length > 0 ? (
                         <div className="space-y-4">

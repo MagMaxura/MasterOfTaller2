@@ -5,7 +5,7 @@ import { useData } from '../../../contexts/DataContext';
 import MissionColumn from './MissionColumn';
 import RequestMissionModal from './RequestMissionModal';
 import KnowledgeBase from '../../knowledge/KnowledgeBase';
-import { PlusIcon, StarIcon, ArrowUpIcon, BoxIcon, BookOpenIcon, TasksIcon } from '../../Icons';
+import { PlusIcon, StarIcon, ArrowUpIcon, BoxIcon, BookOpenIcon, TasksIcon, QuestionMarkIcon } from '../../Icons';
 
 const AvailableMissionCard: React.FC<{
     mission: Mission;
@@ -80,6 +80,7 @@ const MissionsDashboard: React.FC<MissionsDashboardProps> = ({ user, onOpenMissi
     const { missions, technicianRequestMission, requestToJoinMission } = useData();
     const [isRequestModalOpen, setIsRequestModalOpen] = useState(false);
     const [showKnowledgeBase, setShowKnowledgeBase] = useState(false);
+    const [showHelp, setShowHelp] = useState(false);
     const [activeTab, setActiveTab] = useState<MissionStatus>(MissionStatus.IN_PROGRESS);
 
     const { available, otherInProgress, requested, pending, inProgress, completed } = useMemo(() => {
@@ -108,14 +109,25 @@ const MissionsDashboard: React.FC<MissionsDashboardProps> = ({ user, onOpenMissi
     return (
         <div className="space-y-12">
             <div>
-                <div className="flex justify-between items-end mb-8">
-                    <div>
-                        <h2 className="text-4xl font-black text-brand-highlight tracking-tight">
-                            {showKnowledgeBase ? 'Base de Saber' : 'Mis Misiones'}
-                        </h2>
-                        <p className="text-sm text-brand-light mt-1">
-                            {showKnowledgeBase ? 'Consulta el aprendizaje colectivo del equipo.' : 'Sigue tu progreso y gestiona tus tareas activas.'}
-                        </p>
+                <div className="flex justify-between items-center mb-6">
+                    <div className="flex flex-col">
+                        <div className="flex items-center gap-2">
+                            <h2 className="text-2xl font-black text-brand-highlight tracking-tight">
+                                {showKnowledgeBase ? 'Base de Saber' : 'Mis Misiones'}
+                            </h2>
+                            <button
+                                onClick={() => setShowHelp(!showHelp)}
+                                className={`p-1 rounded-full transition-colors ${showHelp ? 'bg-brand-blue/10 text-brand-blue' : 'text-brand-light hover:bg-brand-accent'}`}
+                                title="Mostrar ayuda"
+                            >
+                                <QuestionMarkIcon className="w-5 h-5" />
+                            </button>
+                        </div>
+                        {showHelp && (
+                            <p className="text-[11px] text-brand-light mt-1 animate-fadeIn bg-brand-accent/20 p-2 rounded-lg border border-brand-accent/30 max-w-sm">
+                                {showKnowledgeBase ? 'Consulta el aprendizaje colectivo del equipo.' : 'Sigue tu progreso y gestiona tus tareas activas.'}
+                            </p>
+                        )}
                     </div>
                     <div className="flex gap-2">
                         <button
@@ -182,9 +194,9 @@ const MissionsDashboard: React.FC<MissionsDashboardProps> = ({ user, onOpenMissi
 
             {available.length > 0 && (
                 <section>
-                    <div className="mb-6">
-                        <h2 className="text-2xl font-black text-brand-highlight tracking-tight">Tablón de Anuncios</h2>
-                        <p className="text-xs text-brand-light font-bold uppercase tracking-widest mt-1">Misiones disponibles para tomar ahora</p>
+                    <div className="mb-4">
+                        <h2 className="text-xl font-black text-brand-highlight tracking-tight">Tablón de Anuncios</h2>
+                        <p className="text-[10px] text-brand-light font-bold uppercase tracking-widest mt-0.5">Misiones disponibles ahora</p>
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
                         {available.map(mission => (
@@ -196,9 +208,9 @@ const MissionsDashboard: React.FC<MissionsDashboardProps> = ({ user, onOpenMissi
 
             {otherInProgress.length > 0 && (
                 <section>
-                    <div className="mb-6">
-                        <h2 className="text-2xl font-black text-brand-highlight tracking-tight">Refuerzos Necesarios</h2>
-                        <p className="text-xs text-brand-light font-bold uppercase tracking-widest mt-1">Únete a otros maestros en sus trabajos actuales</p>
+                    <div className="mb-4">
+                        <h2 className="text-xl font-black text-brand-highlight tracking-tight">Refuerzos Necesarios</h2>
+                        <p className="text-[10px] text-brand-light font-bold uppercase tracking-widest mt-0.5">Únete a otros maestros</p>
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
                         {otherInProgress.map(mission => (
