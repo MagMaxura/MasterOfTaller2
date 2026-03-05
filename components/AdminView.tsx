@@ -28,6 +28,7 @@ import NotificationSubscriber from './admin/NotificationSubscriber';
 import { supabaseAttendance } from '../config';
 import { api } from '../services/api';
 import { Role as UserRole } from '../types';
+import LunchConfirmationCard from './technician/LunchConfirmationCard';
 
 import { PlusIcon, BoxIcon, CalendarIcon, MapPinIcon, UserIcon, TasksIcon, BookOpenIcon, LogoutIcon, MenuIcon, ChartIcon, HallOfFameIcon, CurrencyDollarIcon, CogIcon } from './Icons';
 
@@ -79,12 +80,14 @@ const AdminView: React.FC = () => {
     }, [currentUser]);
 
     const missionRequestsCount = useMemo(() => missions.filter(m => m.status === MissionStatus.REQUESTED).length, [missions]);
+    const vacationRequestsCount = useMemo(() => vacationRequests.filter(r => r.status === 'PENDIENTE').length, [vacationRequests]);
+    const totalRequestsCount = missionRequestsCount + vacationRequestsCount;
 
     const TABS = [
         { id: 'manage', label: 'Gestionar', icon: <UserIcon /> },
         { id: 'payroll', label: 'Nómina', icon: <CurrencyDollarIcon /> },
         { id: 'missions', label: 'Misiones', icon: <TasksIcon /> },
-        { id: 'requests', label: 'Solicitudes', icon: <TasksIcon />, notification: missionRequestsCount > 0 },
+        { id: 'requests', label: 'Solicitudes', icon: <TasksIcon />, notification: totalRequestsCount > 0 },
         { id: 'leaderboard', label: 'Clasificación', icon: <ChartIcon /> },
         { id: 'hall_of_fame', label: 'Muro de la Fama', icon: <HallOfFameIcon /> },
         { id: 'create', label: 'Crear Misión', icon: <PlusIcon /> },
@@ -108,12 +111,14 @@ const AdminView: React.FC = () => {
                 </div>
                 <div className="overflow-hidden">
                     <h2 className="font-black text-xl truncate tracking-tight">{currentUser.name}</h2>
-                    <p className="text-[10px] text-brand-blue uppercase font-black tracking-widest opacity-80">Administrador</p>
+                    <p className="text-[10px] text-brand-blue uppercase font-black tracking-widest opacity-80">
+                        {currentUser.role === UserRole.ADMIN ? 'Administrador' : 'Gerente Operativo'}
+                    </p>
                 </div>
             </div>
 
             <nav className="flex-grow flex flex-col space-y-1.5 overflow-y-auto px-4 custom-scrollbar">
-                {TABS.map(tab => (
+                {TABS.filter(tab => currentUser.role === UserRole.ADMIN || tab.id !== 'payroll').map(tab => (
                     <button
                         key={tab.id}
                         onClick={() => {
@@ -127,8 +132,8 @@ const AdminView: React.FC = () => {
                         </div>
                         <span className="truncate">{tab.label}</span>
 
-                        {tab.id === 'requests' && tab.notification && missionRequestsCount > 0 &&
-                            <span className="ml-auto h-6 min-w-[1.5rem] px-2 text-[10px] flex items-center justify-center rounded-full bg-brand-red text-white font-black shadow-lg animate-pulse">{missionRequestsCount}</span>}
+                        {tab.id === 'requests' && tab.notification && totalRequestsCount > 0 &&
+                            <span className="ml-auto h-6 min-w-[1.5rem] px-2 text-[10px] flex items-center justify-center rounded-full bg-brand-red text-white font-black shadow-lg animate-pulse">{totalRequestsCount}</span>}
                     </button>
                 ))}
             </nav>
@@ -176,6 +181,9 @@ const AdminView: React.FC = () => {
                 <main className="flex-1 p-4 md:p-10 overflow-y-auto custom-scrollbar">
                     <div className="max-w-7xl mx-auto animate-fadeIn">
                         <div className={activeTab === 'manage' ? 'block' : 'hidden'}>
+                            <div className="mb-6">
+                                <LunchConfirmationCard userId={currentUser.id} />
+                            </div>
                             <UserManagement
                                 onManageInventory={setManagingInventoryFor}
                                 onManageBadges={setManagingBadgesFor}

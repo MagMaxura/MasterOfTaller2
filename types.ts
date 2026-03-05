@@ -6,7 +6,9 @@ export enum Role {
   MARKETING = 'marketing',
   SALES = 'ventas',
   CLEANING = 'limpieza',
+  OPERATIONS = 'operaciones',
 }
+
 
 export enum Company {
   GREEN_HABITAT = 'GREEN HABITAT',

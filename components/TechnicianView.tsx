@@ -22,7 +22,7 @@ import KitchenManagement from './admin/KitchenManagement';
 import LunchConfirmationCard from './technician/LunchConfirmationCard';
 
 
-import { TasksIcon, UserIcon, ChartIcon, HallOfFameIcon, CalendarIcon, ChatIcon, BookOpenIcon, BoxIcon, CurrencyDollarIcon, ChefIcon } from './Icons';
+import { TasksIcon, UserIcon, ChartIcon, HallOfFameIcon, CalendarIcon, BookOpenIcon, BoxIcon, CurrencyDollarIcon, ChefIcon } from './Icons';
 
 
 // --- MAIN UI COMPONENT ---
@@ -41,7 +41,7 @@ const TechnicianUI: React.FC<TechnicianUIProps> = ({ user, isAdminViewing = fals
     const userHasSupplyBadge = useMemo(() => hasSupplyAdminBadge(user), [user]);
     const userHasEquipmentBadge = useMemo(() => hasEquipmentAdminBadge(user), [user]);
     const isCook = useMemo(() => user.badges.some(b => b.name === COOK_BADGE_NAME), [user]);
-    const isDiner = useMemo(() => user.badges.some(b => b.name === DINER_BADGE_NAME), [user]);
+    const isDiner = useMemo(() => user.role === 'administrador' || user.badges.some(b => b.name === DINER_BADGE_NAME), [user]);
 
     // Removed package.json fetch to avoid 404 errors
 

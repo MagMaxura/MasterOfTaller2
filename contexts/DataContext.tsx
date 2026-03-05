@@ -745,6 +745,17 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
           const newRemaining = (user.vacation_remaining_days || 0) - data.days_count;
           await updateUser(user.id, { vacation_remaining_days: newRemaining });
         }
+      } else {
+        // Notify admins about the new request
+        const requester = users.find(u => u.id === data.user_id);
+        const admins = users.filter(u => u.role === Role.ADMIN);
+        await Promise.all(admins.map(admin =>
+          api.sendNotification(
+            admin.id,
+            "🏝 Nueva Solicitud de Vacaciones",
+            `${requester?.name || 'Un técnico'} ha solicitado ${data.days_count} días de vacaciones.`
+          )
+        ));
       }
       showToast('Solicitud procesada correctamente.', 'success');
       fetchData();

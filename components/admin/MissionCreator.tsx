@@ -6,7 +6,7 @@ import { generateMissionDetails } from '../../services/geminiService';
 import { AiIcon } from '../Icons';
 
 const MissionCreator: React.FC<{ users: User[] }> = ({ users }) => {
-    const { addMission } = useData();
+    const { currentUser, addMission } = useData();
     const { showToast } = useToast();
     const [title, setTitle] = useState('');
     const [description, setDescription] = useState('');
@@ -183,7 +183,9 @@ const MissionCreator: React.FC<{ users: User[] }> = ({ users }) => {
                 <div><label className="block text-sm font-medium text-brand-light mb-1">Fecha Límite</label><input type="date" value={deadline} onChange={e => setDeadline(e.target.value)} className="w-full bg-brand-primary p-2.5 rounded border border-brand-accent" required /></div>
                 <div><label className="block text-sm font-medium text-brand-light mb-1">Dificultad</label><select value={difficulty} onChange={e => setDifficulty(e.target.value as MissionDifficulty)} className="w-full bg-brand-primary p-3 rounded border border-brand-accent"><option value={MissionDifficulty.LOW}>Bajo</option><option value={MissionDifficulty.MEDIUM}>Medio</option><option value={MissionDifficulty.HIGH}>Alto</option></select></div>
                 <div><label className="block text-sm font-medium text-brand-light mb-1">XP</label><input type="number" value={xp} onChange={e => setXp(parseInt(e.target.value, 10) || 0)} min="0" className="w-full bg-brand-primary p-2.5 rounded border border-brand-accent" required /></div>
-                <div><label className="block text-sm font-medium text-brand-light mb-1">Bono ($)</label><input type="number" value={bonusMonetario} onChange={e => setBonusMonetario(parseInt(e.target.value, 10) || 0)} min="0" className="w-full bg-brand-primary p-2.5 rounded border border-brand-accent" /></div>
+                {currentUser?.role === Role.ADMIN && (
+                    <div><label className="block text-sm font-medium text-brand-light mb-1">Bono ($)</label><input type="number" value={bonusMonetario} onChange={e => setBonusMonetario(parseInt(e.target.value, 10) || 0)} min="0" className="w-full bg-brand-primary p-2.5 rounded border border-brand-accent" /></div>
+                )}
             </div>
 
             <div className="col-span-full">

@@ -38,11 +38,11 @@ const KitchenManagement: React.FC = () => {
             await Promise.all(diners.map(d =>
                 api.sendNotification(
                     d.id,
-                    "🍳 ¡Comida Lista!",
-                    "El almuerzo está listo en el comedor. ¡Buen provecho!"
+                    "🍴 ¿Comes hoy con nosotros?",
+                    "El cocinero está organizando el almuerzo. ¡Confirma tu asistencia en el panel!"
                 )
             ));
-            alert('Notificación enviada a todos los comensales.');
+            alert('Pregunta enviada a todos los comensales.');
         } catch (error) {
             console.error('Error notifying diners:', error);
             alert('Hubo un error al enviar las notificaciones.');
@@ -113,7 +113,7 @@ const KitchenManagement: React.FC = () => {
                         className="w-full bg-brand-yellow hover:bg-yellow-500 text-black font-black py-4 rounded-3xl shadow-lg transition-all flex items-center justify-center gap-3 active:scale-95 disabled:opacity-50"
                     >
                         <BellIcon className={`w-6 h-6 ${isNotifying ? 'animate-bounce' : ''}`} />
-                        {isNotifying ? 'ENVIANDO...' : 'NOTIFICAR COMIDA LISTA'}
+                        {isNotifying ? 'ENVIANDO...' : 'PREGUNTAR QUIÉN COME HOY'}
                     </button>
 
                     <div className="bg-brand-blue/5 border border-brand-blue/20 p-6 rounded-3xl">

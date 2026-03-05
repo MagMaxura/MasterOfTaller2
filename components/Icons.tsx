@@ -152,7 +152,7 @@ export const ChefIcon: React.FC<IconProps> = (props) => (
 
 export const UtensilsIcon: React.FC<IconProps> = (props) => (
   <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" {...props}>
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11h-4m2 2h-2m-8 1v2a2 2 0 002 2h2a2 2 0 002-2v-2m-4-1V5a2 2 0 012-2h2a2 2 0 012 2v9m-4-1h4" />
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5v10a2 2 0 002 2h2a2 2 0 002-2V5m-4 0h4M12 5v14m0 0h2m-2 0H10m8-14v14" />
   </svg>
 );
 

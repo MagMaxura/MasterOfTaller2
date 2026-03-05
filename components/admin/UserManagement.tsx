@@ -18,7 +18,7 @@ const UserManagement: React.FC<{
     onSetSalary: (user: User) => void;
     onShowAttendance: (user: User) => void;
 }> = ({ onManageInventory, onManageBadges, onNotifyUser, onSetSalary, onShowAttendance }) => {
-    const { users, missions, salaries, setViewingProfileOf, deactivateUser, updateUser, attendanceUsers } = useData();
+    const { currentUser, users, missions, salaries, setViewingProfileOf, deactivateUser, updateUser, attendanceUsers } = useData();
     const { showToast } = useToast();
     const [activeRole, setActiveRole] = React.useState<Role>(Role.TECHNICIAN);
     const [editingUser, setEditingUser] = React.useState<User | null>(null);
@@ -29,6 +29,7 @@ const UserManagement: React.FC<{
 
     const roles = [
         { id: Role.TECHNICIAN, label: 'Técnicos' },
+        { id: Role.OPERATIONS, label: 'Operaciones' },
         { id: Role.ADMINISTRATIVE, label: 'Administración' },
         { id: Role.MARKETING, label: 'Marketing' },
         { id: Role.SALES, label: 'Ventas' },
@@ -99,7 +100,6 @@ const UserManagement: React.FC<{
                 </div>
             </div>
 
-            {/* Mobile Cards / Desktop Table Wrapper */}
             <div className="bg-white md:bg-transparent rounded-3xl md:rounded-none overflow-hidden shadow-premium md:shadow-none">
                 <table className="w-full text-left border-collapse">
                     <thead className="hidden md:table-header-group">
@@ -125,7 +125,6 @@ const UserManagement: React.FC<{
 
                             return (
                                 <tr key={user.id} className="block md:table-row md:hover:bg-brand-secondary transition-all group md:bg-white md:rounded-2xl md:mb-2 md:shadow-soft">
-                                    {/* USER INFO */}
                                     <td className="p-5 md:p-4 block md:table-cell md:rounded-l-2xl">
                                         <div className="flex items-center gap-4">
                                             <div className="relative">
@@ -151,7 +150,6 @@ const UserManagement: React.FC<{
                                         </div>
                                     </td>
 
-                                    {/* PROGRESS / XP */}
                                     <td className="px-5 py-2 md:py-4 md:text-center block md:table-cell border-t md:border-t-0 border-brand-accent/30">
                                         <div className="flex md:flex-col items-center justify-between md:justify-center">
                                             <span className="md:hidden text-[10px] font-black text-brand-light uppercase tracking-widest">Nivel / XP</span>
@@ -168,7 +166,6 @@ const UserManagement: React.FC<{
                                         </div>
                                     </td>
 
-                                    {/* MISSIONS */}
                                     <td className="px-5 py-2 md:py-4 md:text-center block md:table-cell border-t md:border-t-0 border-brand-accent/30">
                                         <div className="flex md:flex-col items-center justify-between md:justify-center">
                                             <span className="md:hidden text-[10px] font-black text-brand-light uppercase tracking-widest">Eficiencia</span>
@@ -185,7 +182,6 @@ const UserManagement: React.FC<{
                                         </div>
                                     </td>
 
-                                    {/* SALARY / COMPANY */}
                                     <td className="px-5 py-2 md:py-4 text-right block md:table-cell border-t md:border-t-0 border-brand-accent/30">
                                         <div className="flex md:flex-col items-center justify-between md:justify-end">
                                             <span className="md:hidden text-[10px] font-black text-brand-light uppercase tracking-widest text-left">Datos</span>
@@ -200,11 +196,12 @@ const UserManagement: React.FC<{
                                         </div>
                                     </td>
 
-                                    {/* ACTIONS */}
                                     <td className="p-5 md:p-4 text-right block md:table-cell border-t md:border-t-0 border-brand-accent/30 md:rounded-r-2xl bg-brand-secondary/30 md:bg-transparent">
                                         <div className="flex justify-end gap-2 sm:gap-3 flex-wrap">
                                             <ActionBtn onClick={() => onShowAttendance(user)} color="blue" icon={<ClockIcon className="w-4 h-4" />} label="Asistencia" />
-                                            <ActionBtn onClick={() => onSetSalary(user)} color="green" icon={<CurrencyDollarIcon className="w-4 h-4" />} label="Salario" />
+                                            {currentUser?.role === Role.ADMIN && (
+                                                <ActionBtn onClick={() => onSetSalary(user)} color="green" icon={<CurrencyDollarIcon className="w-4 h-4" />} label="Salario" />
+                                            )}
                                             <ActionBtn onClick={() => setEditingUser(user)} color="orange" icon={<EditIcon className="w-4 h-4" />} label="Editar Perfil" />
                                             <ActionBtn onClick={() => setVacationUser(user)} color="green" icon={<CalendarIcon className="w-4 h-4" />} label="Vacaciones" />
                                             <ActionBtn onClick={() => onManageInventory(user)} color="blue" icon={<BoxIcon className="w-4 h-4" />} label="Stock" />
@@ -220,7 +217,6 @@ const UserManagement: React.FC<{
                 </table>
             </div>
 
-            {/* EDIT USER MODAL */}
             {editingUser && (
                 <div className="fixed inset-0 bg-brand-highlight/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
                     <div className="bg-white rounded-[32px] w-full max-w-md overflow-hidden shadow-2xl border border-brand-accent">
@@ -237,7 +233,6 @@ const UserManagement: React.FC<{
                                     onChange={(e) => setEditingUser({ ...editingUser, role: e.target.value as Role })}
                                 >
                                     {roles.map(r => <option key={r.id} value={r.id}>{r.label}</option>)}
-                                    <option value={Role.CLEANING}>Limpieza</option>
                                     <option value={Role.ADMIN}>Administrador Total</option>
                                 </select>
                             </div>
@@ -286,7 +281,7 @@ const UserManagement: React.FC<{
                                             ...editingUser,
                                             joining_date: newDate,
                                             vacation_total_days: suggestedTotal,
-                                            vacation_remaining_days: suggestedTotal // Reset remaining to total if changing date? Or just total?
+                                            vacation_remaining_days: suggestedTotal
                                         });
                                     }}
                                 />
@@ -333,7 +328,6 @@ const UserManagement: React.FC<{
                 </div>
             )}
 
-            {/* VACATION MODAL */}
             {vacationUser && (
                 <VacationApprovalModal
                     user={vacationUser}

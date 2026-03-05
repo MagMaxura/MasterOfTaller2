@@ -9,7 +9,7 @@ interface ApproveMissionModalProps {
 }
 
 const ApproveMissionModal: React.FC<ApproveMissionModalProps> = ({ mission, onClose }) => {
-    const { users, updateMission } = useData();
+    const { currentUser, users, updateMission } = useData();
     const { showToast } = useToast();
     const [missionData, setMissionData] = useState<Mission>({ ...mission, bonusMonetario: mission.bonusMonetario || 0 });
     const [isLoading, setIsLoading] = useState(false);
@@ -77,7 +77,9 @@ const ApproveMissionModal: React.FC<ApproveMissionModalProps> = ({ mission, onCl
                         <div><label className="block text-sm font-medium text-brand-light mb-1">Límite</label><input type="date" name="deadline" value={missionData.deadline} onChange={handleChange} className="w-full bg-brand-primary p-2.5 rounded border border-brand-accent" required /></div>
                         <div><label className="block text-sm font-medium text-brand-light mb-1">Dificultad</label><select name="difficulty" value={missionData.difficulty} onChange={handleChange} className="w-full bg-brand-primary p-3 rounded border border-brand-accent"><option value={MissionDifficulty.LOW}>Bajo</option><option value={MissionDifficulty.MEDIUM}>Medio</option><option value={MissionDifficulty.HIGH}>Alto</option></select></div>
                         <div><label className="block text-sm font-medium text-brand-light mb-1">XP</label><input type="number" name="xp" value={missionData.xp} onChange={handleChange} min="0" className="w-full bg-brand-primary p-2.5 rounded border border-brand-accent" required /></div>
-                        <div><label className="block text-sm font-medium text-brand-light mb-1">Bono ($)</label><input type="number" name="bonusMonetario" value={missionData.bonusMonetario || 0} onChange={handleChange} min="0" className="w-full bg-brand-primary p-2.5 rounded border border-brand-accent" /></div>
+                        {currentUser?.role === Role.ADMIN && (
+                            <div><label className="block text-sm font-medium text-brand-light mb-1">Bono ($)</label><input type="number" name="bonusMonetario" value={missionData.bonusMonetario || 0} onChange={handleChange} min="0" className="w-full bg-brand-primary p-2.5 rounded border border-brand-accent" /></div>
+                        )}
                     </div>
                     <div>
                         <label className="block text-sm font-medium text-brand-light mb-1">Estado</label>
