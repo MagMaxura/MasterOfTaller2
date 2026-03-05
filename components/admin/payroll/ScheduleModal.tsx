@@ -126,7 +126,7 @@ const ScheduleModal: React.FC<ScheduleModalProps> = ({ user, schedule, onClose, 
                             <label className="text-xs font-bold text-brand-light uppercase block">Horas Diarias</label>
                             <input
                                 type="number"
-                                step="0.5"
+                                step="0.25"
                                 value={formData.daily_hours || 0}
                                 onChange={(e) => setFormData({ ...formData, daily_hours: parseFloat(e.target.value) })}
                                 className="w-full bg-brand-primary border border-brand-accent/50 rounded-lg py-2 px-3 text-sm focus:border-brand-blue outline-none transition-all"

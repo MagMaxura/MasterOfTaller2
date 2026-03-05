@@ -142,7 +142,7 @@ const AddPayrollEventModal: React.FC<AddPayrollEventModalProps> = ({ user, onClo
                         {isTimeBased ? (
                             <div>
                                 <label className="block text-sm font-medium text-brand-light mb-1">Horas</label>
-                                <input type="number" step="0.5" value={horas} onChange={e => setHoras(e.target.value === '' ? '' : parseFloat(e.target.value))} placeholder="Ej: 1.5" className="w-full bg-brand-primary p-3 rounded border border-brand-accent focus:border-brand-blue" />
+                                <input type="number" step="0.25" value={horas} onChange={e => setHoras(e.target.value === '' ? '' : parseFloat(e.target.value))} placeholder="Ej: 1.25" className="w-full bg-brand-primary p-3 rounded border border-brand-accent focus:border-brand-blue" />
                             </div>
                         ) : (
                             <div>
