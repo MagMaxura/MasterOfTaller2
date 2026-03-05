@@ -264,6 +264,7 @@ export interface Database {
           visible_to: string[] | null
           company: Database["public"]["Enums"]["company_name"] | null
           role: Database["public"]["Enums"]["role"] | null
+          success_points: number | null
         }
         Insert: {
           assigned_to?: string[] | null
@@ -435,6 +436,7 @@ export interface Database {
           attendance_id: string | null
           vacation_total_days: number
           vacation_remaining_days: number
+          success_points: number | null
         }
         Insert: {
           avatar: string
@@ -752,6 +754,78 @@ export interface Database {
           }
         ]
       }
+      reward_items: {
+        Row: {
+          id: string
+          name: string
+          description: string
+          cost: number
+          icon: string
+          type: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          name: string
+          description: string
+          cost: number
+          icon: string
+          type: string
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          name?: string
+          description?: string
+          cost?: number
+          icon?: string
+          type?: string
+          created_at?: string
+        }
+        Relationships: []
+      }
+      user_rewards: {
+        Row: {
+          id: string
+          user_id: string
+          reward_id: string
+          purchased_at: string
+          status: string
+          expires_at: string | null
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          reward_id: string
+          purchased_at?: string
+          status?: string
+          expires_at?: string | null
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          reward_id?: string
+          purchased_at?: string
+          status?: string
+          expires_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_rewards_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_rewards_reward_id_fkey"
+            columns: ["reward_id"]
+            isOneToOne: false
+            referencedRelation: "reward_items"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
       lunch_confirmations: {
         Row: {
           id: string
@@ -806,6 +880,13 @@ export interface Database {
       update_supply_stock_from_mission: {
         Args: Record<PropertyKey, never>
         Returns: unknown
+      }
+      deduct_success_points: {
+        Args: {
+          p_user_id: string
+          p_amount: number
+        }
+        Returns: undefined
       }
     }
     Enums: {

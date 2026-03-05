@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect, useMemo, createContext, useContext } from 'react';
-import { User, Mission, InventoryItem, EquipmentSlot, MissionMilestone, MissionStatus, UserInventoryItem, Supply, MissionSupply, Badge, Salary, PayrollEvent, PaymentPeriod, Role, MissionDifficulty, PayrollEventType, MissionRequirement, Company, AttendanceSummary, UserSchedule, VacationRequest } from '../types';
+import { User, Mission, InventoryItem, EquipmentSlot, MissionMilestone, MissionStatus, UserInventoryItem, Supply, MissionSupply, Badge, Salary, PayrollEvent, PaymentPeriod, Role, MissionDifficulty, PayrollEventType, MissionRequirement, Company, AttendanceSummary, UserSchedule, VacationRequest, Reward, UserReward } from '../types';
 import { supabase } from '../config';
 import { transformSupabaseProfileToUser } from '../utils/dataTransformers';
 import { useAuth } from './AuthContext';
@@ -25,6 +25,8 @@ interface DataContextType {
   userSchedules: UserSchedule[];
   attendanceUsers: AttendanceUser[];
   vacationRequests: VacationRequest[];
+  rewardItems: Reward[];
+  userRewards: UserReward[];
   loading: boolean;
   viewingProfileOf: User | null;
   setViewingProfileOf: (user: User | null) => void;
@@ -72,6 +74,7 @@ interface DataContextType {
   requestVacation: (data: Omit<VacationRequest, 'id' | 'status' | 'created_at'> & { status?: VacationRequest['status'] }) => Promise<void>;
   updateVacationStatus: (requestId: string, status: VacationRequest['status'], reason?: string) => Promise<void>;
   deleteVacationRequest: (requestId: string) => Promise<void>;
+  purchaseReward: (reward: Reward) => Promise<void>;
 }
 
 // --- CONTEXT CREATION ---
@@ -103,6 +106,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [userSchedules, setUserSchedules] = useState<UserSchedule[]>([]);
   const [attendanceUsers, setAttendanceUsers] = useState<AttendanceUser[]>([]);
   const [vacationRequests, setVacationRequests] = useState<VacationRequest[]>([]);
+  const [rewardItems, setRewardItems] = useState<Reward[]>([]);
+  const [userRewards, setUserRewards] = useState<UserReward[]>([]);
   const [loading, setLoading] = useState(true);
   const [viewingProfileOf, setViewingProfileOf] = useState<User | null>(null);
 
@@ -278,6 +283,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         payrollEventsResult,
         paymentPeriodsResult,
         schedulesResult,
+        rewardItemsResult,
+        userRewardsResult,
         vacationRequestsResult
       ] = await Promise.all([...results, api.getVacationRequests()]);
 
@@ -364,7 +371,9 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setMissionRequirements((missionRequirementsResult.data || []) as MissionRequirement[]);
       setSalaries((salariesResult.data || []) as Salary[]);
       setUserSchedules((schedulesResult.data || []) as UserSchedule[]);
-      setVacationRequests(vacationRequestsResult || []);
+      setVacationRequests((vacationRequestsResult as unknown as VacationRequest[]) || []);
+      setRewardItems((rewardItemsResult.data as unknown as Reward[]) || []);
+      setUserRewards((userRewardsResult.data as unknown as UserReward[]) || []);
 
       const attUsers = await attendanceService.getAllUsers();
       setAttendanceUsers(attUsers);
@@ -440,7 +449,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const { id, assignedTo, startDate, deadline, skills, progressPhoto, completedDate, bonusXp, bonusMonetario, visibleTo, ...rest } = updatedMission;
 
     await api.updateMission(id, {
-      ...rest,
+      ...(rest as any),
       assigned_to: assignedTo,
       start_date: startDate,
       deadline: deadline,
@@ -790,6 +799,18 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } catch (e) { showToast('Error al eliminar solicitud.', 'error'); }
   };
 
+  const purchaseReward = async (reward: Reward) => {
+    if (currentUser?.id.startsWith('demo-')) { showToast('Acción simulada en modo demo.', 'success'); return; }
+    if (!currentUser) return;
+    try {
+      await api.purchaseReward(currentUser.id, reward.id, reward.cost);
+      showToast(`¡Has canjeado ${reward.name}!`, 'success');
+      fetchData();
+    } catch (e) {
+      showToast(e instanceof Error ? e.message : 'Error al procesar el canje', 'error');
+    }
+  };
+
   const addMissionRequirement = async (missionId: string, description: string, quantity: number) => {
     if (currentUser?.id.startsWith('demo-')) { showToast('Acción simulada en modo demo.', 'success'); return; }
     await api.addMissionRequirement({ mission_id: missionId, description, quantity });
@@ -819,6 +840,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     userSchedules,
     attendanceUsers,
     vacationRequests,
+    rewardItems,
+    userRewards,
     loading,
     viewingProfileOf,
     setViewingProfileOf,
@@ -865,8 +888,10 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     updateUserSchedule,
     requestVacation,
     updateVacationStatus,
-    deleteVacationRequest
+    deleteVacationRequest,
+    purchaseReward
   };
+
 
   return (
     <DataContext.Provider value={value}>

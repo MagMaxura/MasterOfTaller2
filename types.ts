@@ -124,6 +124,7 @@ export interface User {
   vacation_total_days?: number;
   vacation_remaining_days?: number;
   joining_date?: string;
+  success_points?: number;
 }
 
 export interface Mission {
@@ -145,6 +146,7 @@ export interface Mission {
   company?: Company;
   role?: Role;
   created_at?: string;
+  success_points?: number;
 }
 
 export interface MissionMilestone {
@@ -284,4 +286,24 @@ export interface LunchConfirmation {
   date: string;
   confirmed: boolean;
   created_at: string;
+}
+
+export interface Reward {
+  id: string;
+  name: string;
+  description: string;
+  cost: number;
+  icon: string;
+  type: string;
+  created_at: string;
+}
+
+export interface UserReward {
+  id: string;
+  user_id: string;
+  reward_id: string;
+  purchased_at: string;
+  status: 'ACTIVE' | 'USED' | 'EXPIRED';
+  expires_at?: string;
+  reward?: Reward;
 }

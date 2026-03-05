@@ -24,8 +24,8 @@ type UserScheduleInsert = any;
 export const api = {
   // --- FETCH (Utilizando Supabase para sincronización en tiempo real) ---
   async getInitialData(userId: string) {
-    const profileColumns = 'avatar, id, email, is_active, lat, level, lng, location_last_update, name, push_subscription, role, company, xp, attendance_id, joining_date, vacation_total_days, vacation_remaining_days';
-    const missionColumns = 'id, created_at, title, description, status, difficulty, xp, bonus_monetario, assigned_to, start_date, deadline, required_skills, progress_photo_url, completed_date, bonus_xp, visible_to, company, role';
+    const profileColumns = 'avatar, id, email, is_active, lat, level, lng, location_last_update, name, push_subscription, role, company, xp, attendance_id, joining_date, vacation_total_days, vacation_remaining_days, success_points';
+    const missionColumns = 'id, created_at, title, description, status, difficulty, xp, bonus_monetario, assigned_to, start_date, deadline, required_skills, progress_photo_url, completed_date, bonus_xp, visible_to, company, role, success_points';
     const inventoryItemColumns = 'id, name, description, icon_url, slot, quantity';
     const badgeColumns = 'id, name, icon, description';
     const supplyColumns = 'id, created_at, general_category, specific_category, type, model, details, stock_quantity, photo_url';
@@ -54,6 +54,8 @@ export const api = {
       supabase.from('eventos_nomina').select(payrollEventColumns).order('fecha_evento', { ascending: false }),
       supabase.from('periodos_pago').select(`${paymentPeriodColumns}, events:eventos_nomina(*)`).order('fecha_pago', { ascending: false }),
       (supabase as any).from('user_schedules').select('*'),
+      supabase.from('reward_items').select('*'),
+      supabase.from('user_rewards').select('*, reward:reward_items(*)'),
     ]);
   },
 
@@ -361,5 +363,26 @@ export const api = {
       .maybeSingle();
     if (error) throw new Error(error.message);
     return data;
+  },
+  async purchaseReward(userId: string, rewardId: string, cost: number) {
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles')
+      .select('success_points')
+      .eq('id', userId)
+      .single();
+
+    if (profileError) throw new Error(profileError.message);
+    if ((profile?.success_points || 0) < cost) throw new Error('No tienes suficientes Puntos de Éxito.');
+
+    const { error: purchaseError } = await supabase.from('user_rewards').insert({
+      user_id: userId,
+      reward_id: rewardId,
+      status: 'ACTIVE'
+    });
+
+    if (purchaseError) throw new Error(purchaseError.message);
+
+    const { error: updateError } = await supabase.rpc('deduct_success_points', { p_user_id: userId, p_amount: cost });
+    if (updateError) throw new Error(updateError.message);
   }
 };

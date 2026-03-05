@@ -15,6 +15,7 @@ import MissionCalendar from './MissionCalendar';
 import TechnicianSuppliesView from './technician/TechnicianSuppliesView';
 import PaymentsView from './technician/payments/PaymentsView';
 import RequestVacationModal from './technician/modals/RequestVacationModal';
+import RewardStore from './technician/rewards/RewardStore';
 import { hasSupplyAdminBadge, hasEquipmentAdminBadge, COOK_BADGE_NAME, DINER_BADGE_NAME } from '../utils/ranks';
 import StockManagement from './admin/stock/StockManagement';
 import CreateItemModal from './admin/stock/CreateItemModal';
@@ -22,7 +23,7 @@ import KitchenManagement from './admin/KitchenManagement';
 import LunchConfirmationCard from './technician/LunchConfirmationCard';
 
 
-import { TasksIcon, UserIcon, ChartIcon, HallOfFameIcon, CalendarIcon, BookOpenIcon, BoxIcon, CurrencyDollarIcon, ChefIcon } from './Icons';
+import { TasksIcon, UserIcon, ChartIcon, HallOfFameIcon, CalendarIcon, BookOpenIcon, BoxIcon, CurrencyDollarIcon, ChefIcon, StarIcon } from './Icons';
 
 
 // --- MAIN UI COMPONENT ---
@@ -89,6 +90,7 @@ const TechnicianUI: React.FC<TechnicianUIProps> = ({ user, isAdminViewing = fals
         const baseTabs = [
             { id: 'missions', label: 'Misiones', icon: <TasksIcon /> },
             { id: 'profile', label: 'Perfil', icon: <UserIcon /> },
+            { id: 'rewards', label: 'Tienda', icon: <StarIcon /> },
             { id: 'payments', label: 'Pagos', icon: <CurrencyDollarIcon /> },
             { id: 'leaderboard', label: 'Top', icon: <ChartIcon /> },
         ];
@@ -127,6 +129,7 @@ const TechnicianUI: React.FC<TechnicianUIProps> = ({ user, isAdminViewing = fals
             case 'kitchen': return <KitchenManagement />;
             case 'leaderboard': return <Leaderboard users={users} />;
             case 'hall_of_fame': return <HallOfFame missions={missions} users={users} />;
+            case 'rewards': return <RewardStore />;
             case 'calendar': return (
                 <MissionCalendar
                     missions={userMissions}
