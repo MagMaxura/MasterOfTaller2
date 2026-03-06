@@ -24,39 +24,60 @@ type UserScheduleInsert = any;
 export const api = {
   // --- FETCH (Utilizando Supabase para sincronización en tiempo real) ---
   async getInitialData(userId: string) {
+    // Keep for backward compatibility but redirect to stages or keep as is if needed.
+    // However, to optimize, we will call these separately from DataContext.
+    return Promise.all([
+      ...(await this.getLevel1Data(userId)),
+      ...(await this.getLevel2Data(userId)),
+      ...(await this.getLevel3Data(userId)),
+      this.getVacationRequests()
+    ]);
+  },
+
+  async getLevel1Data(userId: string) {
     const profileColumns = 'avatar, id, email, is_active, lat, level, lng, location_last_update, name, push_subscription, role, company, xp, attendance_id, joining_date, vacation_total_days, vacation_remaining_days, success_points';
     const missionColumns = 'id, created_at, title, description, status, difficulty, xp, bonus_monetario, assigned_to, start_date, deadline, required_skills, progress_photo_url, completed_date, bonus_xp, visible_to, company, role, success_points';
     const inventoryItemColumns = 'id, name, description, icon_url, slot, quantity';
     const badgeColumns = 'id, name, icon, description';
+
+    return [
+      supabase.from('profiles').select(`
+          ${profileColumns},
+          profile_skills ( level, skills ( id, name ) ),
+          user_badges ( badges ( ${badgeColumns} ) ),
+          user_inventory ( id, assigned_at, variant_id, inventory_items ( ${inventoryItemColumns} ), variant:inventory_variants ( id, size, quantity ) )
+      `).eq('is_active', true),
+      supabase.from('missions').select(missionColumns).order('created_at', { ascending: false }),
+      (supabase as any).from('user_schedules').select('*')
+    ];
+  },
+
+  async getLevel2Data(userId: string) {
+    const inventoryItemColumns = 'id, name, description, icon_url, slot, quantity';
     const supplyColumns = 'id, created_at, general_category, specific_category, type, model, details, stock_quantity, photo_url';
+
+    return [
+      supabase.from('inventory_items').select(`${inventoryItemColumns}, variants:inventory_variants(id, item_id, size, quantity)`),
+      supabase.from('badges').select('id, name, icon, description'),
+      supabase.from('supplies').select(supplyColumns).order('general_category').order('specific_category'),
+      supabase.from('mission_supplies').select(`id, created_at, mission_id, supply_id, quantity_assigned, quantity_used, supplies(${supplyColumns})`),
+      supabase.from('mission_requirements').select('id, mission_id, description, quantity, is_purchased, created_at'),
+      supabase.from('reward_items').select('*'),
+      supabase.from('user_rewards').select('*, reward:reward_items(*)'),
+    ];
+  },
+
+  async getLevel3Data(userId: string) {
     const salaryColumns = 'id, user_id, monto_base_quincenal, created_at';
     const payrollEventColumns = 'id, user_id, tipo, descripcion, monto, fecha_evento, periodo_pago_id, mission_id, created_at';
     const paymentPeriodColumns = 'id, user_id, fecha_inicio_periodo, fecha_fin_periodo, fecha_pago, salario_base_calculado, total_adiciones, total_deducciones, monto_final_a_pagar, estado, created_at';
 
-    // NEW: Combined query for profiles using relationships. This is more efficient and robust.
-    const profilesQuery = supabase.from('profiles').select(`
-        ${profileColumns},
-        profile_skills ( level, skills ( id, name ) ),
-        user_badges ( badges ( ${badgeColumns} ) ),
-        user_inventory ( id, assigned_at, variant_id, inventory_items ( ${inventoryItemColumns} ), variant:inventory_variants ( id, size, quantity ) )
-    `).eq('is_active', true);
-
-    return Promise.all([
-      profilesQuery, // Replaces separate fetches for profiles, skills, badges, inventory
-      supabase.from('missions').select(missionColumns).order('created_at', { ascending: false }),
-      supabase.from('inventory_items').select(`${inventoryItemColumns}, variants:inventory_variants(id, item_id, size, quantity)`),
-      supabase.from('badges').select(badgeColumns),
-      supabase.from('mission_milestones').select('id, mission_id, user_id, description, image_url, created_at, is_solution, mission:missions(title, required_skills)').order('created_at', { ascending: true }),
-      supabase.from('supplies').select(supplyColumns).order('general_category').order('specific_category'),
-      supabase.from('mission_supplies').select(`id, created_at, mission_id, supply_id, quantity_assigned, quantity_used, supplies(${supplyColumns})`),
-      supabase.from('mission_requirements').select('id, mission_id, description, quantity, is_purchased, created_at'),
+    return [
       supabase.from('salarios').select(salaryColumns),
       supabase.from('eventos_nomina').select(payrollEventColumns).order('fecha_evento', { ascending: false }),
       supabase.from('periodos_pago').select(`${paymentPeriodColumns}, events:eventos_nomina(*)`).order('fecha_pago', { ascending: false }),
-      (supabase as any).from('user_schedules').select('*'),
-      supabase.from('reward_items').select('*'),
-      supabase.from('user_rewards').select('*, reward:reward_items(*)'),
-    ]);
+      supabase.from('mission_milestones').select('id, mission_id, user_id, description, image_url, created_at, is_solution, mission:missions(title, required_skills)').order('created_at', { ascending: true }),
+    ];
   },
 
   // --- MUTATIONS ---

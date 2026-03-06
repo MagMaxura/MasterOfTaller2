@@ -248,169 +248,100 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
       ];
       setMissions(mockMissions);
-
-      const mockSupplies: Supply[] = [
-        { id: 'sup1', created_at: new Date().toISOString(), general_category: 'Lubricantes', specific_category: 'Aceite Motor', type: 'Sintético', model: '5W-30', details: 'Bidón 4L', stock_quantity: 20, photo_url: null },
-        { id: 'sup2', created_at: new Date().toISOString(), general_category: 'Filtros', specific_category: 'Aire', type: 'Cartucho', model: 'F-100', details: 'Original', stock_quantity: 5, photo_url: null }
-      ];
-      setSupplies(mockSupplies);
-
-      // Populate other lists with empty arrays to prevent crashes in UI
-      setAllInventoryItems([]);
-      setAllBadges([]);
-      setMissionMilestones([]);
-      setMissionSupplies([]);
-      setSalaries([]);
-      setPayrollEvents([]);
-      setPaymentPeriods([]);
-      setPaymentPeriods([]);
-      setAttendanceUsers([]);
-
       setLoading(false);
       return;
     }
     // --- END DEMO MODE ---
 
     try {
-      const results = await api.getInitialData(authUser.id);
-      const [
-        profilesResult,
-        missionsResult,
-        inventoryItemsResult,
-        badgesResult,
-        milestonesResult,
-        suppliesResult,
-        missionSuppliesResult,
-        missionRequirementsResult,
-        salariesResult,
-        payrollEventsResult,
-        paymentPeriodsResult,
-        schedulesResult,
-        rewardItemsResult,
-        userRewardsResult,
-        vacationRequestsResult
-      ] = await Promise.all([...results, api.getVacationRequests()]);
+      // --- STAGE 1: CRITICAL DATA (Level 1) ---
+      const level1Promises = await api.getLevel1Data(authUser.id);
+      const [profilesRes, missionsRes, schedulesRes] = await Promise.all(level1Promises);
 
-      if (profilesResult.error) throw new Error(`Al cargar perfiles: ${profilesResult.error.message}`);
-      const rawProfilesData = (profilesResult.data || []) as any[];
-      const transformedUsers = rawProfilesData.map(transformSupabaseProfileToUser);
+      if (profilesRes.error) throw new Error(`Perfiles: ${profilesRes.error.message}`);
+      const rawProfiles = (profilesRes.data || []) as any[];
+      const transformedUsers = rawProfiles.map(transformSupabaseProfileToUser);
       setUsers(transformedUsers);
 
       let foundUser = transformedUsers.find(u => u.id === authUser.id);
 
-      // AUTO-REGISTRATION or ACCESS CONTROL
-      if (!foundUser && !authUser.id.startsWith('demo-')) {
-        try {
-          const { data: existingProfile, error: checkError } = await supabase
-            .from('profiles')
-            .select('id, is_active')
-            .eq('id', authUser.id)
-            .maybeSingle();
-
-          if (checkError) throw checkError;
-
-          if (existingProfile && existingProfile.is_active === false) {
-            showToast('USTED NO TIENE ACCESO A LA HERRAMIENTA', 'error');
-            await supabase.auth.signOut();
-            setLoading(false);
-            return;
+      // AUTO-REGISTRATION logic (simplified)
+      if (!foundUser) {
+        const { data: existing } = await supabase.from('profiles').select('id, is_active').eq('id', authUser.id).maybeSingle();
+        if (!existing) {
+          const name = authUser.user_metadata?.full_name || authUser.email?.split('@')[0] || 'Nuevo';
+          await api.createProfile({ id: authUser.id, name, avatar: '', role: 'tecnico' });
+          // Fetch again Level 1 for complete profile
+          const [p2] = await Promise.all(await api.getLevel1Data(authUser.id));
+          if (p2.data) {
+            foundUser = transformSupabaseProfileToUser(p2.data[0]);
+            setUsers(prev => [...prev, foundUser!]);
           }
-
-          if (!existingProfile) {
-            const userName = authUser.user_metadata?.full_name || authUser.user_metadata?.name || authUser.email?.split('@')[0] || 'Nuevo Usuario';
-            const userAvatar = authUser.user_metadata?.avatar_url || authUser.user_metadata?.picture || `https://ui-avatars.com/api/?name=${encodeURIComponent(userName)}&background=random`;
-
-            await api.createProfile({ id: authUser.id, name: userName, avatar: userAvatar, role: 'tecnico' });
-
-            const { data: newProfileData } = await supabase.from('profiles').select(`
-                avatar, id, email, is_active, lat, level, lng, location_last_update, name, push_subscription, role, company, xp,
-                profile_skills ( level, skills ( id, name ) ),
-                user_badges ( badges ( id, name, icon, description ) ),
-                user_inventory ( id, assigned_at, variant_id, inventory_items ( id, name, description, icon_url, slot, quantity ), variant:inventory_variants ( id, size, quantity ) )
-            `).eq('id', authUser.id).maybeSingle();
-
-            if (newProfileData) {
-              foundUser = transformSupabaseProfileToUser(newProfileData);
-              setUsers(prev => [...prev.filter(u => u.id !== foundUser!.id), foundUser!]);
-            }
-          }
-        } catch (regError) { console.error("Error during profile processing:", regError); }
+        }
       }
-
       setCurrentUser(foundUser || null);
 
-      // --- AUTO-GENERATION & RECONCILIATION ---
-      if (foundUser?.role === Role.ADMIN) {
-        await checkAndGenerateDailyAbsences();
-      }
-
-      const initialEvents = (payrollEventsResult.data || []) as PayrollEvent[];
-      const wasReconciled = await reconcileDailyAttendance(transformedUsers, initialEvents);
-
-      let finalEvents = initialEvents;
-      if (wasReconciled) {
-        const refreshEvents = await supabase.from('eventos_nomina').select('*').order('fecha_evento', { ascending: false });
-        if (!refreshEvents.error) finalEvents = refreshEvents.data as PayrollEvent[];
-      }
-      setPayrollEvents(finalEvents);
-
-      if (missionsResult.error) throw new Error(`Al cargar misiones: ${missionsResult.error.message}`);
-      if (inventoryItemsResult.error) throw new Error(`Al cargar inventario: ${inventoryItemsResult.error.message}`);
-      if (badgesResult.error) throw new Error(`Al cargar insignias: ${badgesResult.error.message}`);
-      if (milestonesResult.error) throw new Error(`Al cargar hitos: ${milestonesResult.error.message}`);
-      if (suppliesResult.error) throw new Error(`Al cargar insumos: ${suppliesResult.error.message}`);
-      if (missionSuppliesResult.error) throw new Error(`Al cargar insumos de misión: ${missionSuppliesResult.error.message}`);
-      if (missionRequirementsResult.error) throw new Error(`Al cargar requerimientos de misión: ${missionRequirementsResult.error.message}`);
-      if (salariesResult.error) throw new Error(`Al cargar salarios: ${salariesResult.error.message}`);
-      if (paymentPeriodsResult.error) throw new Error(`Al cargar períodos de pago: ${paymentPeriodsResult.error.message}`);
-
-      const transformedMissions = (missionsResult.data || []).map((m: any) => ({ ...m, assignedTo: m.assigned_to, startDate: m.start_date, deadline: m.deadline, skills: m.required_skills, progressPhoto: m.progress_photo_url, completedDate: m.completed_date, bonusXp: m.bonus_xp, visibleTo: m.visible_to, }));
-      setMissions(transformedMissions);
-      setAllInventoryItems((inventoryItemsResult.data || []).map((item: any) => ({ ...item, quantity: item.quantity ?? 0 })));
-      setAllBadges((badgesResult.data || []) as Badge[]);
-      setMissionMilestones((milestonesResult.data || []).map((m: any) => ({ ...m, is_solution: m.is_solution ?? false })) as MissionMilestone[]);
-      setSupplies((suppliesResult.data || []) as Supply[]);
-      setMissionSupplies((missionSuppliesResult.data || []) as MissionSupply[]);
-      setMissionRequirements((missionRequirementsResult.data || []) as MissionRequirement[]);
-      setSalaries((salariesResult.data || []) as Salary[]);
-      setUserSchedules((schedulesResult.data || []) as UserSchedule[]);
-      setVacationRequests((vacationRequestsResult as unknown as VacationRequest[]) || []);
-      setRewardItems((rewardItemsResult.data as unknown as Reward[]) || []);
-      setUserRewards((userRewardsResult.data as unknown as UserReward[]) || []);
-
-      const attUsers = await attendanceService.getAllUsers();
-      setAttendanceUsers(attUsers);
-
-      const rawPeriods = (paymentPeriodsResult.data || []) as PaymentPeriod[];
-      const enrichedPeriods = await Promise.all(rawPeriods.map(async (p): Promise<PaymentPeriod> => {
-        const user = rawProfilesData.find(u => u.id === p.user_id);
-        if (!user || !user.email) return p;
-        try {
-          const attUser = user.attendance_id
-            ? await attendanceService.getUserProfileById(user.attendance_id)
-            : (user.email ? await attendanceService.getUserProfileByEmail(user.email) : null);
-          if (!attUser) return p;
-          const logs = await attendanceService.getAccessLogsByRange(attUser.id, p.fecha_inicio_periodo, p.fecha_fin_periodo);
-          const summaryMap: Record<string, AttendanceSummary> = {};
-          logs.forEach(l => {
-            const date = l.timestamp.split('T')[0];
-            if (!summaryMap[date]) summaryMap[date] = { date, totalHours: 0, isTardy: !!l.tardiness_hours, isAbsent: false };
-            const type = l.type.toUpperCase();
-            if (type === 'IN' || type === 'ENTRADA') summaryMap[date].checkIn = l.timestamp;
-            if (type === 'OUT' || type === 'SALIDA') summaryMap[date].checkOut = l.timestamp;
-            if (l.hours_worked) summaryMap[date].totalHours += l.hours_worked;
-          });
-          return { ...p, attendanceHistory: Object.values(summaryMap) };
-        } catch (e) { return p; }
+      if (missionsRes.error) throw new Error(`Misiones: ${missionsRes.error.message}`);
+      const initialMissions = (missionsRes.data || []).map((m: any) => ({
+        ...m,
+        assignedTo: m.assigned_to,
+        startDate: m.start_date,
+        deadline: m.deadline,
+        skills: m.required_skills,
+        progressPhoto: m.progress_photo_url,
+        completedDate: m.completed_date,
+        bonusXp: m.bonus_xp,
+        visibleTo: m.visible_to,
       }));
+      setMissions(initialMissions);
 
-      setPaymentPeriods(enrichedPeriods);
+      if (schedulesRes.error) console.warn("Schedules error:", schedulesRes.error);
+      setAttendanceUsers((schedulesRes.data || []) as any[]);
 
-    } catch (error) {
+      // --- UNLOCK UI ---
+      setLoading(false);
+
+      // --- STAGE 2: BACKGROUND DATA (Level 2 & 3) ---
+      const [l2Promises, l3Promises, vacationsData] = await Promise.all([
+        api.getLevel2Data(authUser.id),
+        api.getLevel3Data(authUser.id),
+        api.getVacationRequests()
+      ]);
+
+      const [invRes, badgeRes, supRes, mSupRes, reqRes, rewRes, uRewRes] = await Promise.all(l2Promises);
+      const [salRes, payRes, perRes, mileRes] = await Promise.all(l3Promises);
+
+      // Level 2 updates
+      if (invRes.data) setAllInventoryItems(invRes.data.map((item: any) => ({ ...item, quantity: item.quantity ?? 0 })));
+      if (badgeRes.data) setAllBadges(badgeRes.data as Badge[]);
+      if (supRes.data) setSupplies(supRes.data as Supply[]);
+      if (mSupRes.data) setMissionSupplies(mSupRes.data as MissionSupply[]);
+      if (reqRes.data) setMissionRequirements(reqRes.data as MissionRequirement[]);
+      if (rewRes.data) setRewardItems(rewRes.data as Reward[]);
+      if (uRewRes.data) setUserRewards(uRewRes.data as UserReward[]);
+
+      // Level 3 updates
+      if (salRes.data) setSalaries(salRes.data as Salary[]);
+      if (perRes.data) {
+        const rawPeriods = perRes.data as PaymentPeriod[];
+        setPaymentPeriods(rawPeriods); // Initial set, could be enriched later
+      }
+      if (mileRes.data) setMissionMilestones(mileRes.data.map((m: any) => ({ ...m, is_solution: m.is_solution ?? false })) as MissionMilestone[]);
+
+      setVacationRequests((vacationsData || []) as any[]);
+
+      // Reconcliation logic (Critical for technician)
+      if (foundUser?.role === Role.TECHNICIAN && payRes.data) {
+        await reconcileDailyAttendance(transformedUsers, payRes.data as PayrollEvent[]);
+      }
+      setPayrollEvents((payRes.data || []) as PayrollEvent[]);
+
+    } catch (error: any) {
       console.error("Error fetching data:", error);
-      showToast(error instanceof Error ? error.message : "Error al cargar datos", 'error');
+      showToast(error.message || "Error al cargar datos", 'error');
+      setLoading(false);
     }
-  }, [authUser, showToast, checkAndGenerateDailyAbsences, reconcileDailyAttendance]);
+  }, [authUser, showToast, reconcileDailyAttendance]);
 
   useEffect(() => {
     if (authUser) {
