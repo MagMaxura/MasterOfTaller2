@@ -4,15 +4,20 @@ import { useData } from '../../../contexts/DataContext';
 import { useToast } from '../../../contexts/ToastContext';
 import { getRank } from '../../../utils/ranks';
 import { calculateTotalVacationDays, formatSeniority } from '../../../utils/vacation';
-import { CameraIcon, BoxIcon, CalendarIcon } from '../../Icons';
+import { CameraIcon, BoxIcon, CalendarIcon, EditIcon, CheckIcon } from '../../Icons';
 import InventoryManagementModal from '../../admin/modals/InventoryManagementModal';
 
 const UserInfoCard: React.FC<{ user: User; isAdminViewing?: boolean; }> = ({ user, isAdminViewing }) => {
-    const { updateUserAvatar, currentUser } = useData();
+    const { updateUserAvatar, updateUser, currentUser } = useData();
     const { showToast } = useToast();
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [isUploading, setIsUploading] = useState(false);
     const [isInventoryModalOpen, setIsInventoryModalOpen] = useState(false);
+
+    // Name editing state
+    const [isEditingName, setIsEditingName] = useState(false);
+    const [newName, setNewName] = useState(user.name);
+    const [isSavingName, setIsSavingName] = useState(false);
 
     const handleAvatarClick = () => {
         if (isAdminViewing) return;
@@ -31,6 +36,24 @@ const UserInfoCard: React.FC<{ user: User; isAdminViewing?: boolean; }> = ({ use
             showToast(error instanceof Error ? error.message : "Error al actualizar avatar", 'error');
         } finally {
             setIsUploading(false);
+        }
+    };
+
+    const handleSaveName = async () => {
+        if (!newName.trim() || newName === user.name) {
+            setIsEditingName(false);
+            setNewName(user.name);
+            return;
+        }
+        setIsSavingName(true);
+        try {
+            await updateUser(user.id, { name: newName.trim() });
+            showToast("Nombre actualizado con éxito", 'success');
+            setIsEditingName(false);
+        } catch (error) {
+            showToast(error instanceof Error ? error.message : "Error al actualizar nombre", 'error');
+        } finally {
+            setIsSavingName(false);
         }
     };
 
@@ -76,8 +99,46 @@ const UserInfoCard: React.FC<{ user: User; isAdminViewing?: boolean; }> = ({ use
                 </div>
 
                 {/* Info Section */}
-                <div className="text-center space-y-1">
-                    <h3 className="text-2xl font-black text-brand-highlight tracking-tight leading-none">{user.name}</h3>
+                <div className="text-center space-y-1 w-full flex flex-col items-center">
+                    {isEditingName ? (
+                        <div className="flex items-center gap-2 mb-1">
+                            <input
+                                type="text"
+                                value={newName}
+                                onChange={(e) => setNewName(e.target.value)}
+                                className="bg-brand-primary border border-brand-accent rounded p-1 text-center font-bold text-white focus:outline-none focus:border-brand-blue"
+                                autoFocus
+                                onKeyDown={(e) => e.key === 'Enter' && handleSaveName()}
+                            />
+                            <button
+                                onClick={handleSaveName}
+                                disabled={isSavingName}
+                                className="p-1.5 bg-brand-green/20 text-brand-green rounded-lg hover:bg-brand-green hover:text-white transition-all disabled:opacity-50"
+                            >
+                                {isSavingName ? (
+                                    <div className="w-4 h-4 border-2 border-t-transparent border-current rounded-full animate-spin"></div>
+                                ) : (
+                                    <CheckIcon className="w-4 h-4" />
+                                )}
+                            </button>
+                        </div>
+                    ) : (
+                        <div className="flex items-center gap-2 justify-center group/name">
+                            <h3 className="text-2xl font-black text-brand-highlight tracking-tight leading-none">{user.name}</h3>
+                            {!isAdminViewing && (
+                                <button
+                                    onClick={() => {
+                                        setNewName(user.name);
+                                        setIsEditingName(true);
+                                    }}
+                                    className="opacity-0 group-hover/name:opacity-100 p-1 text-brand-light hover:text-brand-highlight transition-all"
+                                    title="Editar nombre"
+                                >
+                                    <EditIcon className="w-4 h-4" />
+                                </button>
+                            )}
+                        </div>
+                    )}
                     <p className="text-xs font-black text-brand-blue uppercase tracking-[0.2em] opacity-80">{rank}</p>
                 </div>
 
