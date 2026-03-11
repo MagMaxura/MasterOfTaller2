@@ -296,7 +296,14 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setMissions(initialMissions);
 
       if (schedulesRes.error) console.warn("Schedules error:", schedulesRes.error);
-      setAttendanceUsers((schedulesRes.data || []) as any[]);
+      setUserSchedules((schedulesRes.data || []) as any[]);
+
+      try {
+        const extAttendanceUsers = await attendanceService.getAllUsers();
+        setAttendanceUsers(extAttendanceUsers);
+      } catch (err) {
+        console.error("Error fetching attendance users:", err);
+      }
 
       // --- UNLOCK UI ---
       setLoading(false);
