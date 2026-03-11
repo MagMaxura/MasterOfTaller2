@@ -21,6 +21,7 @@ import SuppliesManagement from './admin/supplies/SuppliesManagement';
 import Leaderboard from './common/Leaderboard';
 import HallOfFame from './common/HallOfFame';
 import PayrollManagement from './admin/payroll/PayrollManagement';
+import LoanManagement from './admin/payroll/LoanManagement';
 import RewardManagement from './admin/rewards/RewardManagement';
 import SetSalaryModal from './admin/payroll/SetSalaryModal';
 import AddPayrollEventModal from './admin/payroll/AddPayrollEventModal';
@@ -60,6 +61,7 @@ const AdminView: React.FC = () => {
     const TABS = [
         { id: 'manage', label: 'Gestionar', icon: <UserIcon /> },
         { id: 'payroll', label: 'Nómina', icon: <CurrencyDollarIcon /> },
+        { id: 'loans', label: 'Préstamos', icon: <CurrencyDollarIcon /> },
         { id: 'missions', label: 'Misiones', icon: <TasksIcon /> },
         { id: 'requests', label: 'Solicitudes', icon: <TasksIcon />, notification: totalRequestsCount > 0 },
         { id: 'leaderboard', label: 'Clasificación', icon: <ChartIcon /> },
@@ -170,6 +172,9 @@ const AdminView: React.FC = () => {
                         <div className={activeTab === 'payroll' ? 'block' : 'hidden'}>
                             <PayrollManagement onAddEvent={setAddingPayrollEventFor} />
                         </div>
+                        <div className={activeTab === 'loans' ? 'block' : 'hidden'}>
+                            <LoanManagement />
+                        </div>
                         <div className={activeTab === 'missions' ? 'block' : 'hidden'}>
                             <MissionsManager onOpenMission={setSelectedMission} onEditMission={setEditingMission} />
                         </div>
@@ -184,6 +189,9 @@ const AdminView: React.FC = () => {
                         </div>
                         <div className={activeTab === 'create' ? 'block' : 'hidden'}>
                             <MissionCreator users={users} />
+                        </div>
+                        <div className={activeTab === 'stock' ? 'block' : 'hidden'}>
+                            <StockManagement onOpenCreateModal={() => setIsCreateItemModalOpen(true)} />
                         </div>
                         <div className={activeTab === 'supplies' ? 'block' : 'hidden'}>
                             <SuppliesManagement />
