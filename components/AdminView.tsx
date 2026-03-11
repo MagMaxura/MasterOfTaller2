@@ -19,7 +19,6 @@ import MissionsManager from './admin/MissionsManager';
 import MissionDetailsModal from './technician/missions/MissionDetailsModal';
 import SuppliesManagement from './admin/supplies/SuppliesManagement';
 import Leaderboard from './common/Leaderboard';
-import HallOfFame from './common/HallOfFame';
 import PayrollManagement from './admin/payroll/PayrollManagement';
 import LoanManagement from './admin/payroll/LoanManagement';
 import RewardManagement from './admin/rewards/RewardManagement';
@@ -32,7 +31,7 @@ import { api } from '../services/api';
 import { Role as UserRole } from '../types';
 import LunchConfirmationCard from './technician/LunchConfirmationCard';
 
-import { PlusIcon, BoxIcon, CalendarIcon, MapPinIcon, UserIcon, TasksIcon, BookOpenIcon, LogoutIcon, MenuIcon, ChartIcon, HallOfFameIcon, CurrencyDollarIcon, CogIcon, StarIcon } from './Icons';
+import { PlusIcon, BoxIcon, CalendarIcon, MapPinIcon, UserIcon, TasksIcon, BookOpenIcon, LogoutIcon, MenuIcon, ChartIcon, CurrencyDollarIcon, CogIcon, StarIcon } from './Icons';
 
 // --- MAIN COMPONENT ---
 const AdminView: React.FC = () => {
@@ -65,7 +64,6 @@ const AdminView: React.FC = () => {
         { id: 'missions', label: 'Misiones', icon: <TasksIcon /> },
         { id: 'requests', label: 'Solicitudes', icon: <TasksIcon />, notification: totalRequestsCount > 0 },
         { id: 'leaderboard', label: 'Clasificación', icon: <ChartIcon /> },
-        { id: 'hall_of_fame', label: 'Muro de la Fama', icon: <HallOfFameIcon /> },
         { id: 'create', label: 'Crear Misión', icon: <PlusIcon /> },
         { id: 'stock', label: 'Stock (Equipo)', icon: <BoxIcon /> },
         { id: 'rewards', label: 'Premios', icon: <StarIcon /> },
@@ -183,9 +181,6 @@ const AdminView: React.FC = () => {
                         </div>
                         <div className={activeTab === 'leaderboard' ? 'block' : 'hidden'}>
                             <Leaderboard users={users} />
-                        </div>
-                        <div className={activeTab === 'hall_of_fame' ? 'block' : 'hidden'}>
-                            <HallOfFame missions={missions} users={users} />
                         </div>
                         <div className={activeTab === 'create' ? 'block' : 'hidden'}>
                             <MissionCreator users={users} />

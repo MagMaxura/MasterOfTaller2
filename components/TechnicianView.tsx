@@ -10,7 +10,6 @@ import MissionsDashboard from './technician/missions/MissionsDashboard';
 import MissionDetailsModal from './technician/missions/MissionDetailsModal';
 import PermissionsGuard from './technician/PermissionsGuard';
 import Leaderboard from './common/Leaderboard';
-import HallOfFame from './common/HallOfFame';
 import MissionCalendar from './MissionCalendar';
 import TechnicianSuppliesView from './technician/TechnicianSuppliesView';
 import PaymentsView from './technician/payments/PaymentsView';
@@ -23,7 +22,7 @@ import KitchenManagement from './admin/KitchenManagement';
 import LunchConfirmationCard from './technician/LunchConfirmationCard';
 
 
-import { TasksIcon, UserIcon, ChartIcon, HallOfFameIcon, CalendarIcon, BookOpenIcon, BoxIcon, CurrencyDollarIcon, ChefIcon, StarIcon } from './Icons';
+import { TasksIcon, UserIcon, ChartIcon, CalendarIcon, BookOpenIcon, BoxIcon, CurrencyDollarIcon, ChefIcon, StarIcon } from './Icons';
 
 
 // --- MAIN UI COMPONENT ---
@@ -115,7 +114,6 @@ const TechnicianUI: React.FC<TechnicianUIProps> = ({ user, isAdminViewing = fals
         // Add less critical tabs for larger screens
         const desktopTabs = [
             ...filteredBase,
-            { id: 'hall_of_fame', label: 'Fama', icon: <HallOfFameIcon /> },
             { id: 'calendar', label: 'Calendario', icon: <CalendarIcon /> }
         ];
 
@@ -135,7 +133,6 @@ const TechnicianUI: React.FC<TechnicianUIProps> = ({ user, isAdminViewing = fals
             case 'stock': return <StockManagement onOpenCreateModal={() => setIsCreateStockItemModalOpen(true)} />;
             case 'kitchen': return <KitchenManagement />;
             case 'leaderboard': return <Leaderboard users={users} />;
-            case 'hall_of_fame': return <HallOfFame missions={missions} users={users} />;
             case 'rewards': return <RewardStore />;
             case 'calendar': return (
                 <MissionCalendar

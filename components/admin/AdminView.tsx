@@ -19,12 +19,11 @@ import MissionsManager from './MissionsManager';
 import MissionDetailsModal from '../technician/missions/MissionDetailsModal';
 import SuppliesManagement from './supplies/SuppliesManagement';
 import Leaderboard from '../common/Leaderboard';
-import HallOfFame from '../common/HallOfFame';
 import AddPayrollEventModal from './payroll/AddPayrollEventModal';
 import PayrollManagement from './payroll/PayrollManagement';
 import LoanManagement from './payroll/LoanManagement';
 
-import { PlusIcon, BoxIcon, CalendarIcon, MapPinIcon, UserIcon, ChatIcon, TasksIcon, BookOpenIcon, LogoutIcon, MenuIcon, ChartIcon, HallOfFameIcon, CurrencyDollarIcon } from '../Icons';
+import { PlusIcon, BoxIcon, CalendarIcon, MapPinIcon, UserIcon, ChatIcon, TasksIcon, BookOpenIcon, LogoutIcon, MenuIcon, ChartIcon, CurrencyDollarIcon } from '../Icons';
 
 // --- MAIN COMPONENT ---
 const AdminView: React.FC = () => {
@@ -51,7 +50,6 @@ const AdminView: React.FC = () => {
         { id: 'payroll', label: 'Nómina', icon: <ChartIcon /> },
         { id: 'loans', label: 'Préstamos', icon: <CurrencyDollarIcon /> },
         { id: 'leaderboard', label: 'Clasificación', icon: <ChartIcon /> },
-        { id: 'hall_of_fame', label: 'Muro de la Fama', icon: <HallOfFameIcon /> },
         { id: 'create', label: 'Crear Misión', icon: <PlusIcon /> },
         { id: 'stock', label: 'Stock (Equipo)', icon: <BoxIcon /> },
         { id: 'supplies', label: 'Insumos', icon: <BoxIcon /> },
@@ -157,9 +155,6 @@ const AdminView: React.FC = () => {
                     </div>
                     <div className={activeTab === 'leaderboard' ? 'block' : 'hidden'}>
                         <Leaderboard users={users} />
-                    </div>
-                    <div className={activeTab === 'hall_of_fame' ? 'block' : 'hidden'}>
-                        <HallOfFame missions={missions} users={users} />
                     </div>
                     <div className={activeTab === 'create' ? 'block' : 'hidden'}>
                         <MissionCreator users={users} />
