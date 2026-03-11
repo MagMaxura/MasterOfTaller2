@@ -22,8 +22,9 @@ import Leaderboard from '../common/Leaderboard';
 import HallOfFame from '../common/HallOfFame';
 import AddPayrollEventModal from './payroll/AddPayrollEventModal';
 import PayrollManagement from './payroll/PayrollManagement';
+import LoanManagement from './payroll/LoanManagement';
 
-import { PlusIcon, BoxIcon, CalendarIcon, MapPinIcon, UserIcon, ChatIcon, TasksIcon, BookOpenIcon, LogoutIcon, MenuIcon, ChartIcon, HallOfFameIcon } from '../Icons';
+import { PlusIcon, BoxIcon, CalendarIcon, MapPinIcon, UserIcon, ChatIcon, TasksIcon, BookOpenIcon, LogoutIcon, MenuIcon, ChartIcon, HallOfFameIcon, CurrencyDollarIcon } from '../Icons';
 
 // --- MAIN COMPONENT ---
 const AdminView: React.FC = () => {
@@ -48,6 +49,7 @@ const AdminView: React.FC = () => {
         { id: 'missions', label: 'Misiones', icon: <TasksIcon /> },
         { id: 'requests', label: 'Solicitudes', icon: <TasksIcon />, notification: missionRequestsCount > 0 },
         { id: 'payroll', label: 'Nómina', icon: <ChartIcon /> },
+        { id: 'loans', label: 'Préstamos', icon: <CurrencyDollarIcon /> },
         { id: 'leaderboard', label: 'Clasificación', icon: <ChartIcon /> },
         { id: 'hall_of_fame', label: 'Muro de la Fama', icon: <HallOfFameIcon /> },
         { id: 'create', label: 'Crear Misión', icon: <PlusIcon /> },
@@ -131,6 +133,9 @@ const AdminView: React.FC = () => {
                             }}
                             onEditEvent={setEditingPayrollEvent}
                         />
+                    </div>
+                    <div className={activeTab === 'loans' ? 'block' : 'hidden'}>
+                        <LoanManagement />
                     </div>
                     <div className={activeTab === 'manage' ? 'block' : 'hidden'}>
                         <UserManagement

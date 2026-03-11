@@ -49,36 +49,9 @@ const AdminView: React.FC = () => {
     const [editingMission, setEditingMission] = useState<Mission | null>(null);
     const [selectedMission, setSelectedMission] = useState<Mission | null>(null);
 
-    // real-time attendance monitor for admin notifications
-    useEffect(() => {
-        if (currentUser?.role === UserRole.ADMIN) {
-            const channel = supabaseAttendance
-                .channel('admin-attendance-monitor')
-                .on(
-                    'postgres_changes',
-                    { event: 'INSERT', schema: 'public', table: 'access_logs' },
-                    async (payload) => {
-                        const newLog = payload.new;
-                        if (newLog.type.toUpperCase() === 'IN' || newLog.type.toUpperCase() === 'ENTRADA') {
-                            try {
-                                await api.sendNotification(
-                                    currentUser.id,
-                                    '🔔 Nuevo Ingreso',
-                                    `${newLog.user_name} ha ingresado a las ${new Date(newLog.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
-                                );
-                            } catch (e) {
-                                console.error("Error sending push notification:", e);
-                            }
-                        }
-                    }
-                )
-                .subscribe();
-
-            return () => {
-                supabaseAttendance.removeChannel(channel);
-            };
-        }
-    }, [currentUser]);
+    // The real-time attendance monitor has been moved to a database webhook
+    // for "always-on" notifications that work even when the admin is offline.
+    // Logic is now in the 'attendance-webhook' Edge Function.
 
     const missionRequestsCount = useMemo(() => missions.filter(m => m.status === MissionStatus.REQUESTED).length, [missions]);
     const vacationRequestsCount = useMemo(() => vacationRequests.filter(r => r.status === 'PENDIENTE').length, [vacationRequests]);

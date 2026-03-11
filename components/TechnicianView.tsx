@@ -1,6 +1,6 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
-import { User, Mission } from '../types';
+import { User, Mission, Role } from '../types';
 import { supabase } from '../config';
 import { useData } from '../contexts/DataContext';
 
@@ -35,7 +35,8 @@ interface TechnicianUIProps {
 
 const TechnicianUI: React.FC<TechnicianUIProps> = ({ user, isAdminViewing = false, onBackToAdmin }) => {
     const { missions, users, vacationRequests, payrollEvents } = useData();
-    const [activeTab, setActiveTab] = useState('missions');
+    const isCleaningRole = useMemo(() => user.role === Role.CLEANING, [user.role]);
+    const [activeTab, setActiveTab] = useState(isCleaningRole ? 'profile' : 'missions');
     const [selectedMission, setSelectedMission] = useState<Mission | null>(null);
     const [isCreateStockItemModalOpen, setIsCreateStockItemModalOpen] = useState(false);
     const [isRequestingVacation, setIsRequestingVacation] = useState(false);
@@ -95,8 +96,14 @@ const TechnicianUI: React.FC<TechnicianUIProps> = ({ user, isAdminViewing = fals
             { id: 'leaderboard', label: 'Top', icon: <ChartIcon /> },
         ];
 
+        // Filter for Cleaning Role
+        let filteredBase = [...baseTabs];
+        if (isCleaningRole) {
+            filteredBase = filteredBase.filter(t => !['missions', 'rewards', 'leaderboard'].includes(t.id));
+        }
+
         if (userHasSupplyBadge && !isAdminViewing) {
-            baseTabs.splice(3, 0, { id: 'supplies', label: 'Insumos', icon: <BoxIcon /> });
+            filteredBase.splice(3, 0, { id: 'supplies', label: 'Insumos', icon: <BoxIcon /> });
         }
         if (userHasEquipmentBadge && !isAdminViewing) {
             baseTabs.splice(3, 0, { id: 'stock', label: 'Stock EPP', icon: <BoxIcon /> });
@@ -107,17 +114,17 @@ const TechnicianUI: React.FC<TechnicianUIProps> = ({ user, isAdminViewing = fals
 
         // Add less critical tabs for larger screens
         const desktopTabs = [
-            ...baseTabs,
+            ...filteredBase,
             { id: 'hall_of_fame', label: 'Fama', icon: <HallOfFameIcon /> },
             { id: 'calendar', label: 'Calendario', icon: <CalendarIcon /> }
         ];
 
         // Mobile tabs are more selective - keep max 5-6 items for mobile nav
-        const mobileTabs = baseTabs.slice(0, 5); // Show first 5 for better fit, user can access others via specific logic if needed, or scroll
+        const mobileTabs = filteredBase.slice(0, 5); // Show first 5 for better fit, user can access others via specific logic if needed, or scroll
 
-        return { mobile: baseTabs, desktop: desktopTabs }; // Using baseTabs for mobile to ensure all are accessible with scroll
+        return { mobile: filteredBase, desktop: desktopTabs }; // Using baseTabs for mobile to ensure all are accessible with scroll
 
-    }, [userHasSupplyBadge, userHasEquipmentBadge, isAdminViewing]);
+    }, [userHasSupplyBadge, userHasEquipmentBadge, isAdminViewing, isCleaningRole]);
 
     const renderContent = () => {
         switch (activeTab) {

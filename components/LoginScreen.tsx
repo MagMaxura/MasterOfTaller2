@@ -12,6 +12,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ authError, onBypass }) => {
   const [loading, setLoading] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [isRegistering, setIsRegistering] = useState(false);
 
   // Combine all error/success messages into one state
   const [formMessage, setFormMessage] = useState<string | null>(authError || null);
@@ -38,20 +39,32 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ authError, onBypass }) => {
     }
   };
 
-  const handleEmailLogin = async (e: React.FormEvent) => {
+  const handleEmailAuth = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setFormMessage(null);
     try {
       if (!supabase) throw new Error("Cliente Supabase no inicializado.");
-      const { error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
+
+      let error;
+      if (isRegistering) {
+        const res = await supabase.auth.signUp({ email, password });
+        error = res.error;
+        if (!error && res.data.user) {
+          setMessageType('success');
+          setFormMessage('Registro exitoso. Es posible que debas confirmar tu correo.');
+          setLoading(false);
+          return;
+        }
+      } else {
+        const res = await supabase.auth.signInWithPassword({ email, password });
+        error = res.error;
+      }
+
       if (error) throw error;
     } catch (err: any) {
       setMessageType('error');
-      setFormMessage(err.message || 'Credenciales inválidas.');
+      setFormMessage(err.message || (isRegistering ? 'Error al registrarse.' : 'Credenciales inválidas.'));
       setLoading(false);
     }
   };
@@ -94,7 +107,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ authError, onBypass }) => {
               <div className="h-px bg-brand-accent/50 flex-1"></div>
             </div>
 
-            <form onSubmit={handleEmailLogin} className="space-y-3">
+            <form onSubmit={handleEmailAuth} className="space-y-3">
               <input
                 type="email"
                 placeholder="Email"
@@ -116,9 +129,22 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ authError, onBypass }) => {
                 disabled={loading}
                 className="w-full bg-brand-blue text-white font-black py-3 rounded-xl shadow-lg shadow-brand-blue/20 hover:bg-brand-blue/90 active:scale-95 transition-all disabled:opacity-50"
               >
-                {loading ? 'Cerrando...' : 'Iniciar Sesión'}
+                {loading ? (isRegistering ? 'Registrando...' : 'Iniciando...') : (isRegistering ? 'Registrarse' : 'Iniciar Sesión')}
               </button>
             </form>
+
+            <div className="mt-4 text-center">
+              <button
+                type="button"
+                onClick={() => {
+                  setIsRegistering(!isRegistering);
+                  setFormMessage(null);
+                }}
+                className="text-xs font-bold text-brand-blue hover:text-brand-highlight transition-colors"
+              >
+                {isRegistering ? '¿Ya tienes una cuenta? Inicia Sesión' : '¿No tienes cuenta? Regístrate'}
+              </button>
+            </div>
           </div>
 
           {formMessage && (
