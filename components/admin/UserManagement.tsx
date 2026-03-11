@@ -65,7 +65,7 @@ const UserManagement: React.FC<{
             await updateUser(editingUser.id, {
                 role: editingUser.role,
                 company: editingUser.company,
-                attendance_id: editingUser.attendance_id,
+                attendance_id: editingUser.attendance_id || null,
                 vacation_total_days: editingUser.vacation_total_days,
                 vacation_remaining_days: editingUser.vacation_remaining_days,
                 joining_date: editingUser.joining_date
@@ -251,21 +251,33 @@ const UserManagement: React.FC<{
 
                             <div className="space-y-2">
                                 <label className="text-[10px] font-black text-brand-light uppercase tracking-widest ml-1">ID Asistencia (Reloj)</label>
-                                <select
-                                    className="w-full bg-brand-secondary border border-brand-accent rounded-2xl px-4 py-3 font-bold text-brand-highlight focus:ring-2 focus:ring-brand-blue outline-none transition-all"
-                                    value={editingUser.attendance_id || ''}
-                                    onChange={(e) => setEditingUser({ ...editingUser, attendance_id: e.target.value })}
-                                >
-                                    <option value="">Sin vincular</option>
-                                    {attendanceUsers
-                                        .filter(au => !users.some(u => u.attendance_id === au.id && u.id !== editingUser.id))
-                                        .map(au => (
-                                            <option key={au.id} value={au.id}>
-                                                {au.name} - ({au.id})
-                                            </option>
-                                        ))}
-                                </select>
-                                <p className="text-[9px] text-brand-light font-bold italic ml-1">* Selecciona el perfil del reloj facial para vincularlo manualmente.</p>
+                                <div className="flex gap-2">
+                                    <select
+                                        className="w-full bg-brand-secondary border border-brand-accent rounded-2xl px-4 py-3 font-bold text-brand-highlight focus:ring-2 focus:ring-brand-blue outline-none transition-all"
+                                        value={editingUser.attendance_id || ''}
+                                        onChange={(e) => setEditingUser({ ...editingUser, attendance_id: e.target.value })}
+                                    >
+                                        <option value="">Sin vincular</option>
+                                        {attendanceUsers
+                                            .filter(au => !users.some(u => u.attendance_id === au.id && u.id !== editingUser.id))
+                                            .map(au => (
+                                                <option key={au.id} value={au.id}>
+                                                    {au.name} - ({au.id})
+                                                </option>
+                                            ))}
+                                    </select>
+                                    {editingUser.attendance_id && (
+                                        <button
+                                            type="button"
+                                            onClick={() => setEditingUser({ ...editingUser, attendance_id: '' })}
+                                            className="px-4 bg-brand-red/10 text-brand-red hover:bg-brand-red hover:text-white rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all whitespace-nowrap"
+                                            title="Desvincular Reloj"
+                                        >
+                                            Desvincular
+                                        </button>
+                                    )}
+                                </div>
+                                <p className="text-[9px] text-brand-light font-bold italic ml-1">* Selecciona el perfil del reloj o usa Desvincular para liberarlo.</p>
                             </div>
 
                             <div className="space-y-2">
