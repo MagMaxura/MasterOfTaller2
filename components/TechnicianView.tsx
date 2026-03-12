@@ -105,10 +105,10 @@ const TechnicianUI: React.FC<TechnicianUIProps> = ({ user, isAdminViewing = fals
             filteredBase.splice(3, 0, { id: 'supplies', label: 'Insumos', icon: <BoxIcon /> });
         }
         if (userHasEquipmentBadge && !isAdminViewing) {
-            baseTabs.splice(3, 0, { id: 'stock', label: 'Stock EPP', icon: <BoxIcon /> });
+            filteredBase.splice(3, 0, { id: 'stock', label: 'Stock EPP', icon: <BoxIcon /> });
         }
         if (isCook && !isAdminViewing) {
-            baseTabs.splice(3, 0, { id: 'kitchen', label: 'Cocina', icon: <ChefIcon /> });
+            filteredBase.splice(3, 0, { id: 'kitchen', label: 'Cocina', icon: <ChefIcon /> });
         }
 
         // Add less critical tabs for larger screens
