@@ -43,11 +43,18 @@ const EventRow: React.FC<{ event: PayrollEvent; onEdit: (e: PayrollEvent) => voi
     };
     return (
         <div 
-            onClick={(e) => { e.stopPropagation(); onEdit && onEdit(event); }}
-            onDoubleClick={(e) => { e.stopPropagation(); onEdit && onEdit(event); }}
+            onClick={(e) => { 
+                e.stopPropagation(); 
+                console.log('EventRow clicked:', event.id, event.tipo);
+                if (typeof onEdit === 'function') {
+                    onEdit(event);
+                } else {
+                    console.error('onEdit is not a function in EventRow', onEdit);
+                }
+            }}
             className="flex justify-between items-center py-2 px-3 border-b border-brand-accent/30 text-sm hover:bg-white/5 cursor-pointer transition-colors rounded select-none group"
         >
-            <div>
+            <div className="flex-grow">
                 <p className="font-semibold">
                     {eventTypeMap[event.tipo] || event.tipo} 
                     <span className="text-[10px] text-brand-light font-normal ml-2">{new Date(event.fecha_evento + 'T00:00:00').toLocaleDateString()}</span>

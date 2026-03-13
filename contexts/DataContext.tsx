@@ -150,10 +150,10 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
         for (const date of loggedDates) {
           const dailyLogs = logs.filter(l => l.timestamp.split('T')[0] === date);
-          const hasMovement = dailyLogs.some(l => (l.type as string) === 'IN' || (l.type as string) === 'OUT' || (l.type as string) === 'Entrada' || (l.type as string) === 'Salida');
+          const hasMovement = dailyLogs.some(l => (l.type as string) === 'IN' || (l.type as string) === 'OUT' || (l.type as string) === 'Entrada' || (l.type as string) === 'Salida' || (l.type as string) === 'ENTRADA' || (l.type as string) === 'SALIDA');
           const absenceLog = dailyLogs.find(l => (l.type as string) === 'ABSENCE' || (l.type as string) === 'FALTA');
 
-          // Find any 'FALTA' event for this user on this date
+          // --- 1. HANDLE ABSENCES ---
           const currentAbsenceEvent = currentEvents.find(e =>
             e.user_id === user.id &&
             e.fecha_evento === date &&
@@ -165,20 +165,100 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
             await api.deletePayrollEventByCriteria(user.id, date, PayrollEventType.ABSENCE, '');
             changed = true;
           } else if (currentAbsenceEvent && absenceLog) {
-            // If there's an absence log in camera, check if it's justified
             const isJustified = absenceLog.status === 'JUSTIFIED' || absenceLog.status === 'JUSTIFICADA';
             const notes = absenceLog.notes || '';
             
-            // @ts-ignore - Assuming we add these to the API/DB
             if (currentAbsenceEvent.justificado !== isJustified || currentAbsenceEvent.notas_justificacion !== notes) {
               console.log(`[Sync] Updating justification for ${user.name} on ${date}: ${isJustified ? 'JUSTIFIED' : 'UNJUSTIFIED'}`);
               await api.updatePayrollEvent(currentAbsenceEvent.id, {
-                // @ts-ignore
                 justificado: isJustified,
                 notas_justificacion: notes,
                 monto: isJustified ? 0 : currentAbsenceEvent.monto // If justified, force 0
               });
               changed = true;
+            }
+          }
+
+          // --- 2. HANDLE TARDINESS & EARLY DEPARTURES ---
+          // Only if user has a fixed schedule (either in our DB or in camera DB)
+          const schedule = userSchedules.find(s => s.user_id === user.id) || 
+                           (attUser.start_time ? { 
+                             start_time: attUser.start_time, 
+                             end_time: attUser.end_time, 
+                             tolerance_minutes: 15, 
+                             exit_tolerance_minutes: 5 
+                           } : null);
+
+          if (schedule && schedule.start_time && schedule.end_time) {
+            const checkIn = dailyLogs.filter(l => ['IN', 'Entrada', 'ENTRADA'].includes(l.type as string)).sort((a,b) => a.timestamp.localeCompare(b.timestamp))[0];
+            const checkOut = dailyLogs.filter(l => ['OUT', 'Salida', 'SALIDA'].includes(l.type as string)).sort((a,b) => b.timestamp.localeCompare(a.timestamp))[0];
+
+            if (checkIn) {
+              const checkInTime = checkIn.timestamp.split('T')[1].substring(0, 5);
+              const schedStartTime = schedule.start_time.substring(0, 5);
+              
+              // Calculate minutes of tardiness
+              const [ciH, ciM] = checkInTime.split(':').map(Number);
+              const [stH, stM] = schedStartTime.split(':').map(Number);
+              const tardinessMinutes = (ciH * 60 + ciM) - (stH * 60 + stM);
+
+              const currentTardinessEvent = currentEvents.find(e => e.user_id === user.id && e.fecha_evento === date && e.tipo === PayrollEventType.TARDINESS);
+
+              if (tardinessMinutes > (schedule.tolerance_minutes || 15)) {
+                if (!currentTardinessEvent) {
+                  console.log(`[Sync] Creating TARDINESS for ${user.name} on ${date}: ${tardinessMinutes}min`);
+                  await api.addPayrollEvent({
+                    user_id: user.id,
+                    tipo: PayrollEventType.TARDINESS,
+                    monto: 0, // Will be calculated by DB
+                    descripcion: `TARDANZA (${tardinessMinutes} min)`,
+                    fecha_evento: date,
+                    justificado: false,
+                    notas_justificacion: ''
+                  });
+                  changed = true;
+                }
+              } else if (currentTardinessEvent && !currentTardinessEvent.justificado) {
+                if (tardinessMinutes <= (schedule.tolerance_minutes || 15)) {
+                   console.log(`[Sync] Removing small TARDINESS for ${user.name} on ${date}`);
+                   await api.deletePayrollEvent(currentTardinessEvent.id);
+                   changed = true;
+                }
+              }
+            }
+
+            if (checkOut) {
+              const checkOutTime = checkOut.timestamp.split('T')[1].substring(0, 5);
+              const schedEndTime = schedule.end_time.substring(0, 5);
+              
+              const [coH, coM] = checkOutTime.split(':').map(Number);
+              const [etH, etM] = schedEndTime.split(':').map(Number);
+              const earlyMinutes = (etH * 60 + etM) - (coH * 60 + coM);
+
+              const currentEarlyEvent = currentEvents.find(e => e.user_id === user.id && e.fecha_evento === date && e.tipo === PayrollEventType.EARLY_DEPARTURE);
+
+              if (earlyMinutes > (schedule.exit_tolerance_minutes || 5)) {
+                if (!currentEarlyEvent) {
+                  console.log(`[Sync] Creating EARLY DEPARTURE for ${user.name} on ${date}: ${earlyMinutes}min`);
+                  const hours = (earlyMinutes / 60).toFixed(1);
+                  await api.addPayrollEvent({
+                    user_id: user.id,
+                    tipo: PayrollEventType.EARLY_DEPARTURE,
+                    monto: 0, // Will be calculated by DB
+                    descripcion: `SALIDA TEMPRANA (${hours} h)`,
+                    fecha_evento: date,
+                    justificado: false,
+                    notas_justificacion: ''
+                  });
+                  changed = true;
+                }
+              } else if (currentEarlyEvent && !currentEarlyEvent.justificado) {
+                 if (earlyMinutes <= (schedule.exit_tolerance_minutes || 5)) {
+                    console.log(`[Sync] Removing small EARLY DEPARTURE for ${user.name} on ${date}`);
+                    await api.deletePayrollEvent(currentEarlyEvent.id);
+                    changed = true;
+                 }
+              }
             }
           }
         }
