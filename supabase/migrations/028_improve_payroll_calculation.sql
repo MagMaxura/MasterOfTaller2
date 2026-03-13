@@ -19,13 +19,13 @@ BEGIN
         SELECT user_id, monto_base_quincenal 
         FROM salarios
     LOOP
-        -- Calcular valor del día y de la hora (base 15 días por quincena, 8hs por día)
-        v_valor_dia := v_user_record.monto_base_quincenal / 15.0;
+        -- Calcular valor del día y de la hora (base 10 días hábiles por quincena, 8hs por día)
+        v_valor_dia := v_user_record.monto_base_quincenal / 10.0;
         v_valor_hora := v_valor_dia / 8.0;
 
         -- 1. Actualizar montos automáticos para eventos que están en 0
         
-        -- FALTAS: Descuentan un día completo
+        -- FALTAS: Descuentan un día completo (Dividido por 10 días hábiles)
         UPDATE eventos_nomina SET monto = v_valor_dia 
         WHERE user_id = v_user_record.user_id 
           AND fecha_evento BETWEEN to_char(p_fecha_inicio, 'YYYY-MM-DD') AND to_char(p_fecha_fin, 'YYYY-MM-DD')
@@ -43,15 +43,14 @@ BEGIN
           AND fecha_evento BETWEEN to_char(p_fecha_inicio, 'YYYY-MM-DD') AND to_char(p_fecha_fin, 'YYYY-MM-DD')
           AND tipo = 'SALIDA_TEMPRANA' AND (monto = 0 OR monto IS NULL);
 
-
-        -- 2. Calcular Sumatoria de Adiciones (Horas Extras, Bonos)
-        -- Nota: HORA_EXTRA también podría calcularse aquí, pero solemos recibirla con monto o descripción.
-        -- Si viene sin monto, calculamos al 100% (valor_hora * 2 sugerido habitualmente, pero usemos valor_hora * 1.5 por defecto)
+        -- HORAS EXTRAS: (valor_hora * 1.5 por defecto para el recargo)
         UPDATE eventos_nomina SET monto = ROUND(v_valor_hora * 1.5 * COALESCE((substring(descripcion from '([0-9.]+)\s?hs')::numeric), 1.0), 2)
         WHERE user_id = v_user_record.user_id 
           AND fecha_evento BETWEEN to_char(p_fecha_inicio, 'YYYY-MM-DD') AND to_char(p_fecha_fin, 'YYYY-MM-DD')
           AND tipo = 'HORA_EXTRA' AND (monto = 0 OR monto IS NULL);
 
+
+        -- 2. Calcular Sumatoria de Adiciones (Horas Extras, Bonos)
         SELECT COALESCE(SUM(monto), 0) INTO v_total_adiciones
         FROM eventos_nomina
         WHERE user_id = v_user_record.user_id
