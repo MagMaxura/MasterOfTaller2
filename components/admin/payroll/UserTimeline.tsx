@@ -140,7 +140,11 @@ const UserTimeline: React.FC<UserTimelineProps> = ({ periodStart, periodEnd, eve
                                                 e.stopPropagation();
                                                 onEventClick && onEventClick(ev);
                                             }}
-                                            className={`w-6 h-6 rounded-full flex items-center justify-center text-xs shadow-sm hover:scale-110 transition-transform ${getEventStyle(ev.tipo)}`}
+                                            onDoubleClick={(e) => {
+                                                e.stopPropagation();
+                                                onEventClick && onEventClick(ev);
+                                            }}
+                                            className={`w-6 h-6 rounded-full flex items-center justify-center text-xs shadow-sm hover:scale-110 active:scale-95 transition-all ${getEventStyle(ev.tipo)}`}
                                             title={`${ev.tipo}: ${ev.descripcion}`}
                                         >
                                             {getEventIcon(ev.tipo)}

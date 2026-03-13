@@ -43,8 +43,9 @@ const EventRow: React.FC<{ event: PayrollEvent; onEdit: (e: PayrollEvent) => voi
     };
     return (
         <div 
-            onClick={() => onEdit && onEdit(event)}
-            className="flex justify-between items-center py-2 px-3 border-b border-brand-accent/30 text-sm hover:bg-white/5 cursor-pointer transition-colors rounded"
+            onClick={(e) => { e.stopPropagation(); onEdit && onEdit(event); }}
+            onDoubleClick={(e) => { e.stopPropagation(); onEdit && onEdit(event); }}
+            className="flex justify-between items-center py-2 px-3 border-b border-brand-accent/30 text-sm hover:bg-white/5 cursor-pointer transition-colors rounded select-none group"
         >
             <div>
                 <p className="font-semibold">
@@ -285,7 +286,7 @@ const TechnicianPayRow: React.FC<{
                                 {period.events
                                     .sort((a, b) => new Date(b.fecha_evento).getTime() - new Date(a.fecha_evento).getTime())
                                     .map(ev => (
-                                        <EventRow key={ev.id} event={ev} onEdit={onEditEvent || (() => {})} />
+                                        <EventRow key={ev.id} event={ev} onEdit={onEditEvent || (() => console.log('Edit callback missing for event', ev.id))} />
                                     ))
                                 }
                             </div>

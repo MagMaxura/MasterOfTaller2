@@ -188,7 +188,7 @@ const AdminView: React.FC = () => {
             {selectedMission && <MissionDetailsModal mission={selectedMission} user={currentUser} onClose={() => setSelectedMission(null)} isAdminViewing={true} />}
             {editingPayrollEvent && (
                 <AddPayrollEventModal
-                    user={users.find(u => u.id === editingPayrollEvent.user_id)!}
+                    user={users.find(u => u.id === editingPayrollEvent.user_id) || users.find(u => u.name === 'Admin') || users[0]}
                     event={editingPayrollEvent}
                     onClose={() => setEditingPayrollEvent(null)}
                 />
