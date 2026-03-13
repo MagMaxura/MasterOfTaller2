@@ -300,7 +300,7 @@ const TechnicianPayRow: React.FC<{
 
 interface PayrollManagementProps {
     onAddEvent: (user: User, date?: string) => void;
-    onEditEvent?: (event: PayrollEvent) => void;
+    onEditEvent: (event: PayrollEvent) => void;
 }
 
 const PayrollManagement: React.FC<PayrollManagementProps> = ({ onAddEvent, onEditEvent }) => {
@@ -574,7 +574,7 @@ const PayrollManagement: React.FC<PayrollManagementProps> = ({ onAddEvent, onEdi
                                             user={tech}
                                             period={period}
                                             onAddEvent={() => { }} // No-op for history
-                                            onEditEvent={() => { }} // No-op for history
+                                            onEditEvent={onEditEvent} // Pass the real edit callback even in history
                                             onEditSchedule={() => { }} // Added missing prop
                                             onMarkAsPaid={() => { }} // No-op
                                             onPartialPayment={() => { }}
