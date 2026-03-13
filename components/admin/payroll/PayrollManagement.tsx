@@ -73,7 +73,7 @@ const TechnicianPayRow: React.FC<{
     user: User;
     period: PaymentPeriod | undefined;
     onAddEvent: (user: User, date?: string) => void;
-    onEditEvent?: (event: PayrollEvent) => void;
+    onEditEvent: (event: PayrollEvent) => void;
     onEditSchedule: (user: User) => void;
     onMarkAsPaid: (periodId: string) => void;
     onPartialPayment: (period: PaymentPeriod) => void;
@@ -170,13 +170,13 @@ const TechnicianPayRow: React.FC<{
                             <div className="flex gap-1">
                                 <button
                                     onClick={(e) => { e.stopPropagation(); onMarkAsPaid && onMarkAsPaid(period.id); }}
-                                    className="flex-1 sm:flex-none bg-brand-green text-brand-primary text-[10px] font-black uppercase px-4 py-2 rounded-xl hover:bg-green-400 transition-all shadow-lg active:scale-95"
+                                    className="flex-1 sm:flex-none bg-brand-green text-white text-[10px] font-black uppercase px-4 py-2 rounded-xl hover:bg-green-500 transition-all shadow-lg active:scale-95"
                                 >
                                     Pagar
                                 </button>
                                 <button
                                     onClick={(e) => { e.stopPropagation(); onPartialPayment && onPartialPayment(period); }}
-                                    className="flex-1 sm:flex-none bg-white/10 text-white text-[10px] font-black uppercase px-3 py-2 rounded-xl hover:bg-white/20 transition-all shadow-lg active:scale-95 flex items-center gap-1.5"
+                                    className="flex-1 sm:flex-none bg-brand-accent text-white text-[10px] font-black uppercase px-3 py-2 rounded-xl hover:bg-brand-accent/80 transition-all shadow-lg active:scale-95 flex items-center gap-1.5 border border-white/10"
                                     title="Registar Pago Parcial"
                                 >
                                     <CreditCardIcon className="w-3.5 h-3.5" />
@@ -286,7 +286,11 @@ const TechnicianPayRow: React.FC<{
                                 {period.events
                                     .sort((a, b) => new Date(b.fecha_evento).getTime() - new Date(a.fecha_evento).getTime())
                                     .map(ev => (
-                                        <EventRow key={ev.id} event={ev} onEdit={onEditEvent || (() => console.log('Edit callback missing for event', ev.id))} />
+                                        <EventRow 
+                                            key={ev.id} 
+                                            event={ev} 
+                                            onEdit={onEditEvent} 
+                                        />
                                     ))
                                 }
                             </div>
