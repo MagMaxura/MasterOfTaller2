@@ -80,6 +80,13 @@ const AddPayrollEventModal: React.FC<AddPayrollEventModalProps> = ({ user, onClo
         setMonto(Math.round(calculated * 100) / 100);
     }, [horas, tipo, hourlyRate, isTimeBased]);
 
+    // Auto-populate monto for absences if new
+    useEffect(() => {
+        if (tipo === PayrollEventType.ABSENCE && monto === '' && userSalary) {
+            setMonto(Math.round((userSalary / 10) * 100) / 100);
+        }
+    }, [tipo, userSalary, monto]);
+
     // Reset formatted hours/amount when type changes out of time-based
     useEffect(() => {
         if (!isTimeBased) {
@@ -224,7 +231,7 @@ const AddPayrollEventModal: React.FC<AddPayrollEventModalProps> = ({ user, onClo
                         <input type="date" value={fecha} onChange={e => setFecha(e.target.value)} className="w-full bg-brand-primary p-3 rounded border border-brand-accent" required />
                     </div>
 
-                    {tipo === PayrollEventType.ABSENCE && (
+                    { (tipo === PayrollEventType.ABSENCE || tipo === PayrollEventType.TARDINESS || tipo === PayrollEventType.EARLY_DEPARTURE || tipo === PayrollEventType.PENALTY) && (
                         <div className="bg-brand-blue/5 p-4 rounded-lg border border-brand-blue/20 space-y-4">
                             <h4 className="text-xs font-black uppercase tracking-widest text-brand-blue flex items-center gap-2">
                                 <div className="w-1.5 h-1.5 rounded-full bg-brand-blue"></div>
@@ -237,12 +244,22 @@ const AddPayrollEventModal: React.FC<AddPayrollEventModalProps> = ({ user, onClo
                                     onChange={e => {
                                         const val = e.target.value === 'true';
                                         setJustificado(val);
-                                        if (val) setMonto(0);
+                                        if (val) {
+                                            setMonto(0);
+                                        } else if (tipo === PayrollEventType.ABSENCE && userSalary) {
+                                            setMonto(Math.round((userSalary / 10) * 100) / 100);
+                                        } else if (isTimeBased && horas) {
+                                            const h = Number(horas);
+                                            const rate = tipo === PayrollEventType.OVERTIME ? hourlyRate * 1.5 : hourlyRate;
+                                            setMonto(Math.round(rate * h * 100) / 100);
+                                        } else if (tipo === PayrollEventType.PENALTY && userSalary) {
+                                            setMonto(Math.round((userSalary / 20) * 100) / 100); // 1/2 día
+                                        }
                                     }} 
                                     className="w-full bg-brand-primary p-3 rounded border border-brand-accent"
                                 >
-                                    <option value="false">Falta Injustificada (Descuenta día)</option>
-                                    <option value="true">Falta Justificada (Certificado/Aviso)</option>
+                                    <option value="false">No Justificado (Descuenta de Nómina)</option>
+                                    <option value="true">Justificado / Perdonado (No descuenta)</option>
                                 </select>
                             </div>
                             <div>
