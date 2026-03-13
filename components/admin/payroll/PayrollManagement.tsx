@@ -43,7 +43,7 @@ const EventRow: React.FC<{ event: PayrollEvent; onEdit: (e: PayrollEvent) => voi
     };
     return (
         <div 
-            onClick={() => onEdit(event)}
+            onClick={() => onEdit && onEdit(event)}
             className="flex justify-between items-center py-2 px-3 border-b border-brand-accent/30 text-sm hover:bg-white/5 cursor-pointer transition-colors rounded"
         >
             <div>
@@ -131,7 +131,7 @@ const TechnicianPayRow: React.FC<{
                         <div className="flex items-center gap-2">
                             <p className="font-black text-brand-highlight">{user.name}</p>
                             <button
-                                onClick={(e) => { e.stopPropagation(); onEditSchedule(user); }}
+                                onClick={(e) => { e.stopPropagation(); onEditSchedule && onEditSchedule(user); }}
                                 className="p-1.5 bg-white/5 hover:bg-brand-blue/10 rounded-lg text-brand-light hover:text-brand-blue transition-all"
                                 title="Configurar Horario y Vacaciones"
                             >
@@ -168,13 +168,13 @@ const TechnicianPayRow: React.FC<{
                         {period?.estado === PaymentStatus.CALCULATED && (
                             <div className="flex gap-1">
                                 <button
-                                    onClick={(e) => { e.stopPropagation(); onMarkAsPaid(period.id); }}
+                                    onClick={(e) => { e.stopPropagation(); onMarkAsPaid && onMarkAsPaid(period.id); }}
                                     className="flex-1 sm:flex-none bg-brand-green text-brand-primary text-[10px] font-black uppercase px-4 py-2 rounded-xl hover:bg-green-400 transition-all shadow-lg active:scale-95"
                                 >
                                     Pagar
                                 </button>
                                 <button
-                                    onClick={(e) => { e.stopPropagation(); onPartialPayment(period); }}
+                                    onClick={(e) => { e.stopPropagation(); onPartialPayment && onPartialPayment(period); }}
                                     className="flex-1 sm:flex-none bg-white/10 text-white text-[10px] font-black uppercase px-3 py-2 rounded-xl hover:bg-white/20 transition-all shadow-lg active:scale-95 flex items-center gap-1.5"
                                     title="Registar Pago Parcial"
                                 >
@@ -185,7 +185,7 @@ const TechnicianPayRow: React.FC<{
                         )}
                         {period?.estado !== PaymentStatus.PAID && (
                             <button
-                                onClick={(e) => { e.stopPropagation(); onAddEvent(user); }}
+                                onClick={(e) => { e.stopPropagation(); onAddEvent && onAddEvent(user); }}
                                 className="flex-1 sm:flex-none bg-brand-blue text-white text-[10px] font-black uppercase px-4 py-2 rounded-xl hover:bg-blue-600 transition-all shadow-lg active:scale-95"
                             >
                                 Evento
@@ -205,7 +205,7 @@ const TechnicianPayRow: React.FC<{
                             periodEnd={period.fecha_fin_periodo}
                             events={period.events || []}
                             attendanceHistory={period.attendanceHistory}
-                            onDayClick={(date) => onAddEvent(user, date.toISOString().split('T')[0])}
+                            onDayClick={(date) => onAddEvent && onAddEvent(user, date.toISOString().split('T')[0])}
                             onEventClick={onEditEvent}
                         />
                     </div>
@@ -285,7 +285,7 @@ const TechnicianPayRow: React.FC<{
                                 {period.events
                                     .sort((a, b) => new Date(b.fecha_evento).getTime() - new Date(a.fecha_evento).getTime())
                                     .map(ev => (
-                                        <EventRow key={ev.id} event={ev} onEdit={onEditEvent!} />
+                                        <EventRow key={ev.id} event={ev} onEdit={onEditEvent || (() => {})} />
                                     ))
                                 }
                             </div>
