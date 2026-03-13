@@ -10,7 +10,8 @@ const formatCurrency = (amount: number) => {
 
 import UserTimeline from './UserTimeline';
 import ScheduleModal from './ScheduleModal';
-import { ClockIcon, CurrencyDollarIcon } from '../../Icons';
+import { ClockIcon, CurrencyDollarIcon, CreditCardIcon } from '../../Icons';
+import PartialPaymentModal from './PartialPaymentModal';
 
 const EventRow: React.FC<{ event: PayrollEvent }> = ({ event }) => {
     const isDeduction = [
@@ -62,7 +63,8 @@ const TechnicianPayRow: React.FC<{
     onEditEvent?: (event: PayrollEvent) => void;
     onEditSchedule: (user: User) => void;
     onMarkAsPaid: (periodId: string) => void;
-}> = ({ user, period, onAddEvent, onEditEvent, onEditSchedule, onMarkAsPaid }) => {
+    onPartialPayment: (period: PaymentPeriod) => void;
+}> = ({ user, period, onAddEvent, onEditEvent, onEditSchedule, onMarkAsPaid, onPartialPayment }) => {
     const [isExpanded, setIsExpanded] = useState(false);
 
     // Group events for summary
@@ -115,7 +117,7 @@ const TechnicianPayRow: React.FC<{
                     <img src={user.avatar} alt={user.name} className="w-12 h-12 rounded-full mr-4 border border-white/10" />
                     <div className="flex-grow">
                         <div className="flex items-center gap-2">
-                            <p className="font-black text-white">{user.name}</p>
+                            <p className="font-black text-brand-highlight">{user.name}</p>
                             <button
                                 onClick={(e) => { e.stopPropagation(); onEditSchedule(user); }}
                                 className="p-1.5 bg-white/5 hover:bg-brand-blue/10 rounded-lg text-brand-light hover:text-brand-blue transition-all"
@@ -139,18 +141,35 @@ const TechnicianPayRow: React.FC<{
                         </span>
                     )}
 
-                    <div className="font-black text-xl text-brand-gold">
-                        {period ? formatCurrency(period.monto_final_a_pagar) : '-'}
+                    <div className="flex flex-col items-end">
+                        <div className="font-black text-xl text-brand-gold">
+                            {period ? formatCurrency(period.monto_final_a_pagar) : '-'}
+                        </div>
+                        {period && (period.monto_pagado_acumulado || 0) > 0 && (
+                            <p className="text-[10px] font-bold text-brand-green bg-brand-green/5 px-2 py-0.5 rounded mt-0.5">
+                                Pagado: {formatCurrency(period.monto_pagado_acumulado || 0)}
+                            </p>
+                        )}
                     </div>
 
                     <div className="flex gap-2 w-full sm:w-auto justify-end">
                         {period?.estado === PaymentStatus.CALCULATED && (
-                            <button
-                                onClick={(e) => { e.stopPropagation(); onMarkAsPaid(period.id); }}
-                                className="flex-1 sm:flex-none bg-brand-green text-brand-primary text-[10px] font-black uppercase px-4 py-2 rounded-xl hover:bg-green-400 transition-all shadow-lg active:scale-95"
-                            >
-                                Pagar
-                            </button>
+                            <div className="flex gap-1">
+                                <button
+                                    onClick={(e) => { e.stopPropagation(); onMarkAsPaid(period.id); }}
+                                    className="flex-1 sm:flex-none bg-brand-green text-brand-primary text-[10px] font-black uppercase px-4 py-2 rounded-xl hover:bg-green-400 transition-all shadow-lg active:scale-95"
+                                >
+                                    Pagar
+                                </button>
+                                <button
+                                    onClick={(e) => { e.stopPropagation(); onPartialPayment(period); }}
+                                    className="flex-1 sm:flex-none bg-white/10 text-white text-[10px] font-black uppercase px-3 py-2 rounded-xl hover:bg-white/20 transition-all shadow-lg active:scale-95 flex items-center gap-1.5"
+                                    title="Registar Pago Parcial"
+                                >
+                                    <CreditCardIcon className="w-3.5 h-3.5" />
+                                    <span>Parcial</span>
+                                </button>
+                            </div>
                         )}
                         {period?.estado !== PaymentStatus.PAID && (
                             <button
@@ -231,6 +250,19 @@ const TechnicianPayRow: React.FC<{
                             <p>TOTAL A PAGAR</p>
                             <p className="text-brand-gold">{formatCurrency(period.monto_final_a_pagar)}</p>
                         </div>
+
+                        {period && (period.monto_pagado_acumulado || 0) > 0 && (
+                            <>
+                                <div className="flex justify-between text-brand-green font-bold">
+                                    <p>PAGADO ACUMULADO</p>
+                                    <p>- {formatCurrency(period.monto_pagado_acumulado || 0)}</p>
+                                </div>
+                                <div className="flex justify-between text-brand-orange text-xl font-black border-t border-brand-orange/30 pt-2 mt-2">
+                                    <p>SALDO PENDIENTE</p>
+                                    <p>{formatCurrency(period.monto_final_a_pagar - (period.monto_pagado_acumulado || 0))}</p>
+                                </div>
+                            </>
+                        )}
                     </div>
                 </div>
             )}
@@ -244,9 +276,10 @@ interface PayrollManagementProps {
 }
 
 const PayrollManagement: React.FC<PayrollManagementProps> = ({ onAddEvent, onEditEvent }) => {
-    const { users, paymentPeriods, userSchedules, calculatePayPeriods, markPeriodAsPaid, updateUserSchedule } = useData();
+    const { users, paymentPeriods, userSchedules, calculatePayPeriods, markPeriodAsPaid, registrarPagoParcial, updateUserSchedule } = useData();
     const [isLoading, setIsLoading] = useState<'calculating' | 'paying' | null>(null);
     const [editingScheduleUser, setEditingScheduleUser] = useState<User | null>(null);
+    const [partialPayPeriod, setPartialPayPeriod] = useState<PaymentPeriod | null>(null);
 
     const allUsersForPayroll = useMemo(() => [...users].sort((a, b) => a.name.localeCompare(b.name)), [users]);
 
@@ -410,6 +443,7 @@ const PayrollManagement: React.FC<PayrollManagementProps> = ({ onAddEvent, onEdi
                                 onEditEvent={onEditEvent}
                                 onEditSchedule={(u) => setEditingScheduleUser(u)}
                                 onMarkAsPaid={handleMarkSingleAsPaid}
+                                onPartialPayment={(p) => setPartialPayPeriod(p)}
                             />
                         })}
                     </div>
@@ -420,6 +454,17 @@ const PayrollManagement: React.FC<PayrollManagementProps> = ({ onAddEvent, onEdi
                             schedule={userSchedules.find(s => s.user_id === editingScheduleUser.id)}
                             onClose={() => setEditingScheduleUser(null)}
                             onSave={updateUserSchedule}
+                        />
+                    )}
+
+                    {partialPayPeriod && (
+                        <PartialPaymentModal
+                            periodId={partialPayPeriod.id}
+                            userName={users.find(u => u.id === partialPayPeriod.user_id)?.name || ''}
+                            totalAmount={partialPayPeriod.monto_final_a_pagar}
+                            paidAmount={partialPayPeriod.monto_pagado_acumulado || 0}
+                            onClose={() => setPartialPayPeriod(null)}
+                            onSave={(monto) => registrarPagoParcial(partialPayPeriod.id, monto)}
                         />
                     )}
 
@@ -504,6 +549,7 @@ const PayrollManagement: React.FC<PayrollManagementProps> = ({ onAddEvent, onEdi
                                             onEditEvent={() => { }} // No-op for history
                                             onEditSchedule={() => { }} // Added missing prop
                                             onMarkAsPaid={() => { }} // No-op
+                                            onPartialPayment={() => { }}
                                         />
                                     );
                                 })}

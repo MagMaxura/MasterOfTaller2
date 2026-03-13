@@ -162,12 +162,12 @@ const AttendanceModal: React.FC<{ user: User; onClose: () => void; }> = ({ user,
                                                         </td>
                                                         <td className="px-6 py-4 text-center">
                                                             {log.tardiness_hours && log.tardiness_hours > 0 ? (
-                                                                <span className="text-brand-red font-black">+{log.tardiness_hours}h</span>
+                                                                <span className="text-brand-red font-black">+{log.tardiness_hours.toFixed(2)}h</span>
                                                             ) : '-'}
                                                         </td>
                                                         <td className="px-6 py-4 text-center">
                                                             {log.overtime_hours && log.overtime_hours > 0 ? (
-                                                                <span className="text-brand-green font-black">+{log.overtime_hours}h</span>
+                                                                <span className="text-brand-green font-black">+{log.overtime_hours.toFixed(2)}h</span>
                                                             ) : '-'}
                                                         </td>
                                                         <td className="px-6 py-4 text-xs text-brand-light italic">

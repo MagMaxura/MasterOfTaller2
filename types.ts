@@ -247,6 +247,7 @@ export interface PaymentPeriod {
   total_adiciones: number;
   total_deducciones: number;
   monto_final_a_pagar: number;
+  monto_pagado_acumulado?: number;
   estado: PaymentStatus;
   created_at: string;
   events: PayrollEvent[];

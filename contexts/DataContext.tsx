@@ -67,6 +67,7 @@ interface DataContextType {
   createMissionBonusEvent: (userId: string, mission: Mission) => Promise<void>;
   calculatePayPeriods: () => Promise<void>;
   markPeriodAsPaid: (periodId: string) => Promise<void>;
+  registrarPagoParcial: (periodId: string, monto: number) => Promise<void>;
   addMissionRequirement: (missionId: string, description: string, quantity: number) => Promise<void>;
   updateMissionRequirement: (id: string, data: Partial<MissionRequirement>) => Promise<void>;
   deleteMissionRequirement: (id: string) => Promise<void>;
@@ -680,6 +681,24 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } catch (e) { showToast((e as Error).message, 'error'); }
   };
 
+  const registrarPagoParcial = async (periodId: string, monto: number) => {
+    if (currentUser?.id.startsWith('demo-')) { showToast('Acción simulada en modo demo.', 'success'); return; }
+    try {
+      const period = paymentPeriods.find(p => p.id === periodId);
+      if (!period) return;
+      const nuevoAcumulado = (period.monto_pagado_acumulado || 0) + monto;
+      const updates: any = { monto_pagado_acumulado: nuevoAcumulado };
+      if (nuevoAcumulado >= period.monto_final_a_pagar) {
+        updates.estado = 'PAGADO';
+        updates.fecha_pago = new Date().toISOString();
+      }
+      await api.updatePaymentPeriod(periodId, updates);
+      showToast(`Pago parcial de $${monto} registrado.`, 'success');
+      fetchData();
+    } catch (e) { showToast((e as Error).message, 'error'); }
+  };
+
+
   const updateUserSchedule = (userId: string, data: Partial<UserSchedule>) => {
     if (currentUser?.id.startsWith('demo-')) { showToast('Acción simulada en modo demo.', 'success'); return Promise.resolve(); }
     return api.updateUserSchedule(userId, data);
@@ -852,6 +871,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     createMissionBonusEvent,
     calculatePayPeriods,
     markPeriodAsPaid,
+    registrarPagoParcial,
     addMissionRequirement,
     updateMissionRequirement,
     deleteMissionRequirement,
