@@ -126,10 +126,14 @@ const AdminView: React.FC = () => {
                     <div className={activeTab === 'payroll' ? 'block' : 'hidden'}>
                         <PayrollManagement
                             onAddEvent={(user, date) => {
+                                setEditingPayrollEvent(null); // Clear edit state
                                 setAddingPayrollEventFor(user);
                                 setSelectedDateForEvent(date);
                             }}
-                            onEditEvent={setEditingPayrollEvent}
+                            onEditEvent={(event) => {
+                                setAddingPayrollEventFor(null); // Clear add state
+                                setEditingPayrollEvent(event);
+                            }}
                         />
                     </div>
                     <div className={activeTab === 'loans' ? 'block' : 'hidden'}>
@@ -193,7 +197,7 @@ const AdminView: React.FC = () => {
                     onClose={() => setEditingPayrollEvent(null)}
                 />
             )}
-            {addingPayrollEventFor && (
+            {!editingPayrollEvent && addingPayrollEventFor && (
                 <AddPayrollEventModal
                     user={addingPayrollEventFor}
                     initialDate={selectedDateForEvent}

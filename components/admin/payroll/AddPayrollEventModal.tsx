@@ -50,14 +50,13 @@ const AddPayrollEventModal: React.FC<AddPayrollEventModalProps> = ({ user, onClo
         return (userSalary / 10) / 8;
     }, [userSalary]);
 
-    // Auto-populate hours if editing and description contains (X hs)
+    // Auto-populate hours if editing and description contains a time (e.g. 1.25 h or 1.25 hs)
     useEffect(() => {
         if (event && isTimeBased && !horas) {
-            const match = event.descripcion.match(/\((\d+(\.\d+)?) hs\)/);
+            // Match "0.25 h", "0.25 hs", "(0.25 h)", etc.
+            const match = event.descripcion.match(/(\d+(\.\d+)?)\s*h(s)?/i);
             if (match) {
                 setHoras(parseFloat(match[1]));
-                // Also clean description for the field
-                setDescripcion(event.descripcion.replace(/\s?\(\d+(\.\d+)? hs\)/, ''));
             }
         }
     }, [event, isTimeBased]);
