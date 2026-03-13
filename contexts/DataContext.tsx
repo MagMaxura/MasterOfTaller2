@@ -695,9 +695,20 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const day = today.getDate();
     const year = today.getFullYear();
     const month = today.getMonth();
-    if (day <= 5) { startDate = new Date(year, month - 1, 21); endDate = new Date(year, month, 5); }
-    else if (day <= 20) { startDate = new Date(year, month, 6); endDate = new Date(year, month, 20); }
-    else { startDate = new Date(year, month, 21); endDate = new Date(year, month + 1, 5); }
+    if (day >= 11 && day <= 25) { 
+      // Periodo actual: 6 al 20
+      startDate = new Date(year, month, 6); 
+      endDate = new Date(year, month, 20); 
+    } else {
+      // Periodo actual o recién terminado: 21 al 5
+      if (day <= 10) {
+        startDate = new Date(year, month - 1, 21); 
+        endDate = new Date(year, month, 5); 
+      } else {
+        startDate = new Date(year, month, 21); 
+        endDate = new Date(year, month + 1, 5); 
+      }
+    }
 
     const formatDate = (d: Date) => {
       const y = d.getFullYear();

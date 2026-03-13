@@ -318,8 +318,8 @@ const PayrollManagement: React.FC<PayrollManagementProps> = ({ onAddEvent, onEdi
         const day = today.getDate();
         const month = today.getMonth();
         const year = today.getFullYear();
-        if (day <= 5) return new Date(year, month, 5);
-        if (day <= 20) return new Date(year, month, 20);
+        if (day >= 11 && day <= 25) return new Date(year, month, 20);
+        if (day <= 10) return new Date(year, month, 5);
         return new Date(year, month + 1, 5);
     }, []);
 
