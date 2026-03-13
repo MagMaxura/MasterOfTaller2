@@ -322,7 +322,26 @@ const PayrollManagement: React.FC<PayrollManagementProps> = ({ onAddEvent, onEdi
 
     const allUsersForPayroll = useMemo(() => [...users].sort((a, b) => a.name.localeCompare(b.name)), [users]);
 
-    const calculatedPeriods = useMemo(() => paymentPeriods.filter(p => p.estado === PaymentStatus.CALCULATED), [paymentPeriods]);
+    const calculatedPeriods = useMemo(() => {
+        // Get only periods that overlap with "now" or are within the matching quincena
+        const today = new Date();
+        const day = today.getDate();
+        const month = today.getMonth();
+        const year = today.getFullYear();
+        
+        let targetStart: string;
+        if (day >= 6 && day <= 20) {
+            targetStart = new Date(year, month, 6).toISOString().split('T')[0];
+        } else if (day <= 10) {
+            targetStart = new Date(year, month - 1, 21).toISOString().split('T')[0];
+        } else {
+            targetStart = new Date(year, month, 21).toISOString().split('T')[0];
+        }
+
+        return paymentPeriods
+            .filter(p => p.estado === PaymentStatus.CALCULATED)
+            .filter(p => p.fecha_inicio_periodo === targetStart);
+    }, [paymentPeriods, users]);
 
     const nextPayDate = useMemo(() => {
         const today = new Date();

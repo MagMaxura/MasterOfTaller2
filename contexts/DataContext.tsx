@@ -140,7 +140,10 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
           ? await attendanceService.getUserProfileById(user.attendance_id)
           : (user.email ? await attendanceService.getUserProfileByEmail(user.email) : null);
         
-        if (!attUser) continue;
+        if (!attUser) {
+          console.warn(`[Sync] No attribution user found for ${user.name} (ID: ${user.id}, AttID: ${user.attendance_id})`);
+          continue;
+        }
 
         // Fetch logs for the WHOLE period
         const logs = await attendanceService.getAccessLogsByRange(attUser.id, startDate, endDate);
@@ -194,28 +197,27 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
             const checkOut = dailyLogs.filter(l => ['OUT', 'Salida', 'SALIDA'].includes(l.type as string)).sort((a,b) => b.timestamp.localeCompare(a.timestamp))[0];
 
             if (checkIn) {
-              const checkInTime = checkIn.timestamp.split('T')[1].substring(0, 5);
-              const schedStartTime = schedule.start_time.substring(0, 5);
+              const checkInDate = new Date(checkIn.timestamp);
+              const checkInH = checkInDate.getHours();
+              const checkInM = checkInDate.getMinutes();
               
-              // Calculate minutes of tardiness
-              const [ciH, ciM] = checkInTime.split(':').map(Number);
-              const [stH, stM] = schedStartTime.split(':').map(Number);
-              const tardinessMinutes = (ciH * 60 + ciM) - (stH * 60 + stM);
+              const [stH, stM] = schedule.start_time.split(':').map(Number);
+              const tardinessMinutes = (checkInH * 60 + checkInM) - (stH * 60 + stM);
 
               const currentTardinessEvent = currentEvents.find(e => e.user_id === user.id && e.fecha_evento === date && e.tipo === PayrollEventType.TARDINESS);
 
               if (tardinessMinutes > (schedule.tolerance_minutes || 15)) {
                 if (!currentTardinessEvent) {
-                  console.log(`[Sync] Creating TARDINESS for ${user.name} on ${date}: ${tardinessMinutes}min`);
+                  console.log(`[Sync] Creating TARDINESS for ${user.name} on ${date}: ${tardinessMinutes}min (Check-in: ${checkInH}:${checkInM}, Sched: ${stH}:${stM})`);
                   await api.addPayrollEvent({
                     user_id: user.id,
                     tipo: PayrollEventType.TARDINESS,
-                    monto: 0, // Will be calculated by DB
+                    monto: 0, 
                     descripcion: `TARDANZA (${tardinessMinutes} min)`,
                     fecha_evento: date,
                     justificado: false,
                     notas_justificacion: ''
-                  });
+                  } as any);
                   changed = true;
                 }
               } else if (currentTardinessEvent && !currentTardinessEvent.justificado) {
@@ -228,28 +230,28 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
             }
 
             if (checkOut) {
-              const checkOutTime = checkOut.timestamp.split('T')[1].substring(0, 5);
-              const schedEndTime = schedule.end_time.substring(0, 5);
+              const checkOutDate = new Date(checkOut.timestamp);
+              const checkOutH = checkOutDate.getHours();
+              const checkOutM = checkOutDate.getMinutes();
               
-              const [coH, coM] = checkOutTime.split(':').map(Number);
-              const [etH, etM] = schedEndTime.split(':').map(Number);
-              const earlyMinutes = (etH * 60 + etM) - (coH * 60 + coM);
+              const [etH, etM] = schedule.end_time.split(':').map(Number);
+              const earlyMinutes = (etH * 60 + etM) - (checkOutH * 60 + checkOutM);
 
               const currentEarlyEvent = currentEvents.find(e => e.user_id === user.id && e.fecha_evento === date && e.tipo === PayrollEventType.EARLY_DEPARTURE);
 
               if (earlyMinutes > (schedule.exit_tolerance_minutes || 5)) {
                 if (!currentEarlyEvent) {
-                  console.log(`[Sync] Creating EARLY DEPARTURE for ${user.name} on ${date}: ${earlyMinutes}min`);
+                  console.log(`[Sync] Creating EARLY DEPARTURE for ${user.name} on ${date}: ${earlyMinutes}min (Check-out: ${checkOutH}:${checkOutM}, Sched: ${etH}:${etM})`);
                   const hours = (earlyMinutes / 60).toFixed(1);
                   await api.addPayrollEvent({
                     user_id: user.id,
                     tipo: PayrollEventType.EARLY_DEPARTURE,
-                    monto: 0, // Will be calculated by DB
+                    monto: 0, 
                     descripcion: `SALIDA TEMPRANA (${hours} h)`,
                     fecha_evento: date,
                     justificado: false,
                     notas_justificacion: ''
-                  });
+                  } as any);
                   changed = true;
                 }
               } else if (currentEarlyEvent && !currentEarlyEvent.justificado) {
