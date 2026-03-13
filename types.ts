@@ -216,6 +216,8 @@ export interface PayrollEvent {
   fecha_evento: string;
   periodo_pago_id: string | null;
   mission_id: string | null;
+  justificado: boolean;
+  notas_justificacion: string | null;
   created_at: string;
 }
 

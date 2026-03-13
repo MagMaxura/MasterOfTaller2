@@ -23,7 +23,7 @@ import AddPayrollEventModal from './payroll/AddPayrollEventModal';
 import PayrollManagement from './payroll/PayrollManagement';
 import LoanManagement from './payroll/LoanManagement';
 
-import { PlusIcon, BoxIcon, CalendarIcon, MapPinIcon, UserIcon, ChatIcon, TasksIcon, BookOpenIcon, LogoutIcon, MenuIcon, ChartIcon, CurrencyDollarIcon } from '../Icons';
+import { PlusIcon, BoxIcon, CalendarIcon, MapPinIcon, UserIcon, TasksIcon, BookOpenIcon, LogoutIcon, MenuIcon, ChartIcon, CurrencyDollarIcon } from '../Icons';
 
 // --- MAIN COMPONENT ---
 const AdminView: React.FC = () => {
@@ -189,8 +189,8 @@ const AdminView: React.FC = () => {
             {editingPayrollEvent && (
                 <AddPayrollEventModal
                     user={users.find(u => u.id === editingPayrollEvent.user_id)!}
+                    event={editingPayrollEvent}
                     onClose={() => setEditingPayrollEvent(null)}
-                    initialDate={editingPayrollEvent.fecha_evento}
                 />
             )}
             {addingPayrollEventFor && (

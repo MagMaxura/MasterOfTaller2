@@ -293,6 +293,10 @@ export const api = {
       .ilike('descripcion', `%${descriptionLike}%`);
     if (error) throw new Error(error.message);
   },
+  async deletePayrollEvent(id: string) {
+    const { error } = await supabase.from('eventos_nomina').delete().eq('id', id);
+    if (error) throw new Error(error.message);
+  },
   async addPaymentPeriod(data: PaymentPeriodInsert) {
     const { data: newPeriod, error } = await supabase.from('periodos_pago').insert(data).select().single();
     if (error) throw new Error(error.message);

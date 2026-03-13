@@ -13,7 +13,7 @@ import ScheduleModal from './ScheduleModal';
 import { ClockIcon, CurrencyDollarIcon, CreditCardIcon } from '../../Icons';
 import PartialPaymentModal from './PartialPaymentModal';
 
-const EventRow: React.FC<{ event: PayrollEvent }> = ({ event }) => {
+const EventRow: React.FC<{ event: PayrollEvent; onEdit: (e: PayrollEvent) => void }> = ({ event, onEdit }) => {
     const isDeduction = [
         PayrollEventType.ABSENCE,
         PayrollEventType.TARDINESS,
@@ -42,10 +42,22 @@ const EventRow: React.FC<{ event: PayrollEvent }> = ({ event }) => {
         [PayrollEventType.PERMITTED_LEAVE]: 'Permiso',
     };
     return (
-        <div className="flex justify-between items-center py-2 border-b border-brand-accent/50 text-sm">
+        <div 
+            onClick={() => onEdit(event)}
+            className="flex justify-between items-center py-2 px-3 border-b border-brand-accent/30 text-sm hover:bg-white/5 cursor-pointer transition-colors rounded"
+        >
             <div>
-                <p className="font-semibold">{eventTypeMap[event.tipo] || event.tipo}</p>
+                <p className="font-semibold">
+                    {eventTypeMap[event.tipo] || event.tipo} 
+                    <span className="text-[10px] text-brand-light font-normal ml-2">{new Date(event.fecha_evento + 'T00:00:00').toLocaleDateString()}</span>
+                    {event.justificado && (
+                        <span className="bg-brand-blue/10 text-brand-blue text-[9px] font-black uppercase px-2 py-0.5 rounded ml-2">Justificada</span>
+                    )}
+                </p>
                 <p className="text-xs text-brand-light italic">{event.descripcion}</p>
+                {event.notas_justificacion && (
+                    <p className="text-[10px] text-brand-blue/70 mt-0.5">Nota: {event.notas_justificacion}</p>
+                )}
             </div>
             <p className={`font-bold ${isAddition ? 'text-brand-green' : isDeduction ? 'text-brand-red' : 'text-brand-light'}`}>
                 {isAddition ? '+' : isDeduction ? '-' : ''}{formatCurrency(amount)}
@@ -264,6 +276,21 @@ const TechnicianPayRow: React.FC<{
                             </>
                         )}
                     </div>
+
+                    {/* DETALLE DE EVENTOS */}
+                    {period.events && period.events.length > 0 && (
+                        <div className="mt-6 pt-4 border-t border-brand-accent/30">
+                            <h5 className="text-[10px] uppercase font-black tracking-widest text-brand-light mb-2">Desglose de Eventos (Click para editar)</h5>
+                            <div className="space-y-1">
+                                {period.events
+                                    .sort((a, b) => new Date(b.fecha_evento).getTime() - new Date(a.fecha_evento).getTime())
+                                    .map(ev => (
+                                        <EventRow key={ev.id} event={ev} onEdit={onEditEvent!} />
+                                    ))
+                                }
+                            </div>
+                        </div>
+                    )}
                 </div>
             )}
         </div>
@@ -357,7 +384,7 @@ const PayrollManagement: React.FC<PayrollManagementProps> = ({ onAddEvent, onEdi
         <div className="bg-brand-secondary p-4 sm:p-6 rounded-lg shadow-xl">
             <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-8 gap-6">
                 <div className="space-y-1">
-                    <h2 className="text-3xl sm:text-4xl font-black text-white tracking-tight">Gestión de Nómina</h2>
+                    <h2 className="text-3xl sm:text-4xl font-black text-brand-highlight tracking-tight">Gestión de Nómina</h2>
                     <p className="text-sm text-brand-light opacity-80 font-medium">Calcula, revisa y gestiona los pagos quincenales.</p>
                 </div>
                 <div className="flex bg-brand-primary p-1 rounded-xl w-full lg:w-auto shadow-inner border border-white/5">
@@ -383,7 +410,7 @@ const PayrollManagement: React.FC<PayrollManagementProps> = ({ onAddEvent, onEdi
                             <CurrencyDollarIcon className="w-24 h-24 text-white" />
                         </div>
                         <div className="relative z-10 w-full sm:w-auto text-center sm:text-left">
-                            <h4 className="font-black text-xl text-white mb-1">Próximo Pago: {nextPayDate.toLocaleDateString()}</h4>
+                            <h4 className="font-black text-xl text-brand-highlight mb-1">Próximo Pago: {nextPayDate.toLocaleDateString()}</h4>
                             <p className="text-brand-light text-sm font-medium">Total calculado a pagar: <span className="font-black text-brand-gold text-lg ml-1">{formatCurrency(totalToPay)}</span></p>
                         </div>
                         <div className="relative z-10 w-full sm:w-auto flex gap-3">

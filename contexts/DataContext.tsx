@@ -64,6 +64,7 @@ interface DataContextType {
   setSalary: (userId: string, amount: number, salaryId?: string) => Promise<void>;
   addPayrollEvent: (eventData: Omit<PayrollEvent, 'id' | 'created_at' | 'periodo_pago_id' | 'mission_id'>) => Promise<void>;
   updatePayrollEvent: (id: string, eventData: Partial<PayrollEvent>) => Promise<void>;
+  deletePayrollEvent: (id: string) => Promise<void>;
   createMissionBonusEvent: (userId: string, mission: Mission) => Promise<void>;
   calculatePayPeriods: () => Promise<void>;
   markPeriodAsPaid: (periodId: string) => Promise<void>;
@@ -148,17 +149,37 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const loggedDates = new Set(logs.map(l => l.timestamp.split('T')[0]));
 
         for (const date of loggedDates) {
-          // Find any 'FALTA' event for this user on this date that is an auto-generated one
-          const autoAbsence = currentEvents.find(e =>
+          const dailyLogs = logs.filter(l => l.timestamp.split('T')[0] === date);
+          const hasMovement = dailyLogs.some(l => (l.type as string) === 'IN' || (l.type as string) === 'OUT' || (l.type as string) === 'Entrada' || (l.type as string) === 'Salida');
+          const absenceLog = dailyLogs.find(l => (l.type as string) === 'ABSENCE' || (l.type as string) === 'FALTA');
+
+          // Find any 'FALTA' event for this user on this date
+          const currentAbsenceEvent = currentEvents.find(e =>
             e.user_id === user.id &&
             e.fecha_evento === date &&
             e.tipo === PayrollEventType.ABSENCE
           );
 
-          if (autoAbsence) {
+          if (currentAbsenceEvent && hasMovement) {
             console.log(`[Sync] Fixing false absence for ${user.name} on ${date}. Log found in camera.`);
             await api.deletePayrollEventByCriteria(user.id, date, PayrollEventType.ABSENCE, '');
             changed = true;
+          } else if (currentAbsenceEvent && absenceLog) {
+            // If there's an absence log in camera, check if it's justified
+            const isJustified = absenceLog.status === 'JUSTIFIED' || absenceLog.status === 'JUSTIFICADA';
+            const notes = absenceLog.notes || '';
+            
+            // @ts-ignore - Assuming we add these to the API/DB
+            if (currentAbsenceEvent.justificado !== isJustified || currentAbsenceEvent.notas_justificacion !== notes) {
+              console.log(`[Sync] Updating justification for ${user.name} on ${date}: ${isJustified ? 'JUSTIFIED' : 'UNJUSTIFIED'}`);
+              await api.updatePayrollEvent(currentAbsenceEvent.id, {
+                // @ts-ignore
+                justificado: isJustified,
+                notas_justificacion: notes,
+                monto: isJustified ? 0 : currentAbsenceEvent.monto // If justified, force 0
+              });
+              changed = true;
+            }
           }
         }
       } catch (e) {
@@ -639,13 +660,19 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (currentUser?.id.startsWith('demo-')) { showToast('Acción simulada en modo demo.', 'success'); return Promise.resolve(); }
     return api.upsertSalary({ id: salaryId, user_id: userId, monto_base_quincenal: amount });
   }
-  const addPayrollEvent = (eventData: Omit<PayrollEvent, 'id' | 'created_at' | 'periodo_pago_id' | 'mission_id'>) => {
+  const addPayrollEvent = (data: any) => {
     if (currentUser?.id.startsWith('demo-')) { showToast('Acción simulada en modo demo.', 'success'); return Promise.resolve(); }
-    return api.addPayrollEvent(eventData as any);
+    return api.addPayrollEvent(data).then(() => fetchData());
   }
-  const updatePayrollEvent = (id: string, eventData: Partial<PayrollEvent>) => {
+
+  const updatePayrollEvent = (id: string, data: any) => {
     if (currentUser?.id.startsWith('demo-')) { showToast('Acción simulada en modo demo.', 'success'); return Promise.resolve(); }
-    return api.updatePayrollEvent(id, eventData as any);
+    return api.updatePayrollEvent(id, data).then(() => fetchData());
+  }
+
+  const deletePayrollEvent = (id: string) => {
+    if (currentUser?.id.startsWith('demo-')) { showToast('Acción simulada en modo demo.', 'success'); return Promise.resolve(); }
+    return api.deletePayrollEvent(id).then(() => fetchData());
   }
   const createMissionBonusEvent = (userId: string, mission: Mission) => {
     if (currentUser?.id.startsWith('demo-')) { return Promise.resolve(); }
@@ -889,6 +916,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setSalary,
     addPayrollEvent,
     updatePayrollEvent,
+    deletePayrollEvent,
     createMissionBonusEvent,
     calculatePayPeriods,
     markPeriodAsPaid,

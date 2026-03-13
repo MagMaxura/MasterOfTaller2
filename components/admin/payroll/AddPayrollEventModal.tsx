@@ -1,5 +1,6 @@
+
 import React, { useState, useEffect, useMemo } from 'react';
-import { User, PayrollEventType } from '../../../types';
+import { User, PayrollEvent, PayrollEventType } from '../../../types';
 import { useData } from '../../../contexts/DataContext';
 import { useToast } from '../../../contexts/ToastContext';
 
@@ -7,17 +8,20 @@ interface AddPayrollEventModalProps {
     user: User;
     onClose: () => void;
     initialDate?: string;
+    event?: PayrollEvent;
 }
 
-const AddPayrollEventModal: React.FC<AddPayrollEventModalProps> = ({ user, onClose, initialDate }) => {
-    const { addPayrollEvent, salaries, calculatePayPeriods } = useData();
+const AddPayrollEventModal: React.FC<AddPayrollEventModalProps> = ({ user, onClose, initialDate, event }) => {
+    const { addPayrollEvent, updatePayrollEvent, deletePayrollEvent, salaries, calculatePayPeriods } = useData();
     const { showToast } = useToast();
 
-    const [tipo, setTipo] = useState<PayrollEventType>(PayrollEventType.BONUS);
-    const [monto, setMonto] = useState<number | ''>('');
-    const [descripcion, setDescripcion] = useState('');
-    const [fecha, setFecha] = useState(initialDate || new Date().toISOString().split('T')[0]);
+    const [tipo, setTipo] = useState<PayrollEventType>(event?.tipo || PayrollEventType.BONUS);
+    const [monto, setMonto] = useState<number | ''>(event?.monto !== undefined ? Math.abs(event.monto) : '');
+    const [descripcion, setDescripcion] = useState(event?.descripcion || '');
+    const [fecha, setFecha] = useState(event?.fecha_evento || initialDate || new Date().toISOString().split('T')[0]);
     const [horas, setHoras] = useState<number | ''>('');
+    const [justificado, setJustificado] = useState(event?.justificado || false);
+    const [notasJustificacion, setNotasJustificacion] = useState(event?.notas_justificacion || '');
     const [isLoading, setIsLoading] = useState(false);
 
     const isDeduction = [
@@ -40,11 +44,23 @@ const AddPayrollEventModal: React.FC<AddPayrollEventModalProps> = ({ user, onClo
         return s ? s.monto_base_quincenal : 0;
     }, [salaries, user.id]);
 
-    // Hourly Rate Calculation: (Salary / 10) / 9
+    // Hourly Rate Calculation: (Salary / 10) / 8
     const hourlyRate = useMemo(() => {
         if (!userSalary) return 0;
-        return (userSalary / 10) / 9;
+        return (userSalary / 10) / 8;
     }, [userSalary]);
+
+    // Auto-populate hours if editing and description contains (X hs)
+    useEffect(() => {
+        if (event && isTimeBased && !horas) {
+            const match = event.descripcion.match(/\((\d+(\.\d+)?) hs\)/);
+            if (match) {
+                setHoras(parseFloat(match[1]));
+                // Also clean description for the field
+                setDescripcion(event.descripcion.replace(/\s?\(\d+(\.\d+)? hs\)/, ''));
+            }
+        }
+    }, [event, isTimeBased]);
 
     // Auto-calculate amount when hours or type changes
     useEffect(() => {
@@ -80,16 +96,34 @@ const AddPayrollEventModal: React.FC<AddPayrollEventModalProps> = ({ user, onClo
         }
 
         const finalAmount = Math.abs(monto);
+        const finalDescription = isTimeBased && horas ? `${descripcion} (${horas} hs)` : descripcion;
 
         setIsLoading(true);
         try {
-            await addPayrollEvent({
-                user_id: user.id,
-                tipo,
-                monto: finalAmount,
-                descripcion: isTimeBased && horas ? `${descripcion} (${horas} hs)` : descripcion,
-                fecha_evento: fecha,
-            });
+            if (event) {
+                await updatePayrollEvent(event.id, {
+                    tipo,
+                    monto: finalAmount,
+                    descripcion: finalDescription,
+                    fecha_evento: fecha,
+                    // @ts-ignore
+                    justificado,
+                    notas_justificacion: notasJustificacion
+                });
+                showToast('Evento actualizado con éxito.', 'success');
+            } else {
+                await addPayrollEvent({
+                    user_id: user.id,
+                    tipo,
+                    monto: finalAmount,
+                    descripcion: finalDescription,
+                    fecha_evento: fecha,
+                    // @ts-ignore
+                    justificado,
+                    notas_justificacion: notasJustificacion
+                });
+                showToast('Evento de nómina añadido con éxito.', 'success');
+            }
 
             // Trigger recalculation to link event and update totals
             try {
@@ -99,10 +133,26 @@ const AddPayrollEventModal: React.FC<AddPayrollEventModalProps> = ({ user, onClo
                 // Don't block success message if recalc fails, but log it.
             }
 
-            showToast('Evento de nómina añadido con éxito.', 'success');
             onClose();
         } catch (error) {
-            showToast(error instanceof Error ? error.message : 'Error al añadir el evento.', 'error');
+            showToast(error instanceof Error ? error.message : 'Error al procesar el evento.', 'error');
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const handleDelete = async () => {
+        if (!event) return;
+        if (!window.confirm('¿Estás seguro de que deseas eliminar este evento?')) return;
+
+        setIsLoading(true);
+        try {
+            await deletePayrollEvent(event.id);
+            await calculatePayPeriods();
+            showToast('Evento eliminado con éxito.', 'success');
+            onClose();
+        } catch (error) {
+            showToast(error instanceof Error ? error.message : 'Error al eliminar el evento.', 'error');
         } finally {
             setIsLoading(false);
         }
@@ -112,7 +162,7 @@ const AddPayrollEventModal: React.FC<AddPayrollEventModalProps> = ({ user, onClo
         <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
             <form onSubmit={handleSubmit} className="bg-brand-secondary rounded-lg max-w-lg w-full p-6 relative">
                 <button type="button" onClick={onClose} className="absolute top-4 right-4 text-brand-light hover:text-white text-3xl">&times;</button>
-                <h3 className="text-2xl font-bold mb-2">Añadir Evento de Nómina</h3>
+                <h3 className="text-2xl font-bold mb-2">{event ? 'Editar' : 'Añadir'} Evento de Nómina</h3>
                 <p className="text-brand-light mb-6">para {user.name} {userSalary > 0 && <span className="text-xs text-brand-green bg-brand-green/10 px-2 py-1 rounded ml-2">Sueldo Base: ${userSalary}</span>}</p>
 
                 <div className="space-y-4">
@@ -173,12 +223,52 @@ const AddPayrollEventModal: React.FC<AddPayrollEventModalProps> = ({ user, onClo
                         <label className="block text-sm font-medium text-brand-light mb-1">Fecha del Evento</label>
                         <input type="date" value={fecha} onChange={e => setFecha(e.target.value)} className="w-full bg-brand-primary p-3 rounded border border-brand-accent" required />
                     </div>
+
+                    {tipo === PayrollEventType.ABSENCE && (
+                        <div className="bg-brand-blue/5 p-4 rounded-lg border border-brand-blue/20 space-y-4">
+                            <h4 className="text-xs font-black uppercase tracking-widest text-brand-blue flex items-center gap-2">
+                                <div className="w-1.5 h-1.5 rounded-full bg-brand-blue"></div>
+                                Sistema de Justificación de Falta
+                            </h4>
+                            <div>
+                                <label className="block text-sm font-medium text-brand-light mb-1">Estado de la Falta</label>
+                                <select 
+                                    value={justificado ? 'true' : 'false'} 
+                                    onChange={e => {
+                                        const val = e.target.value === 'true';
+                                        setJustificado(val);
+                                        if (val) setMonto(0);
+                                    }} 
+                                    className="w-full bg-brand-primary p-3 rounded border border-brand-accent"
+                                >
+                                    <option value="false">Falta Injustificada (Descuenta día)</option>
+                                    <option value="true">Falta Justificada (Certificado/Aviso)</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-brand-light mb-1">Notas / Justificación</label>
+                                <textarea 
+                                    value={notasJustificacion} 
+                                    onChange={e => setNotasJustificacion(e.target.value)} 
+                                    placeholder="Ej: Presentó certificado médico por gripe..."
+                                    className="w-full bg-brand-primary p-3 rounded border border-brand-accent min-h-[80px]"
+                                />
+                            </div>
+                        </div>
+                    )}
                 </div>
 
-                <button type="submit" disabled={isLoading} className="w-full mt-6 bg-brand-blue text-white font-bold py-3 px-4 rounded-lg flex items-center justify-center gap-2 disabled:bg-brand-accent">
-                    {isLoading && <div className="w-5 h-5 border-2 border-t-transparent border-white rounded-full animate-spin"></div>}
-                    Añadir Evento
-                </button>
+                <div className="flex gap-3 mt-6">
+                    {event && (
+                        <button type="button" onClick={handleDelete} disabled={isLoading} className="flex-1 bg-brand-red text-white font-bold py-3 px-4 rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50">
+                            Eliminar
+                        </button>
+                    )}
+                    <button type="submit" disabled={isLoading} className={`flex-[2] ${event ? 'bg-brand-green' : 'bg-brand-blue'} text-white font-bold py-3 px-4 rounded-lg flex items-center justify-center gap-2 disabled:bg-brand-accent`}>
+                        {isLoading && <div className="w-5 h-5 border-2 border-t-transparent border-white rounded-full animate-spin"></div>}
+                        {event ? 'Guardar Cambios' : 'Añadir Evento'}
+                    </button>
+                </div>
             </form>
         </div>
     );

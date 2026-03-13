@@ -23,34 +23,35 @@ BEGIN
         v_valor_dia := v_user_record.monto_base_quincenal / 10.0;
         v_valor_hora := v_valor_dia / 8.0;
 
-        -- 1. Actualizar montos automáticos para eventos que están en 0
+        -- 1. Actualizar montos automáticos para eventos que están en 0 o son irrisorios
         
         -- FALTAS: Descuentan un día completo
         UPDATE eventos_nomina SET monto = v_valor_dia 
         WHERE user_id = v_user_record.user_id 
           AND fecha_evento >= p_fecha_inicio AND fecha_evento <= p_fecha_fin
-          AND tipo = 'FALTA' AND (monto = 0 OR monto IS NULL);
+          AND tipo = 'FALTA' AND (monto < 0.01 OR monto IS NULL);
 
-        -- TARDANZAS: Intentar extraer horas de la descripción (ej: "Tardanza: 0.5hs")
-        UPDATE eventos_nomina SET monto = ROUND(v_valor_hora * COALESCE((substring(descripcion from '([0-9.]+)\s?hs')::numeric), 0.5), 2)
+        -- TARDANZAS: Mejorar extracción de horas
+        -- Soporta "Tardanza: 0.5h", "tardanza (20 hs)", "1 hs", etc.
+        UPDATE eventos_nomina SET monto = ROUND(v_valor_hora * COALESCE((substring(descripcion from '(?i)([0-9.]+)\s?h')::numeric), 0.5), 2)
         WHERE user_id = v_user_record.user_id 
           AND fecha_evento >= p_fecha_inicio AND fecha_evento <= p_fecha_fin
-          AND tipo = 'TARDANZA' AND (monto = 0 OR monto IS NULL);
+          AND tipo = 'TARDANZA' AND (monto < 0.01 OR monto IS NULL);
 
         -- SALIDAS TEMPRANAS
-        UPDATE eventos_nomina SET monto = ROUND(v_valor_hora * COALESCE((substring(descripcion from '([0-9.]+)\s?hs')::numeric), 0.5), 2)
+        UPDATE eventos_nomina SET monto = ROUND(v_valor_hora * COALESCE((substring(descripcion from '(?i)([0-9.]+)\s?h')::numeric), 0.5), 2)
         WHERE user_id = v_user_record.user_id 
           AND fecha_evento >= p_fecha_inicio AND fecha_evento <= p_fecha_fin
-          AND tipo = 'SALIDA_TEMPRANA' AND (monto = 0 OR monto IS NULL);
+          AND tipo = 'SALIDA_TEMPRANA' AND (monto < 0.01 OR monto IS NULL);
 
         -- HORAS EXTRAS
-        UPDATE eventos_nomina SET monto = ROUND(v_valor_hora * 1.5 * COALESCE((substring(descripcion from '([0-9.]+)\s?hs')::numeric), 1.0), 2)
+        UPDATE eventos_nomina SET monto = ROUND(v_valor_hora * 1.5 * COALESCE((substring(descripcion from '(?i)([0-9.]+)\s?h')::numeric), 1.0), 2)
         WHERE user_id = v_user_record.user_id 
           AND fecha_evento >= p_fecha_inicio AND fecha_evento <= p_fecha_fin
-          AND tipo = 'HORA_EXTRA' AND (monto = 0 OR monto IS NULL);
+          AND tipo = 'HORA_EXTRA' AND (monto < 0.01 OR monto IS NULL);
 
 
-        -- 2. Calcular Sumatoria de Adiciones (Horas Extras, Bonos)
+        -- 2. Calcular Sumatoria de Adiciones
         SELECT COALESCE(SUM(monto), 0) INTO v_total_adiciones
         FROM eventos_nomina
         WHERE user_id = v_user_record.user_id
@@ -74,13 +75,11 @@ BEGIN
         IF v_period_id IS NOT NULL THEN
             UPDATE periodos_pago SET
                 fecha_fin_periodo = p_fecha_fin,
-                fecha_pago = CURRENT_DATE,
                 salario_base_calculado = v_user_record.monto_base_quincenal,
                 total_adiciones = v_total_adiciones,
                 total_deducciones = v_total_deducciones,
-                monto_final_a_pagar = v_monto_final,
-                estado = 'CALCULADO'
-            WHERE id = v_period_id;
+                monto_final_a_pagar = v_monto_final
+            WHERE id = v_period_id AND estado = 'CALCULADO'; -- Solo actualizar si no está pagado aún
         ELSE
             INSERT INTO periodos_pago (
                 user_id,
@@ -105,7 +104,7 @@ BEGIN
             ) RETURNING id INTO v_period_id;
         END IF;
 
-        -- 6. Vincular Eventos al Periodo
+        -- 6. Forzar vinculación de eventos al periodo (incluso los antiguos de este rango)
         UPDATE eventos_nomina
         SET periodo_pago_id = v_period_id
         WHERE user_id = v_user_record.user_id
