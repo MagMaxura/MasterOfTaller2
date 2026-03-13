@@ -125,38 +125,53 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, [authUser]);
 
-  const reconcileDailyAttendance = useCallback(async (currentUsers: User[], currentEvents: PayrollEvent[]) => {
+  const reconcilePeriodAttendance = useCallback(async (currentUsers: User[], currentEvents: PayrollEvent[], startDate: string, endDate: string) => {
     if (!authUser || authUser.id.startsWith('demo-')) return false;
-    const todayStr = new Date().toISOString().split('T')[0];
     let changed = false;
 
-    for (const user of currentUsers) {
-      if (user.role !== Role.TECHNICIAN) continue;
+    // Filter technicians
+    const technicians = currentUsers.filter(u => u.role === Role.TECHNICIAN);
+    if (technicians.length === 0) return false;
+
+    for (const user of technicians) {
       try {
         const attUser = user.attendance_id
           ? await attendanceService.getUserProfileById(user.attendance_id)
           : (user.email ? await attendanceService.getUserProfileByEmail(user.email) : null);
+        
         if (!attUser) continue;
 
-        const logs = await attendanceService.getAccessLogsByRange(attUser.id, todayStr, todayStr);
-        const hasIn = logs.some(l => l.type.toUpperCase() === 'IN' || l.type.toUpperCase() === 'ENTRADA');
+        // Fetch logs for the WHOLE period
+        const logs = await attendanceService.getAccessLogsByRange(attUser.id, startDate, endDate);
+        
+        // Dates where the user actually has logs
+        const loggedDates = new Set(logs.map(l => l.timestamp.split('T')[0]));
 
-        if (hasIn) {
+        for (const date of loggedDates) {
+          // Find any 'FALTA' event for this user on this date that is an auto-generated one
           const autoAbsence = currentEvents.find(e =>
             e.user_id === user.id &&
-            e.fecha_evento === todayStr &&
-            e.tipo === PayrollEventType.ABSENCE &&
-            e.descripcion.includes('Auto-generada')
+            e.fecha_evento === date &&
+            e.tipo === PayrollEventType.ABSENCE
           );
+
           if (autoAbsence) {
-            await api.deletePayrollEventByCriteria(user.id, todayStr, PayrollEventType.ABSENCE, 'Auto-generada');
+            console.log(`[Sync] Fixing false absence for ${user.name} on ${date}. Log found in camera.`);
+            await api.deletePayrollEventByCriteria(user.id, date, PayrollEventType.ABSENCE, '');
             changed = true;
           }
         }
-      } catch (e) { console.warn("Reconciliation error:", e); }
+      } catch (e) {
+        console.warn(`Reconciliation error for ${user.name}:`, e);
+      }
     }
     return changed;
   }, [authUser]);
+
+  const reconcileDailyAttendance = useCallback(async (currentUsers: User[], currentEvents: PayrollEvent[]) => {
+    const todayStr = new Date().toISOString().split('T')[0];
+    return reconcilePeriodAttendance(currentUsers, currentEvents, todayStr, todayStr);
+  }, [reconcilePeriodAttendance]);
 
   const fetchData = useCallback(async () => {
     if (!authUser?.id) return;
@@ -667,7 +682,13 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       const startStr = formatDate(startDate);
       const endStr = formatDate(endDate);
+      
+      // 1. Reconcile with Camera DB first to remove false absences
+      await reconcilePeriodAttendance(users, payrollEvents, startStr, endStr);
+      
+      // 2. Perform the actual payroll calculation with updated amounts
       await api.calculatePayroll(startStr, endStr);
+      
       await fetchData();
       showToast(`Nómina y asistencia calculadas para el período ${startStr} al ${endStr}`, 'success');
     } catch (e) { showToast((e as Error).message, 'error'); }
