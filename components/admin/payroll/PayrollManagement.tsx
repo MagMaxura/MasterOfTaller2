@@ -46,25 +46,23 @@ const EventRow: React.FC<{ event: PayrollEvent; onEdit: (e: PayrollEvent) => voi
             onClick={(e) => { 
                 e.stopPropagation(); 
                 console.log('EventRow clicked:', event.id, event.tipo);
-                if (typeof onEdit === 'function') {
+                if (onEdit) {
                     onEdit(event);
-                } else {
-                    console.error('onEdit is not a function in EventRow', onEdit);
                 }
             }}
             className="flex justify-between items-center py-2 px-3 border-b border-brand-accent/30 text-sm hover:bg-white/5 cursor-pointer transition-colors rounded select-none group"
         >
             <div className="flex-grow">
-                <p className="font-semibold">
+                <p className="font-semibold flex items-center gap-2">
                     {eventTypeMap[event.tipo] || event.tipo} 
-                    <span className="text-[10px] text-brand-light font-normal ml-2">{new Date(event.fecha_evento + 'T00:00:00').toLocaleDateString()}</span>
+                    <span className="text-[10px] text-brand-light font-normal">{new Date(event.fecha_evento + 'T00:00:00').toLocaleDateString()}</span>
                     {event.justificado && (
-                        <span className="bg-brand-blue/10 text-brand-blue text-[9px] font-black uppercase px-2 py-0.5 rounded ml-2">Justificada</span>
+                        <span className="bg-brand-blue/10 text-brand-blue text-[9px] font-black uppercase px-2 py-0.5 rounded">Justificada</span>
                     )}
                 </p>
-                <p className="text-xs text-brand-light italic">{event.descripcion}</p>
+                <p className="text-xs text-brand-highlight font-medium mt-0.5">{event.descripcion}</p>
                 {event.notas_justificacion && (
-                    <p className="text-[10px] text-brand-blue/70 mt-0.5">Nota: {event.notas_justificacion}</p>
+                    <p className="text-[10px] text-brand-blue/70 mt-0.5 border-l-2 border-brand-blue/20 pl-2">Justificación: {event.notas_justificacion}</p>
                 )}
             </div>
             <p className={`font-bold ${isAddition ? 'text-brand-green' : isDeduction ? 'text-brand-red' : 'text-brand-light'}`}>

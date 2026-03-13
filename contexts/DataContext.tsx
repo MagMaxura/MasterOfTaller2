@@ -201,19 +201,24 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
               const checkInH = checkInDate.getHours();
               const checkInM = checkInDate.getMinutes();
               
+              // Calculate minutes of tardiness and round to nearest 0.25h (15 min)
               const [stH, stM] = schedule.start_time.split(':').map(Number);
-              const tardinessMinutes = (checkInH * 60 + checkInM) - (stH * 60 + stM);
+              const diffMinutes = (checkInH * 60 + checkInM) - (stH * 60 + stM);
+              
+              // Round to multiple of 15 min, minimum 15 if > tolerance
+              const roundedMinutes = Math.max(15, Math.round(diffMinutes / 15) * 15);
+              const decimalHours = roundedMinutes / 60;
 
               const currentTardinessEvent = currentEvents.find(e => e.user_id === user.id && e.fecha_evento === date && e.tipo === PayrollEventType.TARDINESS);
 
-              if (tardinessMinutes > (schedule.tolerance_minutes || 15)) {
+              if (diffMinutes > (schedule.tolerance_minutes || 15)) {
                 if (!currentTardinessEvent) {
-                  console.log(`[Sync] Creating TARDINESS for ${user.name} on ${date}: ${tardinessMinutes}min (Check-in: ${checkInH}:${checkInM}, Sched: ${stH}:${stM})`);
+                  console.log(`[Sync] Creating TARDINESS for ${user.name} on ${date}: ${roundedMinutes}min (Check-in: ${checkInH}:${checkInM})`);
                   await api.addPayrollEvent({
                     user_id: user.id,
                     tipo: PayrollEventType.TARDINESS,
                     monto: 0, 
-                    descripcion: `TARDANZA (${tardinessMinutes} min)`,
+                    descripcion: `TARDANZA ${decimalHours} h (Entrada: ${checkInH}:${checkInM.toString().padStart(2, '0')})`,
                     fecha_evento: date,
                     justificado: false,
                     notas_justificacion: ''
@@ -221,7 +226,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
                   changed = true;
                 }
               } else if (currentTardinessEvent && !currentTardinessEvent.justificado) {
-                if (tardinessMinutes <= (schedule.tolerance_minutes || 15)) {
+                if (diffMinutes <= (schedule.tolerance_minutes || 15)) {
                    console.log(`[Sync] Removing small TARDINESS for ${user.name} on ${date}`);
                    await api.deletePayrollEvent(currentTardinessEvent.id);
                    changed = true;
@@ -235,19 +240,22 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
               const checkOutM = checkOutDate.getMinutes();
               
               const [etH, etM] = schedule.end_time.split(':').map(Number);
-              const earlyMinutes = (etH * 60 + etM) - (checkOutH * 60 + checkOutM);
+              const diffEarlyMinutes = (etH * 60 + etM) - (checkOutH * 60 + checkOutM);
+              
+              // Round to multiple of 15 min
+              const roundedEarlyMinutes = Math.max(15, Math.round(diffEarlyMinutes / 15) * 15);
+              const decimalEarlyHours = roundedEarlyMinutes / 60;
 
               const currentEarlyEvent = currentEvents.find(e => e.user_id === user.id && e.fecha_evento === date && e.tipo === PayrollEventType.EARLY_DEPARTURE);
 
-              if (earlyMinutes > (schedule.exit_tolerance_minutes || 5)) {
+              if (diffEarlyMinutes > (schedule.exit_tolerance_minutes || 5)) {
                 if (!currentEarlyEvent) {
-                  console.log(`[Sync] Creating EARLY DEPARTURE for ${user.name} on ${date}: ${earlyMinutes}min (Check-out: ${checkOutH}:${checkOutM}, Sched: ${etH}:${etM})`);
-                  const hours = (earlyMinutes / 60).toFixed(1);
+                  console.log(`[Sync] Creating EARLY DEPARTURE for ${user.name} on ${date}: ${roundedEarlyMinutes}min (Check-out: ${checkOutH}:${checkOutM})`);
                   await api.addPayrollEvent({
                     user_id: user.id,
                     tipo: PayrollEventType.EARLY_DEPARTURE,
                     monto: 0, 
-                    descripcion: `SALIDA TEMPRANA (${hours} h)`,
+                    descripcion: `SALIDA TEMPRANA ${decimalEarlyHours} h (Salida: ${checkOutH}:${checkOutM.toString().padStart(2, '0')})`,
                     fecha_evento: date,
                     justificado: false,
                     notas_justificacion: ''
@@ -255,7 +263,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
                   changed = true;
                 }
               } else if (currentEarlyEvent && !currentEarlyEvent.justificado) {
-                 if (earlyMinutes <= (schedule.exit_tolerance_minutes || 5)) {
+                 if (diffEarlyMinutes <= (schedule.exit_tolerance_minutes || 5)) {
                     console.log(`[Sync] Removing small EARLY DEPARTURE for ${user.name} on ${date}`);
                     await api.deletePayrollEvent(currentEarlyEvent.id);
                     changed = true;
