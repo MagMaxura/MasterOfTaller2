@@ -12,6 +12,10 @@ interface AddPayrollEventModalProps {
 }
 
 const AddPayrollEventModal: React.FC<AddPayrollEventModalProps> = ({ user, onClose, initialDate, event }) => {
+    if (!user) {
+        console.error('[AddPayrollEventModal] ERROR: No user provided to modal');
+        return null;
+    }
     const { addPayrollEvent, updatePayrollEvent, deletePayrollEvent, salaries, calculatePayPeriods } = useData();
     const { showToast } = useToast();
 

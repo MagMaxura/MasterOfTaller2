@@ -126,12 +126,14 @@ const AdminView: React.FC = () => {
                     <div className={activeTab === 'payroll' ? 'block' : 'hidden'}>
                         <PayrollManagement
                             onAddEvent={(user, date) => {
-                                setEditingPayrollEvent(null); // Clear edit state
+                                console.log('[AdminView] onAddEvent for:', user.name, date);
+                                setEditingPayrollEvent(null); 
                                 setAddingPayrollEventFor(user);
                                 setSelectedDateForEvent(date);
                             }}
                             onEditEvent={(event) => {
-                                setAddingPayrollEventFor(null); // Clear add state
+                                console.log('[AdminView] onEditEvent for:', event.id, event.tipo);
+                                setAddingPayrollEventFor(null);
                                 setEditingPayrollEvent(event);
                             }}
                         />
@@ -190,18 +192,35 @@ const AdminView: React.FC = () => {
             {notifyingUser && <NotificationModal user={notifyingUser} onClose={() => setNotifyingUser(null)} />}
             {editingMission && <ApproveMissionModal mission={editingMission} onClose={() => setEditingMission(null)} />}
             {selectedMission && <MissionDetailsModal mission={selectedMission} user={currentUser} onClose={() => setSelectedMission(null)} isAdminViewing={true} />}
-            {editingPayrollEvent && (
-                <AddPayrollEventModal
-                    user={users.find(u => u.id === editingPayrollEvent.user_id) || users.find(u => u.name === 'Admin') || users[0]}
-                    event={editingPayrollEvent}
-                    onClose={() => setEditingPayrollEvent(null)}
-                />
-            )}
+            {editingPayrollEvent && (() => {
+                const targetUser = users.find(u => u.id === editingPayrollEvent.user_id) || users.find(u => u.name === 'Admin') || users[0];
+                console.log('[AdminView] Rendering Edit Modal for event:', editingPayrollEvent.id, 'Target User:', targetUser?.name);
+                
+                if (!targetUser) {
+                    console.error('[AdminView] Could not find any user for event, resetting state.');
+                    setTimeout(() => setEditingPayrollEvent(null), 0);
+                    return null;
+                }
+
+                return (
+                    <AddPayrollEventModal
+                        key={`edit-${editingPayrollEvent.id}`}
+                        user={targetUser}
+                        event={editingPayrollEvent}
+                        onClose={() => {
+                            console.log('[AdminView] Closing edit modal');
+                            setEditingPayrollEvent(null);
+                        }}
+                    />
+                );
+            })()}
             {!editingPayrollEvent && addingPayrollEventFor && (
                 <AddPayrollEventModal
+                    key={`add-${addingPayrollEventFor.id}-${selectedDateForEvent || 'new'}`}
                     user={addingPayrollEventFor}
                     initialDate={selectedDateForEvent}
                     onClose={() => {
+                        console.log('[AdminView] Closing add modal');
                         setAddingPayrollEventFor(null);
                         setSelectedDateForEvent(undefined);
                     }}
