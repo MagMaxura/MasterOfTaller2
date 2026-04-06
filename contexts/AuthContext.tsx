@@ -1,6 +1,4 @@
-
-
-import React, { createContext, useContext } from 'react';
+import React, { createContext, useContext, useMemo } from 'react';
 import { supabase } from '../config';
 import { User as AuthUser } from '@supabase/supabase-js';
 
@@ -25,11 +23,11 @@ export const AuthProvider: React.FC<{ session: any; children: React.ReactNode }>
     }
   };
 
-  const value = {
+  const value = useMemo(() => ({
     session,
     user: session?.user ?? null,
     handleLogout,
-  };
+  }), [session]);
 
   return (
     <AuthContext.Provider value={value}>
