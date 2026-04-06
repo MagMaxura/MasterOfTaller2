@@ -7,11 +7,11 @@ import { useToast } from '../../contexts/ToastContext';
 
 // --- CONDITIONS MODAL ---
 const ConditionsModal: React.FC<{
-    permissions: { notifications: PermissionState; geolocation: PermissionState; };
+    permissions: { notifications: PermissionState; };
     onRequest: () => void;
     isLoading: boolean;
 }> = ({ permissions, onRequest, isLoading }) => {
-    const isAnyDenied = permissions.notifications === 'denied' || permissions.geolocation === 'denied';
+    const isAnyDenied = permissions.notifications === 'denied';
 
     return (
         <div className="fixed inset-0 bg-brand-primary z-[100] flex items-center justify-center p-6 animate-fade-in overflow-y-auto">
@@ -29,28 +29,6 @@ const ConditionsModal: React.FC<{
                 </div>
 
                 <div className="space-y-4">
-                    <div className={`p-4 rounded-2xl border transition-all ${permissions.geolocation === 'granted' ? 'bg-brand-green/10 border-brand-green/30' : 'bg-white/5 border-white/10'}`}>
-                        <div className="flex items-center gap-4">
-                            <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${permissions.geolocation === 'granted' ? 'bg-brand-green text-white' : 'bg-white/10 text-slate-400'}`}>
-                                <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                                </svg>
-                            </div>
-                            <div className="flex-1">
-                                <h4 className="font-bold text-white text-sm">Ubicación en Tiempo Real</h4>
-                                <p className="text-[10px] text-slate-500 uppercase font-black tracking-widest mt-0.5">Seguimiento de misiones</p>
-                            </div>
-                            {permissions.geolocation === 'granted' ? (
-                                <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6 text-brand-green" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                                </svg>
-                            ) : permissions.geolocation === 'denied' && (
-                                <span className="text-[8px] font-black bg-brand-red/20 text-brand-red px-2 py-1 rounded-md uppercase tracking-tighter">Bloqueado</span>
-                            )}
-                        </div>
-                    </div>
-
                     <div className={`p-4 rounded-2xl border transition-all ${permissions.notifications === 'granted' ? 'bg-brand-green/10 border-brand-green/30' : 'bg-white/5 border-white/10'}`}>
                         <div className="flex items-center gap-4">
                             <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${permissions.notifications === 'granted' ? 'bg-brand-green text-white' : 'bg-white/10 text-slate-400'}`}>
@@ -77,7 +55,7 @@ const ConditionsModal: React.FC<{
                     {isAnyDenied ? (
                         <div className="bg-brand-red/10 border border-brand-red/30 p-4 rounded-2xl space-y-3">
                             <p className="text-[11px] font-bold text-brand-red uppercase tracking-wider text-center leading-relaxed">
-                                Has bloqueado los permisos. Ve a la configuración de tu navegador y permite la ubicación y notificaciones para entrar.
+                                Has bloqueado los permisos. Ve a la configuración de tu navegador y permite las notificaciones para entrar.
                             </p>
                             <button onClick={() => window.location.reload()} className="w-full bg-brand-red text-white font-black py-3 rounded-xl text-[10px] uppercase tracking-widest shadow-lg">Reiniciar App</button>
                         </div>
@@ -100,7 +78,7 @@ const ConditionsModal: React.FC<{
                         </button>
                     )}
                     <p className="text-[9px] text-slate-500 text-center mt-6 font-bold uppercase tracking-widest leading-loose">
-                        Al aceptar, confirmas el envío de datos de ubicación <br /> para fines laborales según el reglamento interno.
+                        Al aceptar, confirmas el envío de notificaciones <br /> para fines laborales según el reglamento interno.
                     </p>
                 </div>
             </div>
@@ -114,8 +92,7 @@ const PermissionsGuard: React.FC<{ user: User; children: React.ReactNode; }> = (
     const { showToast } = useToast();
     const [permissions, setPermissions] = useState<{
         notifications: PermissionState;
-        geolocation: PermissionState;
-    }>({ notifications: 'prompt', geolocation: 'prompt' });
+    }>({ notifications: 'prompt' });
     const [isLoading, setIsLoading] = useState(false);
     const [isInitialCheck, setIsInitialCheck] = useState(true);
 
@@ -132,43 +109,30 @@ const PermissionsGuard: React.FC<{ user: User; children: React.ReactNode; }> = (
         }
     }, []);
 
-    const getGeolocationState = useCallback(async (): Promise<PermissionState> => {
-        try {
-            if (!navigator.permissions) throw new Error("Permissions API not supported");
-            return (await navigator.permissions.query({ name: 'geolocation' })).state;
-        } catch (error) {
-            console.warn("navigator.permissions.query for geolocation failed.", error);
-            return 'prompt';
-        }
-    }, []);
-
     const checkPermissions = useCallback(async () => {
-        const [notifState, geoState] = await Promise.all([getNotificationState(), getGeolocationState()]);
-        setPermissions({ notifications: notifState, geolocation: geoState });
+        const notifState = await getNotificationState();
+        setPermissions({ notifications: notifState });
         if (isInitialCheck) setIsInitialCheck(false);
-    }, [getNotificationState, getGeolocationState, isInitialCheck]);
+    }, [getNotificationState, isInitialCheck]);
 
     useEffect(() => {
         checkPermissions();
-        let notifStatus: PermissionStatus, geoStatus: PermissionStatus;
+        let notifStatus: PermissionStatus;
         const setupListeners = async () => {
             try {
                 notifStatus = await navigator.permissions.query({ name: 'notifications' });
                 notifStatus.onchange = checkPermissions;
-                geoStatus = await navigator.permissions.query({ name: 'geolocation' });
-                geoStatus.onchange = checkPermissions;
             } catch (e) { console.warn("Could not set up permission listeners", e); }
         }
         setupListeners();
         return () => {
             if (notifStatus) notifStatus.onchange = null;
-            if (geoStatus) geoStatus.onchange = null;
         }
     }, [checkPermissions]);
 
     const handleRequestPermissions = async () => {
         setIsLoading(true);
-        const wereGrantedBefore = permissions.notifications === 'granted' && permissions.geolocation === 'granted';
+        const wereGrantedBefore = permissions.notifications === 'granted';
 
         try {
             const notificationPermission = await Notification.requestPermission();
@@ -176,17 +140,14 @@ const PermissionsGuard: React.FC<{ user: User; children: React.ReactNode; }> = (
                 const subscription = await subscribeUserToPush();
                 if (subscription) await savePushSubscription(user.id, subscription);
             }
-            await new Promise<void>((resolve) => {
-                navigator.geolocation.getCurrentPosition(() => resolve(), () => resolve(), { timeout: 10000 });
-            });
         } catch (error) {
             console.error("Error requesting permissions:", error);
         }
 
         setTimeout(async () => {
-            const [newNotifState, newGeoState] = await Promise.all([getNotificationState(), getGeolocationState()]);
-            setPermissions({ notifications: newNotifState, geolocation: newGeoState });
-            const areGrantedNow = newNotifState === 'granted' && newGeoState === 'granted';
+            const newNotifState = await getNotificationState();
+            setPermissions({ notifications: newNotifState });
+            const areGrantedNow = newNotifState === 'granted';
 
             if (areGrantedNow && !wereGrantedBefore) {
                 const bonusClaimed = localStorage.getItem(bonusClaimedKey);
@@ -208,7 +169,7 @@ const PermissionsGuard: React.FC<{ user: User; children: React.ReactNode; }> = (
         }, 1500);
     };
 
-    const showModal = !isInitialCheck && (permissions.notifications !== 'granted' || permissions.geolocation !== 'granted');
+    const showModal = !isInitialCheck && permissions.notifications !== 'granted';
 
     if (showModal) {
         return <ConditionsModal permissions={permissions} onRequest={handleRequestPermissions} isLoading={isLoading} />;

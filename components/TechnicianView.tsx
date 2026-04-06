@@ -46,7 +46,8 @@ const TechnicianUI: React.FC<TechnicianUIProps> = ({ user, isAdminViewing = fals
 
     // Removed package.json fetch to avoid 404 errors
 
-    // Geolocation tracking
+    // Geolocation tracking has been disabled to prevent unnecessary notification prompts per user request
+    /*
     useEffect(() => {
         if (isAdminViewing || !navigator.geolocation) return;
         let intervalId: number | undefined;
@@ -71,6 +72,7 @@ const TechnicianUI: React.FC<TechnicianUIProps> = ({ user, isAdminViewing = fals
         return () => { if (intervalId) clearInterval(intervalId); };
 
     }, [user.id, isAdminViewing]);
+    */
 
 
     const userMissions = useMemo(() => {
