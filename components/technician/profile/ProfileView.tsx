@@ -5,6 +5,7 @@ import SkillsPanel from './SkillsPanel';
 import BadgesPanel from './BadgesPanel';
 import EquipmentPanel from './EquipmentPanel';
 import VacationPanel from './VacationPanel';
+import SettingsPanel from './SettingsPanel';
 
 const ProfileView: React.FC<{ user: User; isAdminViewing?: boolean; }> = ({ user, isAdminViewing }) => {
     return (
@@ -12,6 +13,7 @@ const ProfileView: React.FC<{ user: User; isAdminViewing?: boolean; }> = ({ user
             {/* Left Column: Info */}
             <div className="flex flex-col gap-8">
                 <UserInfoCard user={user} isAdminViewing={isAdminViewing} />
+                {!isAdminViewing && <SettingsPanel />}
                 {!isAdminViewing && <VacationPanel />}
                 <SkillsPanel skills={user.skills} />
                 <BadgesPanel badges={user.badges} />

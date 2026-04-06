@@ -169,12 +169,6 @@ const PermissionsGuard: React.FC<{ user: User; children: React.ReactNode; }> = (
         }, 1500);
     };
 
-    const showModal = !isInitialCheck && permissions.notifications !== 'granted';
-
-    if (showModal) {
-        return <ConditionsModal permissions={permissions} onRequest={handleRequestPermissions} isLoading={isLoading} />;
-    }
-
     return (
         <>
             {children}

@@ -151,6 +151,16 @@ const TechnicianUI: React.FC<TechnicianUIProps> = ({ user, isAdminViewing = fals
         }
     };
 
+    const [showPermissionBanner, setShowPermissionBanner] = useState(false);
+
+    useEffect(() => {
+        if (!isAdminViewing && typeof window !== 'undefined' && 'Notification' in window) {
+            if (Notification.permission !== 'granted') {
+                setShowPermissionBanner(true);
+            }
+        }
+    }, [isAdminViewing]);
+
     return (
         <div className="min-h-screen bg-brand-secondary pb-24 md:pb-0 overflow-x-hidden">
             <Header user={user} isAdminViewing={isAdminViewing} onBack={onBackToAdmin} />
@@ -176,6 +186,22 @@ const TechnicianUI: React.FC<TechnicianUIProps> = ({ user, isAdminViewing = fals
             </nav>
 
             <main className="p-4 md:p-8 max-w-7xl mx-auto animate-fadeIn space-y-4">
+                {showPermissionBanner && !isAdminViewing && (
+                    <div className="bg-brand-blue/10 border border-brand-blue/20 p-4 rounded-2xl flex items-center justify-between gap-4 animate-slide-up">
+                        <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-lg bg-brand-blue flex items-center justify-center text-white shrink-0">
+                                <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                            </div>
+                            <p className="text-xs font-bold text-slate-700 leading-tight">
+                                Para una mejor versión de la app, activa las notificaciones. <br />
+                                <span className="text-[10px] text-brand-blue uppercase font-black">Mira cómo hacerlo en tu Perfil &gt; Configuración</span>
+                            </p>
+                        </div>
+                        <button onClick={() => setShowPermissionBanner(false)} className="text-slate-400 hover:text-brand-highlight px-2">&times;</button>
+                    </div>
+                )}
                 {activeTab === 'missions' && isDiner && <LunchConfirmationCard userId={user.id} />}
                 {renderContent()}
                 <footer className="text-center text-[10px] font-bold text-brand-light/50 uppercase tracking-[0.2em] pt-12 pb-6">
