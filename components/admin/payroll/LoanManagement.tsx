@@ -89,16 +89,16 @@ const LoanManagement: React.FC = () => {
     }, [payrollEvents]);
 
     return (
-        <div className="bg-brand-secondary p-4 sm:p-6 rounded-lg shadow-xl">
+        <div className="bg-brand-primary p-4 sm:p-6 rounded-lg shadow-xl border border-slate-200">
             <div className="mb-8 space-y-1">
-                <h2 className="text-3xl sm:text-4xl font-black text-white tracking-tight">Módulo de Préstamos</h2>
-                <p className="text-sm text-brand-light opacity-80 font-medium">Registra préstamos al personal con cálculo automático de intereses hasta la quincena.</p>
+                <h2 className="text-3xl sm:text-4xl font-black text-brand-highlight tracking-tight">Módulo de Préstamos</h2>
+                <p className="text-sm text-brand-light font-medium">Registra préstamos al personal con cálculo automático de intereses hasta la quincena.</p>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                 {/* Form Section */}
-                <div className="bg-brand-primary p-6 rounded-2xl border border-white/5">
-                    <h3 className="text-xl font-bold text-white mb-6 flex items-center gap-2">
+                <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+                    <h3 className="text-xl font-bold text-brand-highlight mb-6 flex items-center gap-2">
                         <CurrencyDollarIcon className="w-6 h-6 text-brand-blue" />
                         Nuevo Préstamo
                     </h3>
@@ -111,7 +111,7 @@ const LoanManagement: React.FC = () => {
                                 <select
                                     value={selectedUserId}
                                     onChange={e => setSelectedUserId(e.target.value)}
-                                    className="w-full bg-brand-secondary/50 p-3 pl-10 rounded-lg border border-brand-accent focus:border-brand-blue transition-colors text-white"
+                                    className="w-full bg-slate-50 p-3 pl-10 rounded-lg border border-slate-200 focus:border-brand-blue transition-colors text-brand-highlight outline-none"
                                     required
                                 >
                                     <option value="" disabled>Selecciona un empleado...</option>
@@ -130,7 +130,7 @@ const LoanManagement: React.FC = () => {
                                     value={loanAmount}
                                     onChange={e => setLoanAmount(e.target.value === '' ? '' : parseFloat(e.target.value))}
                                     placeholder="Ej: 15000"
-                                    className="w-full bg-brand-secondary/50 p-3 rounded-lg border border-brand-accent focus:border-brand-blue transition-colors text-white"
+                                    className="w-full bg-slate-50 p-3 rounded-lg border border-slate-200 focus:border-brand-blue transition-colors text-brand-highlight outline-none"
                                     required
                                     min="1"
                                 />
@@ -143,7 +143,7 @@ const LoanManagement: React.FC = () => {
                                         type="date"
                                         value={loanDate}
                                         onChange={e => setLoanDate(e.target.value)}
-                                        className="w-full bg-brand-secondary/50 p-3 pl-10 rounded-lg border border-brand-accent focus:border-brand-blue transition-colors text-white"
+                                        className="w-full bg-slate-50 p-3 pl-10 rounded-lg border border-slate-200 focus:border-brand-blue transition-colors text-brand-highlight outline-none"
                                         required
                                     />
                                 </div>
@@ -157,7 +157,7 @@ const LoanManagement: React.FC = () => {
                                 value={description}
                                 onChange={e => setDescription(e.target.value)}
                                 placeholder="Ej: Adelanto para emergencia"
-                                className="w-full bg-brand-secondary/50 p-3 rounded-lg border border-brand-accent focus:border-brand-blue transition-colors text-white"
+                                className="w-full bg-slate-50 p-3 rounded-lg border border-slate-200 focus:border-brand-blue transition-colors text-brand-highlight outline-none"
                                 required
                             />
                         </div>
@@ -167,14 +167,14 @@ const LoanManagement: React.FC = () => {
                             <div className="mt-6 bg-brand-blue/10 border border-brand-blue/30 p-4 rounded-xl space-y-2">
                                 <div className="flex justify-between text-sm">
                                     <span className="text-brand-light">Días hasta quincena ({quincenaDate?.toLocaleDateString()}):</span>
-                                    <span className="font-bold text-white">{daysUntilQuincena} días</span>
+                                    <span className="font-bold text-brand-highlight">{daysUntilQuincena} días</span>
                                 </div>
                                 <div className="flex justify-between text-sm">
                                     <span className="text-brand-light">Interés (2% diario x {daysUntilQuincena}):</span>
                                     <span className="font-bold text-brand-orange">${interestAmount.toLocaleString('es-AR', { minimumFractionDigits: 2 })}</span>
                                 </div>
                                 <div className="pt-2 border-t border-brand-blue/20 flex justify-between items-center">
-                                    <span className="font-bold text-white">Total a Descontar:</span>
+                                    <span className="font-bold text-brand-highlight">Total a Descontar:</span>
                                     <span className="text-2xl font-black text-brand-gold">${totalAmount.toLocaleString('es-AR', { minimumFractionDigits: 2 })}</span>
                                 </div>
                             </div>
@@ -196,8 +196,8 @@ const LoanManagement: React.FC = () => {
                 </div>
 
                 {/* Recent Loans History */}
-                <div className="bg-brand-primary p-6 rounded-2xl border border-white/5">
-                    <h3 className="text-xl font-bold text-white mb-6 flex items-center gap-2">
+                <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+                    <h3 className="text-xl font-bold text-brand-highlight mb-6 flex items-center gap-2">
                         <CalendarIcon className="w-6 h-6 text-brand-blue" />
                         Últimos Préstamos Registrados
                     </h3>
@@ -209,16 +209,16 @@ const LoanManagement: React.FC = () => {
                             {recentLoans.map(loan => {
                                 const u = users.find(user => user.id === loan.user_id);
                                 return (
-                                    <div key={loan.id} className="bg-brand-secondary/30 p-3 rounded-lg border border-brand-accent/30 flex justify-between items-center hover:bg-white/5 transition-colors">
+                                    <div key={loan.id} className="bg-slate-50 p-3 rounded-lg border border-slate-100 flex justify-between items-center hover:bg-slate-100 transition-colors">
                                         <div className="flex items-center gap-3">
                                             {u ? (
-                                                <img src={u.avatar} alt={u.name} className="w-10 h-10 rounded-full border border-white/10" />
+                                                <img src={u.avatar} alt={u.name} className="w-10 h-10 rounded-full border border-slate-200" />
                                             ) : (
-                                                <div className="w-10 h-10 rounded-full bg-brand-accent/50 flex items-center justify-center">?</div>
+                                                <div className="w-10 h-10 rounded-full bg-slate-200 flex items-center justify-center text-slate-400">?</div>
                                             )}
                                             <div>
-                                                <p className="font-bold text-white text-sm">{u ? u.name : 'Usuario Desconocido'}</p>
-                                                <p className="text-xs text-brand-light opacity-80">{new Date(loan.fecha_evento + 'T00:00:00').toLocaleDateString()}</p>
+                                                <p className="font-bold text-brand-highlight text-sm">{u ? u.name : 'Usuario Desconocido'}</p>
+                                                <p className="text-xs text-brand-light">{new Date(loan.fecha_evento + 'T00:00:00').toLocaleDateString()}</p>
                                             </div>
                                         </div>
                                         <div className="text-right">

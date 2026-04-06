@@ -24,25 +24,25 @@ const HolidayManagement: React.FC = () => {
   const sortedHolidays = [...holidays].sort((a, b) => a.date.localeCompare(b.date));
 
   return (
-    <div className="bg-brand-primary p-6 rounded-2xl border border-white/5 shadow-xl">
+    <div className="bg-brand-primary p-6 rounded-2xl border border-slate-200 shadow-xl">
       <div className="flex justify-between items-center mb-6">
         <div>
           <h3 className="text-xl font-black text-brand-highlight flex items-center gap-2">
             <CalendarIcon className="w-6 h-6 text-brand-blue" />
             Gestión de Feriados
           </h3>
-          <p className="text-xs text-brand-light opacity-70">Los feriados evitan descuentos por inasistencia en la nómina.</p>
+          <p className="text-xs text-brand-light">Los feriados evitan descuentos por inasistencia en la nómina.</p>
         </div>
       </div>
 
-      <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8 bg-white/5 p-4 rounded-xl border border-white/5">
+      <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8 bg-slate-50 p-4 rounded-xl border border-slate-200">
         <div className="space-y-1">
           <label className="text-[10px] uppercase font-black text-brand-light px-1">Fecha</label>
           <input
             type="date"
             value={newDate}
             onChange={(e) => setNewDate(e.target.value)}
-            className="w-full bg-brand-secondary border border-white/10 rounded-lg px-4 py-2.5 text-white text-sm focus:border-brand-blue outline-none transition-all"
+            className="w-full bg-white border border-slate-200 rounded-lg px-4 py-2.5 text-brand-highlight text-sm focus:border-brand-blue outline-none transition-all shadow-sm"
             required
           />
         </div>
@@ -53,7 +53,7 @@ const HolidayManagement: React.FC = () => {
             placeholder="Ej: Año Nuevo"
             value={newDesc}
             onChange={(e) => setNewDesc(e.target.value)}
-            className="w-full bg-brand-secondary border border-white/10 rounded-lg px-4 py-2.5 text-white text-sm focus:border-brand-blue outline-none transition-all"
+            className="w-full bg-white border border-slate-200 rounded-lg px-4 py-2.5 text-brand-highlight text-sm focus:border-brand-blue outline-none transition-all shadow-sm"
             required
           />
         </div>
@@ -69,25 +69,25 @@ const HolidayManagement: React.FC = () => {
         </div>
       </form>
 
-      <div className="overflow-hidden rounded-xl border border-white/5">
+      <div className="overflow-hidden rounded-xl border border-slate-200 shadow-sm bg-white">
         <table className="w-full text-left border-collapse">
           <thead>
-            <tr className="bg-white/5 border-b border-white/5">
+            <tr className="bg-slate-50 border-b border-slate-200">
               <th className="px-6 py-4 text-[10px] uppercase font-black text-brand-light">Fecha</th>
               <th className="px-6 py-4 text-[10px] uppercase font-black text-brand-light">Descripción</th>
               <th className="px-6 py-4 text-[10px] uppercase font-black text-brand-light text-right">Acciones</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-white/5">
+          <tbody className="divide-y divide-slate-100">
             {sortedHolidays.map((holiday) => (
-              <tr key={holiday.id} className="hover:bg-white/5 transition-colors group">
+              <tr key={holiday.id} className="hover:bg-slate-50 transition-colors group">
                 <td className="px-6 py-4">
-                  <span className="text-sm font-black text-white bg-brand-blue/10 px-2 py-1 rounded">
+                  <span className="text-sm font-black text-brand-blue bg-brand-blue/10 px-2 py-1 rounded">
                     {new Date(holiday.date + 'T00:00:00').toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' })}
                   </span>
                 </td>
                 <td className="px-6 py-4">
-                  <span className="text-sm font-medium text-slate-300">{holiday.description}</span>
+                  <span className="text-sm font-bold text-slate-700">{holiday.description}</span>
                 </td>
                 <td className="px-6 py-4 text-right">
                   <button
@@ -96,7 +96,7 @@ const HolidayManagement: React.FC = () => {
                             deleteHoliday(holiday.id);
                         }
                     }}
-                    className="p-2 text-slate-500 hover:text-brand-red hover:bg-brand-red/10 rounded-lg transition-all"
+                    className="p-2 text-slate-400 hover:text-brand-red hover:bg-brand-red/10 rounded-lg transition-all"
                   >
                     <TrashIcon className="w-5 h-5" />
                   </button>
