@@ -337,9 +337,8 @@ const PayrollManagement: React.FC<PayrollManagementProps> = ({ onAddEvent, onEdi
         }
 
         return paymentPeriods
-            .filter(p => p.estado === PaymentStatus.CALCULATED)
-            .filter(p => p.fecha_inicio_periodo === targetStart);
-    }, [paymentPeriods, users]);
+            .filter(p => p.estado === PaymentStatus.CALCULATED);
+    }, [paymentPeriods]);
 
     const nextPayDate = useMemo(() => {
         const today = new Date();
