@@ -21,6 +21,7 @@ import SuppliesManagement from './admin/supplies/SuppliesManagement';
 import Leaderboard from './common/Leaderboard';
 import PayrollManagement from './admin/payroll/PayrollManagement';
 import LoanManagement from './admin/payroll/LoanManagement';
+import HolidayManagement from './admin/payroll/HolidayManagement';
 import RewardManagement from './admin/rewards/RewardManagement';
 import SetSalaryModal from './admin/payroll/SetSalaryModal';
 import AddPayrollEventModal from './admin/payroll/AddPayrollEventModal';
@@ -60,6 +61,7 @@ const AdminView: React.FC = () => {
     const TABS = [
         { id: 'manage', label: 'Gestionar', icon: <UserIcon /> },
         { id: 'payroll', label: 'Nómina', icon: <CurrencyDollarIcon /> },
+        { id: 'holidays', label: 'Feriados', icon: <CalendarIcon /> },
         { id: 'loans', label: 'Préstamos', icon: <CurrencyDollarIcon /> },
         { id: 'missions', label: 'Misiones', icon: <TasksIcon /> },
         { id: 'requests', label: 'Solicitudes', icon: <TasksIcon />, notification: totalRequestsCount > 0 },
@@ -172,6 +174,9 @@ const AdminView: React.FC = () => {
                         </div>
                         <div className={activeTab === 'loans' ? 'block' : 'hidden'}>
                             <LoanManagement />
+                        </div>
+                        <div className={activeTab === 'holidays' ? 'block' : 'hidden'}>
+                            <HolidayManagement />
                         </div>
                         <div className={activeTab === 'missions' ? 'block' : 'hidden'}>
                             <MissionsManager onOpenMission={setSelectedMission} onEditMission={setEditingMission} />
