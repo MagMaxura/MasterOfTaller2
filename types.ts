@@ -310,3 +310,10 @@ export interface UserReward {
   expires_at?: string;
   reward?: Reward;
 }
+
+export interface Holiday {
+  id: string;
+  date: string;
+  description: string;
+  created_at?: string;
+}

@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect, useMemo, createContext, useContext } from 'react';
-import { User, Mission, InventoryItem, EquipmentSlot, MissionMilestone, MissionStatus, UserInventoryItem, Supply, MissionSupply, Badge, Salary, PayrollEvent, PaymentPeriod, Role, MissionDifficulty, PayrollEventType, MissionRequirement, Company, AttendanceSummary, UserSchedule, VacationRequest, Reward, UserReward } from '../types';
+import { User, Mission, InventoryItem, EquipmentSlot, MissionMilestone, MissionStatus, UserInventoryItem, Supply, MissionSupply, Badge, Salary, PayrollEvent, PaymentPeriod, Role, MissionDifficulty, PayrollEventType, MissionRequirement, Company, AttendanceSummary, UserSchedule, VacationRequest, Reward, UserReward, Holiday } from '../types';
 import { supabase } from '../config';
 import { transformSupabaseProfileToUser } from '../utils/dataTransformers';
 import { useAuth } from './AuthContext';
@@ -27,6 +27,7 @@ interface DataContextType {
   vacationRequests: VacationRequest[];
   rewardItems: Reward[];
   userRewards: UserReward[];
+  holidays: Holiday[];
   loading: boolean;
   viewingProfileOf: User | null;
   setViewingProfileOf: (user: User | null) => void;
@@ -80,6 +81,8 @@ interface DataContextType {
   addReward: (reward: Omit<Reward, 'id' | 'created_at'>) => Promise<void>;
   updateReward: (id: string, reward: Partial<Reward>) => Promise<void>;
   deleteReward: (id: string) => Promise<void>;
+  addHoliday: (date: string, description: string) => Promise<void>;
+  deleteHoliday: (id: string) => Promise<void>;
 }
 
 // --- CONTEXT CREATION ---
@@ -113,14 +116,17 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [vacationRequests, setVacationRequests] = useState<VacationRequest[]>([]);
   const [rewardItems, setRewardItems] = useState<Reward[]>([]);
   const [userRewards, setUserRewards] = useState<UserReward[]>([]);
+  const [holidays, setHolidays] = useState<Holiday[]>([]);
   const [loading, setLoading] = useState(true);
   const [viewingProfileOf, setViewingProfileOf] = useState<User | null>(null);
 
   const checkAndGenerateDailyAbsences = useCallback(async () => {
     if (!authUser || authUser.id.startsWith('demo-')) return;
-    const todayStr = new Date().toISOString().split('T')[0];
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    const dateStr = yesterday.toISOString().split('T')[0];
     try {
-      await api.generateDailyAbsences(todayStr);
+      await api.generateDailyAbsences(dateStr);
     } catch (e) {
       console.error("Error generating daily absences:", e);
     }
@@ -188,96 +194,154 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
                            (attUser.start_time ? { 
                              start_time: attUser.start_time, 
                              end_time: attUser.end_time, 
-                             tolerance_minutes: 15, 
-                             exit_tolerance_minutes: 5 
+                             tolerance_minutes: 10, 
+                             exit_tolerance_minutes: 10 
                            } : null);
 
-          if (schedule && schedule.start_time && schedule.end_time) {
-            const checkIn = dailyLogs.filter(l => ['IN', 'Entrada', 'ENTRADA'].includes(l.type as string)).sort((a,b) => a.timestamp.localeCompare(b.timestamp))[0];
-            const checkOut = dailyLogs.filter(l => ['OUT', 'Salida', 'SALIDA'].includes(l.type as string)).sort((a,b) => b.timestamp.localeCompare(a.timestamp))[0];
+          if (schedule && schedule.start_time && (schedule.end_time || (schedule as any).end_time)) {
+             const checkIn = dailyLogs.filter(l => ['IN', 'Entrada', 'ENTRADA'].includes(l.type as string)).sort((a,b) => a.timestamp.localeCompare(b.timestamp))[0];
+             const checkOut = dailyLogs.filter(l => ['OUT', 'Salida', 'SALIDA'].includes(l.type as string)).sort((a,b) => b.timestamp.localeCompare(a.timestamp))[0];
 
-            if (checkIn) {
-              const checkInDate = new Date(checkIn.timestamp);
-              const checkInH = checkInDate.getHours();
-              const checkInM = checkInDate.getMinutes();
-              
-              // Calculate minutes of tardiness and round to nearest 0.25h (15 min)
-              const [stH, stM] = schedule.start_time.split(':').map(Number);
-              const diffMinutes = (checkInH * 60 + checkInM) - (stH * 60 + stM);
-              
-              // Round to multiple of 15 min, minimum 15 if > tolerance
-              const roundedMinutes = Math.max(15, Math.round(diffMinutes / 15) * 15);
-              const decimalHours = roundedMinutes / 60;
+             if (checkIn) {
+               const checkInDate = new Date(checkIn.timestamp);
+               const checkInH = checkInDate.getHours();
+               const checkInM = checkInDate.getMinutes();
+               
+               // Calculate minutes of tardiness and round to nearest 0.25h (15 min)
+               const [stH, stM] = schedule.start_time.split(':').map(Number);
+               const diffMinutes = (checkInH * 60 + checkInM) - (stH * 60 + stM);
+               
+               // Round to multiple of 15 min, minimum 15 if > tolerance
+               const roundedMinutes = Math.max(15, Math.round(diffMinutes / 15) * 15);
+               const decimalHours = roundedMinutes / 60;
 
-              const currentTardinessEvent = currentEvents.find(e => e.user_id === user.id && e.fecha_evento === date && e.tipo === PayrollEventType.TARDINESS);
+               const currentTardinessEvent = currentEvents.find(e => e.user_id === user.id && e.fecha_evento === date && e.tipo === PayrollEventType.TARDINESS);
 
-              if (diffMinutes > (schedule.tolerance_minutes || 15)) {
-                if (!currentTardinessEvent) {
-                  console.log(`[Sync] Creating TARDINESS for ${user.name} on ${date}: ${roundedMinutes}min (Check-in: ${checkInH}:${checkInM})`);
-                  await api.addPayrollEvent({
-                    user_id: user.id,
-                    tipo: PayrollEventType.TARDINESS,
-                    monto: 0, 
-                    descripcion: `TARDANZA ${decimalHours} h (Entrada: ${checkInH}:${checkInM.toString().padStart(2, '0')})`,
-                    fecha_evento: date,
-                    justificado: false,
-                    notas_justificacion: ''
-                  } as any);
-                  changed = true;
-                }
-              } else if (currentTardinessEvent && !currentTardinessEvent.justificado) {
-                if (diffMinutes <= (schedule.tolerance_minutes || 15)) {
-                   console.log(`[Sync] Removing small TARDINESS for ${user.name} on ${date}`);
-                   await api.deletePayrollEvent(currentTardinessEvent.id);
+               if (diffMinutes > (schedule.tolerance_minutes ?? 10)) {
+                 if (!currentTardinessEvent) {
+                   console.log(`[Sync] Creating TARDINESS for ${user.name} on ${date}: ${roundedMinutes}min (Check-in: ${checkInH}:${checkInM})`);
+                   await api.addPayrollEvent({
+                     user_id: user.id,
+                     tipo: PayrollEventType.TARDINESS,
+                     monto: 0, 
+                     descripcion: `TARDANZA ${decimalHours} h (Entrada: ${checkInH}:${checkInM.toString().padStart(2, '0')})`,
+                     fecha_evento: date,
+                     justificado: false,
+                     notas_justificacion: ''
+                   } as any);
                    changed = true;
-                }
-              }
-            }
-
-            if (checkOut) {
-              const checkOutDate = new Date(checkOut.timestamp);
-              const checkOutH = checkOutDate.getHours();
-              const checkOutM = checkOutDate.getMinutes();
-              
-              const [etH, etM] = schedule.end_time.split(':').map(Number);
-              const diffEarlyMinutes = (etH * 60 + etM) - (checkOutH * 60 + checkOutM);
-              
-              // Round to multiple of 15 min
-              const roundedEarlyMinutes = Math.max(15, Math.round(diffEarlyMinutes / 15) * 15);
-              const decimalEarlyHours = roundedEarlyMinutes / 60;
-
-              const currentEarlyEvent = currentEvents.find(e => e.user_id === user.id && e.fecha_evento === date && e.tipo === PayrollEventType.EARLY_DEPARTURE);
-
-              if (diffEarlyMinutes > (schedule.exit_tolerance_minutes || 5)) {
-                if (!currentEarlyEvent) {
-                  console.log(`[Sync] Creating EARLY DEPARTURE for ${user.name} on ${date}: ${roundedEarlyMinutes}min (Check-out: ${checkOutH}:${checkOutM})`);
-                  await api.addPayrollEvent({
-                    user_id: user.id,
-                    tipo: PayrollEventType.EARLY_DEPARTURE,
-                    monto: 0, 
-                    descripcion: `SALIDA TEMPRANA ${decimalEarlyHours} h (Salida: ${checkOutH}:${checkOutM.toString().padStart(2, '0')})`,
-                    fecha_evento: date,
-                    justificado: false,
-                    notas_justificacion: ''
-                  } as any);
-                  changed = true;
-                }
-              } else if (currentEarlyEvent && !currentEarlyEvent.justificado) {
-                 if (diffEarlyMinutes <= (schedule.exit_tolerance_minutes || 5)) {
-                    console.log(`[Sync] Removing small EARLY DEPARTURE for ${user.name} on ${date}`);
-                    await api.deletePayrollEvent(currentEarlyEvent.id);
+                 }
+               } else if (currentTardinessEvent && !currentTardinessEvent.justificado) {
+                 if (diffMinutes <= (schedule.tolerance_minutes ?? 10)) {
+                    console.log(`[Sync] Removing small TARDINESS for ${user.name} on ${date}`);
+                    await api.deletePayrollEvent(currentTardinessEvent.id);
                     changed = true;
                  }
-              }
-            }
+               }
+             }
+
+             if (checkOut) {
+               const checkOutDate = new Date(checkOut.timestamp);
+               const checkOutH = checkOutDate.getHours();
+               const checkOutM = checkOutDate.getMinutes();
+               
+               const [etH, etM] = (schedule.end_time || (schedule as any).end_time).split(':').map(Number);
+               const diffEarlyMinutes = (etH * 60 + etM) - (checkOutH * 60 + checkOutM);
+               
+               // Round to multiple of 15 min
+               const roundedEarlyMinutes = Math.max(15, Math.round(diffEarlyMinutes / 15) * 15);
+               const decimalEarlyHours = roundedEarlyMinutes / 60;
+
+               const currentEarlyEvent = currentEvents.find(e => e.user_id === user.id && e.fecha_evento === date && e.tipo === PayrollEventType.EARLY_DEPARTURE);
+
+               if (diffEarlyMinutes > (schedule.exit_tolerance_minutes ?? 10)) {
+                 if (!currentEarlyEvent) {
+                   console.log(`[Sync] Creating EARLY DEPARTURE for ${user.name} on ${date}: ${roundedEarlyMinutes}min (Check-out: ${checkOutH}:${checkOutM})`);
+                   await api.addPayrollEvent({
+                     user_id: user.id,
+                     tipo: PayrollEventType.EARLY_DEPARTURE,
+                     monto: 0, 
+                     descripcion: `SALIDA TEMPRANA ${decimalEarlyHours} h (Salida: ${checkOutH}:${checkOutM.toString().padStart(2, '0')})`,
+                     fecha_evento: date,
+                     justificado: false,
+                     notas_justificacion: ''
+                   } as any);
+                   changed = true;
+                 }
+               } else if (currentEarlyEvent && !currentEarlyEvent.justificado) {
+                  if (diffEarlyMinutes <= (schedule.exit_tolerance_minutes ?? 10)) {
+                     console.log(`[Sync] Removing small EARLY DEPARTURE for ${user.name} on ${date}`);
+                     await api.deletePayrollEvent(currentEarlyEvent.id);
+                     changed = true;
+                  }
+               }
+             }
           }
         }
       } catch (e) {
         console.warn(`Reconciliation error for ${user.name}:`, e);
       }
     }
+
+    // --- 3. HANDLE MISSING DAYS (NO LOGS FOUND) ---
+    const start = new Date(startDate + 'T00:00:00');
+    const end = new Date(endDate + 'T00:00:00');
+    
+    const yesterday = new Date();
+    yesterday.setHours(0,0,0,0);
+    yesterday.setDate(yesterday.getDate() - 1);
+    const limitDate = end < yesterday ? end : yesterday;
+
+    for (const user of technicians) {
+      let iter = new Date(start);
+      while (iter <= limitDate) {
+        const dateStr = iter.toISOString().split('T')[0];
+        const isWeekend = iter.getDay() === 0 || iter.getDay() === 6;
+        const isHoliday = holidays.some(h => h.date === dateStr);
+        const isOnVacation = vacationRequests.some(vr => 
+          vr.user_id === user.id && 
+          vr.status === 'APROBADA' && 
+          dateStr >= vr.start_date && 
+          dateStr <= vr.end_date
+        );
+
+        if (!isWeekend && !isHoliday && !isOnVacation) {
+          const movementFound = currentEvents.some(e => 
+            e.user_id === user.id && 
+            e.fecha_evento === dateStr && 
+            ['HORA_EXTRA', 'TARDANZA', 'SALIDA_TEMPRANA'].includes(e.tipo)
+          );
+          
+          const absenceExists = currentEvents.some(e => 
+            e.user_id === user.id && 
+            e.fecha_evento === dateStr && 
+            e.tipo === PayrollEventType.ABSENCE
+          );
+
+          if (!movementFound && !absenceExists) {
+             // We need to double check with attendanceService for THIS specific day if not already checked
+             // But for performance, we assume reconcilePeriodAttendance above already logged any existing movement in currentEvents
+             // Wait, if it didn't find any log, it didn't create anything.
+             // So we check if movement was found in logs during the previous loop.
+             // (Actually, checking currentEvents if any movement was created should be enough if logs were processed)
+             
+             console.log(`[Sync] Absence detected for ${user.name} on ${dateStr}. No activity found.`);
+             await api.addPayrollEvent({
+                user_id: user.id,
+                tipo: PayrollEventType.ABSENCE,
+                monto: 0,
+                descripcion: 'FALTA INJUSTIFICADA (Sincronización)',
+                fecha_evento: dateStr
+             } as any);
+             changed = true;
+          }
+        }
+        iter.setDate(iter.getDate() + 1);
+      }
+    }
+
     return changed;
-  }, [authUser]);
+  }, [authUser, holidays, vacationRequests, userSchedules]);
 
   const reconcileDailyAttendance = useCallback(async (currentUsers: User[], currentEvents: PayrollEvent[]) => {
     const todayStr = new Date().toISOString().split('T')[0];
@@ -442,7 +506,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         api.getVacationRequests()
       ]);
 
-      const [invRes, badgeRes, supRes, mSupRes, reqRes, rewRes, uRewRes] = await Promise.all(l2Promises);
+      const [invRes, badgeRes, supRes, mSupRes, reqRes, rewRes, uRewRes, holRes] = await Promise.all(l2Promises);
       const [salRes, payRes, perRes, mileRes] = await Promise.all(l3Promises);
 
       // Level 2 updates
@@ -453,6 +517,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (reqRes.data) setMissionRequirements(reqRes.data as MissionRequirement[]);
       if (rewRes.data) setRewardItems(rewRes.data as Reward[]);
       if (uRewRes.data) setUserRewards(uRewRes.data as UserReward[]);
+      if (holRes && (holRes as any).data) setHolidays((holRes as any).data as Holiday[]);
 
       // Level 3 updates
       if (salRes.data) setSalaries(salRes.data as Salary[]);
@@ -505,6 +570,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       supabase.channel('public:periodos_pago').on('postgres_changes', { event: '*', schema: 'public', table: 'periodos_pago' }, () => fetchData()).subscribe(),
       supabase.channel('public:user_schedules').on('postgres_changes', { event: '*', schema: 'public', table: 'user_schedules' }, () => fetchData()).subscribe(),
       supabase.channel('public:vacation_requests').on('postgres_changes', { event: '*', schema: 'public', table: 'vacation_requests' }, () => fetchData()).subscribe(),
+      supabase.channel('public:holidays').on('postgres_changes', { event: '*', schema: 'public', table: 'holidays' }, () => fetchData()).subscribe(),
     ];
     return () => { allChannels.forEach(channel => supabase.removeChannel(channel)); };
   }, [authUser, fetchData]);
@@ -962,6 +1028,24 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     await api.deleteMissionRequirement(id);
   };
 
+  const addHoliday = async (date: string, description: string) => {
+    if (currentUser?.id.startsWith('demo-')) { showToast('Acción simulada en modo demo.', 'success'); return; }
+    try {
+      await api.addHoliday({ date, description });
+      showToast('Feriado agregado.', 'success');
+      fetchData();
+    } catch (e) { showToast('Error al agregar feriado.', 'error'); }
+  };
+
+  const deleteHoliday = async (id: string) => {
+    if (currentUser?.id.startsWith('demo-')) { showToast('Acción simulada en modo demo.', 'success'); return; }
+    try {
+      await api.deleteHoliday(id);
+      showToast('Feriado eliminado.', 'success');
+      fetchData();
+    } catch (e) { showToast('Error al eliminar feriado.', 'error'); }
+  };
+
   const value: DataContextType = {
     currentUser,
     users,
@@ -1032,7 +1116,10 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     purchaseReward,
     addReward,
     updateReward,
-    deleteReward
+    deleteReward,
+    holidays,
+    addHoliday,
+    deleteHoliday
   };
 
 

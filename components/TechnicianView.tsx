@@ -138,6 +138,7 @@ const TechnicianUI: React.FC<TechnicianUIProps> = ({ user, isAdminViewing = fals
                 <MissionCalendar
                     missions={userMissions}
                     users={users}
+                    holidays={useData().holidays}
                     vacationRequests={vacationRequests.filter(r => r.user_id === user.id)}
                     payrollEvents={payrollEvents.filter(e => e.user_id === user.id)}
                     onOpenMission={setSelectedMission}

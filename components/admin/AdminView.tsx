@@ -176,8 +176,11 @@ const AdminView: React.FC = () => {
                             missions={missions}
                             users={users}
                             payrollEvents={payrollEvents}
+                            holidays={useData().holidays}
                             onOpenMission={setSelectedMission}
                             onEditPayrollEvent={setEditingPayrollEvent}
+                            onAddHoliday={useData().addHoliday}
+                            onDeleteHoliday={useData().deleteHoliday}
                         />
                     </div>
                     <div className={activeTab === 'live_map' ? 'block' : 'hidden'}>

@@ -602,6 +602,8 @@ export interface Database {
           fecha_evento: string
           periodo_pago_id: string | null
           mission_id: string | null
+          justificado: boolean
+          notas_justificacion: string | null
           created_at: string
         }
         Insert: {
@@ -613,6 +615,8 @@ export interface Database {
           fecha_evento: string
           periodo_pago_id?: string | null
           mission_id?: string | null
+          justificado?: boolean
+          notas_justificacion?: string | null
           created_at?: string
         }
         Update: {
@@ -624,6 +628,8 @@ export interface Database {
           fecha_evento?: string
           periodo_pago_id?: string | null
           mission_id?: string | null
+          justificado?: boolean
+          notas_justificacion?: string | null
           created_at?: string
         }
         Relationships: [
@@ -825,6 +831,27 @@ export interface Database {
             referencedColumns: ["id"]
           }
         ]
+      }
+      holidays: {
+        Row: {
+          id: string
+          date: string
+          description: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          date: string
+          description: string
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          date?: string
+          description?: string
+          created_at?: string
+        }
+        Relationships: []
       }
       lunch_confirmations: {
         Row: {

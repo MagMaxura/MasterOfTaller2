@@ -14,6 +14,7 @@ type SupplyInsert = Database['public']['Tables']['supplies']['Insert'];
 type SupplyUpdate = Database['public']['Tables']['supplies']['Update'];
 type SalaryInsert = Database['public']['Tables']['salarios']['Insert'];
 type SalaryUpdate = Database['public']['Tables']['salarios']['Update'];
+type HolidayInsert = { date: string; description: string };
 type PayrollEventInsert = Database['public']['Tables']['eventos_nomina']['Insert'];
 type PaymentPeriodInsert = Database['public']['Tables']['periodos_pago']['Insert'];
 type PaymentPeriodUpdate = Database['public']['Tables']['periodos_pago']['Update'];
@@ -64,6 +65,7 @@ export const api = {
       supabase.from('mission_requirements').select('id, mission_id, description, quantity, is_purchased, created_at'),
       supabase.from('reward_items').select('*'),
       supabase.from('user_rewards').select('*, reward:reward_items(*)'),
+      supabase.from('holidays').select('*').order('date', { ascending: true }),
     ];
   },
 
@@ -420,6 +422,20 @@ export const api = {
   },
   async deleteReward(id: string) {
     const { error } = await supabase.from('reward_items').delete().eq('id', id);
+    if (error) throw new Error(error.message);
+  },
+  // --- HOLIDAYS ---
+  async getHolidays() {
+    const { data, error } = await supabase.from('holidays').select('*').order('date', { ascending: true });
+    if (error) throw new Error(error.message);
+    return data;
+  },
+  async addHoliday(data: HolidayInsert) {
+    const { error } = await supabase.from('holidays').insert(data);
+    if (error) throw new Error(error.message);
+  },
+  async deleteHoliday(id: string) {
+    const { error } = await supabase.from('holidays').delete().eq('id', id);
     if (error) throw new Error(error.message);
   }
 };

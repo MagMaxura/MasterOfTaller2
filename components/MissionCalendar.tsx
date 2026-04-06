@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Mission, User, MissionStatus, PayrollEvent, PayrollEventType, VacationRequest } from '../types';
+import { Mission, User, MissionStatus, PayrollEvent, PayrollEventType, VacationRequest, Holiday } from '../types';
 import { CalendarIcon, TasksIcon, ClockIcon, PlusIcon } from './Icons';
 
 interface MissionLayout {
@@ -79,12 +79,15 @@ interface MissionCalendarProps {
   users: User[];
   payrollEvents?: PayrollEvent[];
   vacationRequests?: VacationRequest[];
+  holidays?: Holiday[];
   onOpenMission?: (mission: Mission) => void;
   onEditPayrollEvent?: (event: PayrollEvent) => void;
   onRequestVacation?: () => void;
+  onAddHoliday?: (date: string, description: string) => void;
+  onDeleteHoliday?: (id: string) => void;
 }
 
-const MissionCalendar: React.FC<MissionCalendarProps> = ({ missions, users, payrollEvents = [], vacationRequests = [], onOpenMission, onEditPayrollEvent, onRequestVacation }) => {
+const MissionCalendar: React.FC<MissionCalendarProps> = ({ missions, users, payrollEvents = [], vacationRequests = [], holidays = [], onOpenMission, onEditPayrollEvent, onRequestVacation, onAddHoliday, onDeleteHoliday }) => {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [viewMode, setViewMode] = useState<'missions' | 'attendance'>('missions');
 
@@ -268,6 +271,13 @@ const MissionCalendar: React.FC<MissionCalendarProps> = ({ missions, users, payr
       default: return '•';
     }
   };
+  
+  const handleDayClick = (dateStr: string) => {
+    if (viewMode === 'attendance' && onAddHoliday) {
+      const description = window.prompt("Ingrese el nombre del feriado:");
+      if (description) onAddHoliday(dateStr, description);
+    }
+  };
 
   return (
     <div className="bg-brand-secondary p-4 rounded-lg shadow-xl select-none">
@@ -318,11 +328,30 @@ const MissionCalendar: React.FC<MissionCalendarProps> = ({ missions, users, payr
           const dayEvents = payrollEvents.filter(e => e.fecha_evento === dayStr);
 
           return (
-            <div key={index} className="border-r border-b border-brand-accent/50 p-2 min-h-[120px] relative">
+              <div 
+                key={index} 
+                className={`border-r border-b border-brand-accent/50 p-2 min-h-[120px] relative transition-colors ${viewMode === 'attendance' && onAddHoliday ? 'hover:bg-brand-accent/30 cursor-pointer' : ''}`}
+                onClick={() => handleDayClick(dayStr)}
+              >
               <div className="flex justify-between items-start mb-1">
                 <span className={`font-bold ${day.getMonth() !== month ? 'text-brand-accent' : ''} ${day.toDateString() === today.toDateString() ? 'bg-brand-blue text-white rounded-full w-7 h-7 flex items-center justify-center' : ''}`}>
                   {day.getDate()}
                 </span>
+                {holidays.filter(h => h.date === dayStr).map(h => (
+                  <div 
+                    key={h.id} 
+                    className="w-6 h-6 flex items-center justify-center bg-brand-gold rounded-full text-[12px] shadow-lg animate-bounce" 
+                    title={`Feriado: ${h.description}`}
+                    onClick={(e) => {
+                      if (onDeleteHoliday) {
+                        e.stopPropagation();
+                        if (window.confirm(`¿Eliminar feriado ${h.description}?`)) onDeleteHoliday(h.id);
+                      }
+                    }}
+                  >
+                    🚩
+                  </div>
+                ))}
               </div>
 
               {/* Render Payroll Events for this day */}
