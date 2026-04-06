@@ -1,6 +1,6 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
-import { User, Mission, MissionStatus } from '../types';
+import { User, Mission, MissionStatus, PayrollEvent } from '../types';
 import { useData } from '../contexts/DataContext';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -44,6 +44,7 @@ const AdminView: React.FC = () => {
     const [managingBadgesFor, setManagingBadgesFor] = useState<User | null>(null);
     const [settingSalaryFor, setSettingSalaryFor] = useState<User | null>(null);
     const [addingPayrollEventFor, setAddingPayrollEventFor] = useState<User | null>(null);
+    const [editingPayrollEvent, setEditingPayrollEvent] = useState<PayrollEvent | null>(null);
     const [viewingAttendanceFor, setViewingAttendanceFor] = useState<User | null>(null);
     const [isCreateItemModalOpen, setIsCreateItemModalOpen] = useState(false);
     const [notifyingUser, setNotifyingUser] = useState<User | null>(null);
@@ -170,7 +171,10 @@ const AdminView: React.FC = () => {
                             />
                         </div>
                         <div className={activeTab === 'payroll' ? 'block' : 'hidden'}>
-                            <PayrollManagement onAddEvent={setAddingPayrollEventFor} />
+                            <PayrollManagement 
+                                onAddEvent={setAddingPayrollEventFor} 
+                                onEditEvent={(ev) => setEditingPayrollEvent(ev)}
+                            />
                         </div>
                         <div className={activeTab === 'loans' ? 'block' : 'hidden'}>
                             <LoanManagement />
@@ -241,6 +245,13 @@ const AdminView: React.FC = () => {
             {addingPayrollEventFor && <AddPayrollEventModal user={addingPayrollEventFor} onClose={() => setAddingPayrollEventFor(null)} />}
             {viewingAttendanceFor && <AttendanceModal user={viewingAttendanceFor} onClose={() => setViewingAttendanceFor(null)} />}
             {notifyingUser && <NotificationModal user={notifyingUser} onClose={() => setNotifyingUser(null)} />}
+            {editingPayrollEvent && (
+                <AddPayrollEventModal 
+                    user={users.find(u => u.id === editingPayrollEvent.user_id)!} 
+                    event={editingPayrollEvent} 
+                    onClose={() => setEditingPayrollEvent(null)} 
+                />
+            )}
             {editingMission && <ApproveMissionModal mission={editingMission} onClose={() => setEditingMission(null)} />}
             {selectedMission && <MissionDetailsModal mission={selectedMission} user={currentUser} onClose={() => setSelectedMission(null)} isAdminViewing={true} />}
         </div>
