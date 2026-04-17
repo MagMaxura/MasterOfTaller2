@@ -10,6 +10,13 @@ const InventoryManagementModal: React.FC<{ user: User; onClose: () => void; }> =
     const [loading, setLoading] = useState<Record<string, boolean>>({});
     const [confirmingRemove, setConfirmingRemove] = useState<UserInventoryItem | null>(null);
     const [selectedItemForVariant, setSelectedItemForVariant] = useState<InventoryItem | null>(null);
+    const [searchTerm, setSearchTerm] = useState('');
+
+    const filteredInventoryItems = useMemo(() => {
+        if (!searchTerm) return allInventoryItems;
+        const lowerSearch = searchTerm.toLowerCase();
+        return allInventoryItems.filter(item => item.name.toLowerCase().includes(lowerSearch));
+    }, [allInventoryItems, searchTerm]);
 
     const { assignedCounts, variantAssignedCounts } = useMemo(() => {
         const itemCounts = new Map<string, number>();
@@ -70,7 +77,9 @@ const InventoryManagementModal: React.FC<{ user: User; onClose: () => void; }> =
                 <h3 className="text-2xl font-bold mb-4">Gestionar Inventario de {user.name}</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 flex-grow overflow-hidden">
                     {/* Assigned Inventory */}
-                    <div className="bg-brand-primary p-4 rounded-lg flex flex-col"><h4 className="font-bold mb-3 text-lg">Inventario Asignado</h4><div className="space-y-2 overflow-y-auto">
+                    <div className="bg-brand-primary p-4 rounded-lg flex flex-col min-h-0">
+                        <h4 className="font-bold mb-3 text-lg shrink-0">Inventario Asignado</h4>
+                        <div className="space-y-2 overflow-y-auto flex-1 pr-2" style={{ scrollbarWidth: 'thin', scrollbarColor: '#4B5563 transparent' }}>
                         {user.inventory.length === 0 && <p className="text-brand-light italic text-center p-4">Este técnico no tiene insumos asignados.</p>}
                         {user.inventory.map((userInvItem) => (
                             <div key={userInvItem.id} className="flex items-center bg-brand-secondary p-2 rounded">
@@ -88,9 +97,20 @@ const InventoryManagementModal: React.FC<{ user: User; onClose: () => void; }> =
                     </div></div>
 
                     {/* Available Items */}
-                    <div className="bg-brand-primary p-4 rounded-lg flex flex-col"><h4 className="font-bold mb-3 text-lg">Asignar Insumos</h4><div className="space-y-2 overflow-y-auto">
-                        {allInventoryItems.length === 0 && <p className="text-brand-light italic text-center p-4">No hay insumos en stock.</p>}
-                        {allInventoryItems.sort((a, b) => a.name.localeCompare(b.name)).map(item => {
+                    <div className="bg-brand-primary p-4 rounded-lg flex flex-col min-h-0">
+                        <h4 className="font-bold mb-3 text-lg shrink-0">Asignar Insumos</h4>
+                        <div className="mb-3 shrink-0">
+                            <input
+                                type="text"
+                                placeholder="Buscar insumo..."
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                                className="w-full bg-brand-secondary text-white px-3 py-2 rounded focus:outline-none focus:ring-1 focus:ring-brand-accent placeholder-gray-400"
+                            />
+                        </div>
+                        <div className="space-y-2 overflow-y-auto flex-1 pr-2" style={{ scrollbarWidth: 'thin', scrollbarColor: '#4B5563 transparent' }}>
+                        {filteredInventoryItems.length === 0 && <p className="text-brand-light italic text-center p-4">No se encontraron insumos.</p>}
+                        {filteredInventoryItems.sort((a, b) => a.name.localeCompare(b.name)).map(item => {
                             const hasVariants = item.variants && item.variants.length > 0;
 
                             // Visual Stock Display Logic
