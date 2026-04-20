@@ -70,7 +70,7 @@ export const api = {
   },
 
   async getLevel3Data(userId: string) {
-    const salaryColumns = 'id, user_id, monto_base_quincenal, created_at';
+    const salaryColumns = 'id, user_id, monto_base_quincenal, ciclo_pago, created_at';
     const payrollEventColumns = 'id, user_id, tipo, descripcion, monto, fecha_evento, periodo_pago_id, mission_id, justificado, notas_justificacion, created_at';
     const paymentPeriodColumns = 'id, user_id, fecha_inicio_periodo, fecha_fin_periodo, fecha_pago, salario_base_calculado, total_adiciones, total_deducciones, monto_final_a_pagar, estado, created_at';
 
@@ -272,7 +272,7 @@ export const api = {
   },
 
   // --- PAYROLL ---
-  async upsertSalary(data: SalaryInsert) {
+  async upsertSalary(data: any) {
     const { error } = await supabase.from('salarios').upsert(data, { onConflict: 'user_id' });
     if (error) throw new Error(error.message);
   },

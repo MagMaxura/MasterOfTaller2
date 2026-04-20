@@ -12,6 +12,7 @@ const SetSalaryModal: React.FC<SetSalaryModalProps> = ({ user, onClose }) => {
     const { salaries, setSalary } = useData();
     const { showToast } = useToast();
     const [amount, setAmount] = useState<number | ''>('');
+    const [cycle, setCycle] = useState<string>('quincena_1_16');
     const [isLoading, setIsLoading] = useState(false);
     
     const existingSalary = salaries.find(s => s.user_id === user.id);
@@ -19,6 +20,9 @@ const SetSalaryModal: React.FC<SetSalaryModalProps> = ({ user, onClose }) => {
     useEffect(() => {
         if (existingSalary) {
             setAmount(existingSalary.monto_base_quincenal);
+            if (existingSalary.ciclo_pago) {
+                setCycle(existingSalary.ciclo_pago);
+            }
         }
     }, [existingSalary]);
 
@@ -30,7 +34,7 @@ const SetSalaryModal: React.FC<SetSalaryModalProps> = ({ user, onClose }) => {
         }
         setIsLoading(true);
         try {
-            await setSalary(user.id, amount, existingSalary?.id);
+            await setSalary(user.id, amount, existingSalary?.id, cycle);
             showToast(`Salario de ${user.name} actualizado.`, 'success');
             onClose();
         } catch (error) {
@@ -57,6 +61,18 @@ const SetSalaryModal: React.FC<SetSalaryModalProps> = ({ user, onClose }) => {
                         required
                         min="0"
                     />
+                </div>
+                <div className="space-y-2 mt-4">
+                    <label className="block text-sm font-medium text-brand-light">Ciclo de Pago</label>
+                    <select
+                        value={cycle}
+                        onChange={e => setCycle(e.target.value)}
+                        className="w-full bg-brand-primary p-3 rounded border border-brand-accent focus:outline-none focus:ring-2 focus:ring-brand-blue text-white"
+                    >
+                        <option value="quincena_1_16">Estándar (1-15 y 16-30)</option>
+                        <option value="quincena_6_21">Desplazado (6-20 y 21-5)</option>
+                    </select>
+                    <p className="text-[10px] text-brand-light opacity-60">Define qué días del mes se consideran para el cálculo automático.</p>
                 </div>
                 <button type="submit" disabled={isLoading} className="w-full mt-6 bg-brand-blue text-white font-bold py-3 px-4 rounded-lg flex items-center justify-center gap-2 disabled:bg-brand-accent">
                     {isLoading && <div className="w-5 h-5 border-2 border-t-transparent border-white rounded-full animate-spin"></div>}

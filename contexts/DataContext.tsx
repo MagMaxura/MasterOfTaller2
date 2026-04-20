@@ -62,7 +62,7 @@ interface DataContextType {
   removeSupplyFromMission: (missionSupplyId: string) => Promise<void>;
   assignBadge: (userId: string, badgeId: string) => Promise<void>;
   revokeBadge: (userId: string, badgeId: string) => Promise<void>;
-  setSalary: (userId: string, amount: number, salaryId?: string) => Promise<void>;
+  setSalary: (userId: string, amount: number, salaryId?: string, cycle?: string) => Promise<void>;
   addPayrollEvent: (eventData: Omit<PayrollEvent, 'id' | 'created_at' | 'periodo_pago_id' | 'mission_id'>) => Promise<void>;
   updatePayrollEvent: (id: string, eventData: Partial<PayrollEvent>) => Promise<void>;
   deletePayrollEvent: (id: string) => Promise<void>;
@@ -719,9 +719,9 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }
 
 
-  const setSalary = (userId: string, amount: number, salaryId?: string) => {
+  const setSalary = (userId: string, amount: number, salaryId?: string, cycle?: string) => {
     if (currentUser?.id.startsWith('demo-')) { showToast('Acción simulada en modo demo.', 'success'); return Promise.resolve(); }
-    return api.upsertSalary({ id: salaryId, user_id: userId, monto_base_quincenal: amount });
+    return api.upsertSalary({ id: salaryId, user_id: userId, monto_base_quincenal: amount, ciclo_pago: cycle });
   }
   const addPayrollEvent = (data: any) => {
     if (currentUser?.id.startsWith('demo-')) { showToast('Acción simulada en modo demo.', 'success'); return Promise.resolve(); }
@@ -752,46 +752,66 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const calculatePayPeriods = async () => {
     if (currentUser?.id.startsWith('demo-')) { showToast('Acción simulada en modo demo.', 'success'); return; }
-    let startDate: Date;
-    let endDate: Date;
+    
     const today = new Date();
     const day = today.getDate();
     const year = today.getFullYear();
     const month = today.getMonth();
-    if (day >= 11 && day <= 25) { 
-      // Periodo actual: 6 al 20
-      startDate = new Date(year, month, 6); 
-      endDate = new Date(year, month, 20); 
+
+    const formatDate = (d: Date) => d.toISOString().split('T')[0];
+
+    const periodsToCalculate: { start: string, end: string }[] = [];
+
+    // --- 1. DEFINIR PERÍODOS SEGÚN FECHA ACTUAL ---
+    
+    // Ciclo Estándar (1-15 / 16-30)
+    if (day <= 10) {
+      periodsToCalculate.push({ 
+        start: formatDate(new Date(year, month - 1, 16)), 
+        end: formatDate(new Date(year, month, 0)) 
+      });
+    } else if (day >= 1 && day <= 20) {
+      periodsToCalculate.push({ 
+        start: formatDate(new Date(year, month, 1)), 
+        end: formatDate(new Date(year, month, 15)) 
+      });
     } else {
-      // Periodo actual o recién terminado: 21 al 5
+      periodsToCalculate.push({ 
+        start: formatDate(new Date(year, month, 16)), 
+        end: formatDate(new Date(year, month + 1, 0)) 
+      });
+    }
+
+    // Ciclo Desplazado (6-20 / 21-5)
+    if (day >= 11 && day <= 25) {
+      periodsToCalculate.push({ 
+        start: formatDate(new Date(year, month, 6)), 
+        end: formatDate(new Date(year, month, 20)) 
+      });
+    } else {
       if (day <= 10) {
-        startDate = new Date(year, month - 1, 21); 
-        endDate = new Date(year, month, 5); 
+        periodsToCalculate.push({ 
+          start: formatDate(new Date(year, month - 1, 21)), 
+          end: formatDate(new Date(year, month, 5)) 
+        });
       } else {
-        startDate = new Date(year, month, 21); 
-        endDate = new Date(year, month + 1, 5); 
+        periodsToCalculate.push({ 
+          start: formatDate(new Date(year, month, 21)), 
+          end: formatDate(new Date(year, month + 1, 5)) 
+        });
       }
     }
 
-    const formatDate = (d: Date) => {
-      const y = d.getFullYear();
-      const m = String(d.getMonth() + 1).padStart(2, '0');
-      const day = String(d.getDate()).padStart(2, '0');
-      return `${y}-${m}-${day}`;
-    };
-
     try {
-      const startStr = formatDate(startDate);
-      const endStr = formatDate(endDate);
-      
-      // 1. Reconcile with Camera DB first to remove false absences
-      await reconcilePeriodAttendance(users, payrollEvents, startStr, endStr, holidays, vacationRequests, userSchedules);
-      
-      // 2. Perform the actual payroll calculation with updated amounts
-      await api.calculatePayroll(startStr, endStr);
+      for (const p of periodsToCalculate) {
+        // 1. Sincronizar asistencia
+        await reconcilePeriodAttendance(users, payrollEvents, p.start, p.end, holidays, vacationRequests, userSchedules);
+        // 2. Ejecutar RPC (que ahora filtra por el ciclo correcto internamente)
+        await api.calculatePayroll(p.start, p.end);
+      }
       
       await fetchData();
-      showToast(`Nómina y asistencia calculadas para el período ${startStr} al ${endStr}`, 'success');
+      showToast(`Nómina y asistencia calculadas para los períodos vigentes.`, 'success');
     } catch (e) { showToast((e as Error).message, 'error'); }
   };
   const markPeriodAsPaid = async (periodId: string) => {

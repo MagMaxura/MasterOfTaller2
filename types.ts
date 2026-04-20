@@ -204,6 +204,7 @@ export interface Salary {
   id: string;
   user_id: string;
   monto_base_quincenal: number;
+  ciclo_pago?: string;
   created_at: string;
 }
 
