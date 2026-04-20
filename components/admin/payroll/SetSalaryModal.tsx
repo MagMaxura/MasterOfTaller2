@@ -12,7 +12,7 @@ const SetSalaryModal: React.FC<SetSalaryModalProps> = ({ user, onClose }) => {
     const { salaries, setSalary } = useData();
     const { showToast } = useToast();
     const [amount, setAmount] = useState<number | ''>('');
-    const [cycle, setCycle] = useState<string>('quincena_1_16');
+    const [cycle, setCycle] = useState<string>('quincena_6_21');
     const [isLoading, setIsLoading] = useState(false);
     
     const existingSalary = salaries.find(s => s.user_id === user.id);
@@ -69,8 +69,8 @@ const SetSalaryModal: React.FC<SetSalaryModalProps> = ({ user, onClose }) => {
                         onChange={e => setCycle(e.target.value)}
                         className="w-full bg-brand-primary p-3 rounded border border-brand-accent focus:outline-none focus:ring-2 focus:ring-brand-blue text-white"
                     >
-                        <option value="quincena_1_16">Estándar (1-15 y 16-30)</option>
-                        <option value="quincena_6_21">Desplazado (6-20 y 21-5)</option>
+                        <option value="quincena_6_21">Estándar (06-20 y 21-05)</option>
+                        <option value="quincena_1_16">Alternativo (01-15 y 16-30)</option>
                     </select>
                     <p className="text-[10px] text-brand-light opacity-60">Define qué días del mes se consideran para el cálculo automático.</p>
                 </div>
