@@ -77,6 +77,7 @@ const MissionBar: React.FC<MissionBarProps> = ({ layout, users, today, onClick }
 interface MissionCalendarProps {
   missions: Mission[];
   users: User[];
+  missionOnly?: boolean;
   payrollEvents?: PayrollEvent[];
   vacationRequests?: VacationRequest[];
   holidays?: Holiday[];
@@ -87,7 +88,7 @@ interface MissionCalendarProps {
   onDeleteHoliday?: (id: string) => void;
 }
 
-const MissionCalendar: React.FC<MissionCalendarProps> = ({ missions, users, payrollEvents = [], vacationRequests = [], holidays = [], onOpenMission, onEditPayrollEvent, onRequestVacation, onAddHoliday, onDeleteHoliday }) => {
+const MissionCalendar: React.FC<MissionCalendarProps> = ({ missions, users, missionOnly = false, payrollEvents = [], vacationRequests = [], holidays = [], onOpenMission, onEditPayrollEvent, onRequestVacation, onAddHoliday, onDeleteHoliday }) => {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [viewMode, setViewMode] = useState<'missions' | 'attendance'>('missions');
 
@@ -273,7 +274,7 @@ const MissionCalendar: React.FC<MissionCalendarProps> = ({ missions, users, payr
   };
   
   const handleDayClick = (dateStr: string) => {
-    if (viewMode === 'attendance' && onAddHoliday) {
+    if (!missionOnly && viewMode === 'attendance' && onAddHoliday) {
       const description = window.prompt("Ingrese el nombre del feriado:");
       if (description) onAddHoliday(dateStr, description);
     }
@@ -282,22 +283,29 @@ const MissionCalendar: React.FC<MissionCalendarProps> = ({ missions, users, payr
   return (
     <div className="bg-brand-secondary p-4 rounded-lg shadow-xl select-none">
       <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mb-4">
-        <div className="flex bg-brand-dark/20 p-1 rounded-xl border border-brand-light/10">
-          <button
-            onClick={() => setViewMode('missions')}
-            className={`flex items-center gap-2 px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${viewMode === 'missions' ? 'bg-brand-blue text-white shadow-lg' : 'text-brand-light hover:text-white'}`}
-          >
-            <TasksIcon className="w-4 h-4" />
-            <span>Misiones</span>
-          </button>
-          <button
-            onClick={() => setViewMode('attendance')}
-            className={`flex items-center gap-2 px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${viewMode === 'attendance' ? 'bg-brand-blue text-white shadow-lg' : 'text-brand-light hover:text-white'}`}
-          >
-            <ClockIcon className="w-4 h-4" />
-            <span>Asistencia / Vacaciones</span>
-          </button>
-        </div>
+        {!missionOnly ? (
+          <div className="flex bg-brand-dark/20 p-1 rounded-xl border border-brand-light/10">
+            <button
+              onClick={() => setViewMode('missions')}
+              className={`flex items-center gap-2 px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${viewMode === 'missions' ? 'bg-brand-blue text-white shadow-lg' : 'text-brand-light hover:text-white'}`}
+            >
+              <TasksIcon className="w-4 h-4" />
+              <span>Misiones</span>
+            </button>
+            <button
+              onClick={() => setViewMode('attendance')}
+              className={`flex items-center gap-2 px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${viewMode === 'attendance' ? 'bg-brand-blue text-white shadow-lg' : 'text-brand-light hover:text-white'}`}
+            >
+              <ClockIcon className="w-4 h-4" />
+              <span>Asistencia / Vacaciones</span>
+            </button>
+          </div>
+        ) : (
+          <div className="flex items-center gap-2 text-brand-light bg-brand-dark/20 px-4 py-2 rounded-xl border border-brand-light/10">
+            <CalendarIcon className="w-4 h-4" />
+            <span className="text-xs font-bold uppercase tracking-widest">Almanaque de Misiones</span>
+          </div>
+        )}
         <div className="flex items-center gap-4">
           <button onClick={goToPrevMonth} className="p-2 rounded-full hover:bg-brand-accent text-brand-light hover:text-white transition-colors">&lt;</button>
           <h3 className="text-xl font-bold min-w-[150px] text-center">
@@ -305,7 +313,7 @@ const MissionCalendar: React.FC<MissionCalendarProps> = ({ missions, users, payr
           </h3>
           <button onClick={goToNextMonth} className="p-2 rounded-full hover:bg-brand-accent text-brand-light hover:text-white transition-colors">&gt;</button>
         </div>
-        {onRequestVacation && (
+        {!missionOnly && onRequestVacation && (
           <button
             onClick={onRequestVacation}
             className="flex items-center gap-2 bg-brand-green text-brand-dark px-4 py-2 rounded-lg text-xs font-bold hover:brightness-110 transition-all shadow-lg active:scale-95"
@@ -325,19 +333,19 @@ const MissionCalendar: React.FC<MissionCalendarProps> = ({ missions, users, payr
       <div className="grid grid-cols-7 grid-rows-6 relative">
         {weeks.flat().map((day, index) => {
           const dayStr = day.toISOString().split('T')[0];
-          const dayEvents = payrollEvents.filter(e => e.fecha_evento === dayStr);
+          const dayEvents = missionOnly ? [] : payrollEvents.filter(e => e.fecha_evento === dayStr);
 
           return (
               <div 
                 key={index} 
-                className={`border-r border-b border-brand-accent/50 p-2 min-h-[120px] relative transition-colors ${viewMode === 'attendance' && onAddHoliday ? 'hover:bg-brand-accent/30 cursor-pointer' : ''}`}
+                className={`border-r border-b border-brand-accent/50 p-2 min-h-[120px] relative transition-colors ${!missionOnly && viewMode === 'attendance' && onAddHoliday ? 'hover:bg-brand-accent/30 cursor-pointer' : ''}`}
                 onClick={() => handleDayClick(dayStr)}
               >
               <div className="flex justify-between items-start mb-1">
                 <span className={`font-bold ${day.getMonth() !== month ? 'text-brand-accent' : ''} ${day.toDateString() === today.toDateString() ? 'bg-brand-blue text-white rounded-full w-7 h-7 flex items-center justify-center' : ''}`}>
                   {day.getDate()}
                 </span>
-                {holidays.filter(h => h.date === dayStr).map(h => (
+                {!missionOnly && holidays.filter(h => h.date === dayStr).map(h => (
                   <div 
                     key={h.id} 
                     className="w-6 h-6 flex items-center justify-center bg-brand-gold rounded-full text-[12px] shadow-lg animate-bounce" 
@@ -370,7 +378,7 @@ const MissionCalendar: React.FC<MissionCalendarProps> = ({ missions, users, payr
             </div>
           );
         })}
-        {viewMode === 'missions' ? (
+        {missionOnly || viewMode === 'missions' ? (
           weeksLayout.map((weekMissions, weekIndex) => (
             <div key={weekIndex} className="row-start-auto grid grid-cols-7 absolute w-full pointer-events-none" style={{ top: `calc(${weekIndex * 120}px + 0.5rem)` }}>
               {weekMissions.map((layout) => {

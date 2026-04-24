@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Mission, MissionDifficulty, MissionStatus, Role, User } from '../../../types';
 import { useData } from '../../../contexts/DataContext';
 import { useToast } from '../../../contexts/ToastContext';
+import { canManageUserFromPanel } from '../../../utils/operationsPermissions';
 
 interface ApproveMissionModalProps {
     mission: Mission;
@@ -18,7 +19,11 @@ const ApproveMissionModal: React.FC<ApproveMissionModalProps> = ({ mission, onCl
     });
     const [isLoading, setIsLoading] = useState(false);
 
-    const technicians = users.filter(u => u.role === Role.TECHNICIAN);
+    const assignableUsers = users.filter(u => {
+        if (!currentUser) return false;
+        if (currentUser.role === Role.ADMIN) return u.role !== Role.ADMIN;
+        return canManageUserFromPanel(currentUser, u);
+    });
     const isApprovalMode = mission.status === MissionStatus.REQUESTED;
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -99,7 +104,7 @@ const ApproveMissionModal: React.FC<ApproveMissionModalProps> = ({ mission, onCl
                     <div>
                         <label className="block text-sm font-medium text-brand-light mb-1">Asignada a</label>
                         <div className="bg-brand-primary p-3 rounded-lg grid grid-cols-2 sm:grid-cols-3 gap-3 max-h-48 overflow-y-auto mb-4">
-                            {technicians.map(tech => (
+                            {assignableUsers.map(tech => (
                                 <div key={tech.id} className="flex items-center gap-2">
                                     <input
                                         type="checkbox"
@@ -126,7 +131,7 @@ const ApproveMissionModal: React.FC<ApproveMissionModalProps> = ({ mission, onCl
                     <div>
                         <label className="block text-sm font-medium text-brand-light mb-1">Visible para</label>
                         <div className="bg-brand-primary p-3 rounded-lg grid grid-cols-2 sm:grid-cols-3 gap-3 max-h-48 overflow-y-auto">
-                            {technicians.map(tech => (
+                            {assignableUsers.map(tech => (
                                 <div key={tech.id} className="flex items-center gap-2">
                                     <input
                                         type="checkbox"

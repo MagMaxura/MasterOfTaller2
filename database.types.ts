@@ -171,6 +171,7 @@ export interface Database {
           user_id: string
           description: string
           image_url: string | null
+          milestone_type: Database["public"]["Enums"]["mission_milestone_type"]
           created_at: string
           is_solution: boolean
         }
@@ -180,6 +181,7 @@ export interface Database {
           user_id: string
           description: string
           image_url?: string | null
+          milestone_type?: Database["public"]["Enums"]["mission_milestone_type"]
           created_at?: string
           is_solution?: boolean
         }
@@ -189,6 +191,7 @@ export interface Database {
           user_id?: string
           description?: string
           image_url?: string | null
+          milestone_type?: Database["public"]["Enums"]["mission_milestone_type"]
           created_at?: string
           is_solution?: boolean
         }
@@ -832,6 +835,51 @@ export interface Database {
           }
         ]
       }
+      authority_relations: {
+        Row: {
+          id: string
+          manager_id: string
+          subordinate_id: string
+          active: boolean
+          notes: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          manager_id: string
+          subordinate_id: string
+          active?: boolean
+          notes?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          manager_id?: string
+          subordinate_id?: string
+          active?: boolean
+          notes?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "authority_relations_manager_id_fkey"
+            columns: ["manager_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "authority_relations_subordinate_id_fkey"
+            columns: ["subordinate_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
       holidays: {
         Row: {
           id: string
@@ -930,7 +978,8 @@ export interface Database {
       | "accessory"
       mission_difficulty: "Bajo" | "Medio" | "Alto"
       mission_status: "Solicitada" | "Pendiente" | "En Progreso" | "Completada"
-      role: "tecnico" | "administrador" | "administrativo" | "marketing" | "ventas" | "limpieza"
+      mission_milestone_type: "BEFORE" | "CHECKPOINT_2H" | "AFTER" | "NOTE"
+      role: "tecnico" | "administrador" | "administrativo" | "marketing" | "ventas" | "limpieza" | "operaciones"
       company_name: "GREEN HABITAT" | "POTABILIZAR" | "ROSERMAN" | "ULTRASHINE"
       tipo_evento_nomina: "HORA_EXTRA" | "BONO" | "FALTA" | "TARDANZA" | "APERCIBIMIENTO"
       estado_pago: "CALCULADO" | "PAGADO"

@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect, useMemo, createContext, useContext, useRef } from 'react';
-import { User, Mission, InventoryItem, EquipmentSlot, MissionMilestone, MissionStatus, UserInventoryItem, Supply, MissionSupply, Badge, Salary, PayrollEvent, PaymentPeriod, Role, MissionDifficulty, PayrollEventType, MissionRequirement, Company, AttendanceSummary, UserSchedule, VacationRequest, Reward, UserReward, Holiday } from '../types';
+import { User, Mission, InventoryItem, EquipmentSlot, MissionMilestone, MissionStatus, UserInventoryItem, Supply, MissionSupply, Badge, Salary, PayrollEvent, PaymentPeriod, Role, MissionDifficulty, PayrollEventType, MissionRequirement, Company, AttendanceSummary, UserSchedule, VacationRequest, Reward, UserReward, Holiday, AuthorityRelation, MissionMilestoneType } from '../types';
 import { supabase } from '../config';
 import { transformSupabaseProfileToUser } from '../utils/dataTransformers';
 import { useAuth } from './AuthContext';
@@ -28,6 +28,7 @@ interface DataContextType {
   rewardItems: Reward[];
   userRewards: UserReward[];
   holidays: Holiday[];
+  authorityRelations: AuthorityRelation[];
   loading: boolean;
   viewingProfileOf: User | null;
   setViewingProfileOf: (user: User | null) => void;
@@ -43,7 +44,7 @@ interface DataContextType {
   rejectJoinRequest: (requestMissionId: string) => Promise<void>;
   rejectMissionRequest: (missionId: string) => Promise<void>;
   deleteMission: (missionId: string) => Promise<void>;
-  addMissionMilestone: (missionId: string, description: string, imageFile: File | null) => Promise<void>;
+  addMissionMilestone: (missionId: string, description: string, imageFile: File | null, milestoneType?: MissionMilestoneType) => Promise<void>;
   toggleMilestoneSolution: (milestoneId: string, isSolution: boolean) => Promise<void>;
   assignInventoryItem: (userId: string, itemId: string, variantId?: string) => Promise<void>;
   removeInventoryItem: (userInventoryId: string) => Promise<void>;
@@ -83,6 +84,8 @@ interface DataContextType {
   deleteReward: (id: string) => Promise<void>;
   addHoliday: (date: string, description: string) => Promise<void>;
   deleteHoliday: (id: string) => Promise<void>;
+  upsertAuthorityRelation: (managerId: string, subordinateId: string, notes?: string | null) => Promise<void>;
+  removeAuthorityRelation: (subordinateId: string) => Promise<void>;
 }
 
 // --- CONTEXT CREATION ---
@@ -117,6 +120,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [rewardItems, setRewardItems] = useState<Reward[]>([]);
   const [userRewards, setUserRewards] = useState<UserReward[]>([]);
   const [holidays, setHolidays] = useState<Holiday[]>([]);
+  const [authorityRelations, setAuthorityRelations] = useState<AuthorityRelation[]>([]);
   const [loading, setLoading] = useState(true);
   const [viewingProfileOf, setViewingProfileOf] = useState<User | null>(null);
   const lastReconcileRef = useRef<number>(0);
@@ -392,7 +396,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         api.getVacationRequests()
       ]);
 
-      const [invRes, badgeRes, supRes, mSupRes, reqRes, rewRes, uRewRes, holRes] = await Promise.all(l2Promises);
+      const [invRes, badgeRes, supRes, mSupRes, reqRes, rewRes, uRewRes, holRes, orgRes] = await Promise.all(l2Promises);
       const [salRes, payRes, perRes, mileRes] = await Promise.all(l3Promises);
 
       // Level 2 updates
@@ -404,6 +408,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (rewRes.data) setRewardItems(rewRes.data as Reward[]);
       if (uRewRes.data) setUserRewards(uRewRes.data as UserReward[]);
       if (holRes && (holRes as any).data) setHolidays((holRes as any).data as Holiday[]);
+      if (orgRes.data) setAuthorityRelations(orgRes.data as AuthorityRelation[]);
 
       // Level 3 updates
       if (salRes.data) setSalaries(salRes.data as Salary[]);
@@ -411,7 +416,15 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const rawPeriods = perRes.data as PaymentPeriod[];
         setPaymentPeriods(rawPeriods); // Initial set, could be enriched later
       }
-      if (mileRes.data) setMissionMilestones(mileRes.data.map((m: any) => ({ ...m, is_solution: m.is_solution ?? false })) as MissionMilestone[]);
+      if (mileRes.data) {
+        setMissionMilestones(
+          mileRes.data.map((m: any) => ({
+            ...m,
+            is_solution: m.is_solution ?? false,
+            milestone_type: m.milestone_type ?? MissionMilestoneType.NOTE
+          })) as MissionMilestone[]
+        );
+      }
 
       setVacationRequests((vacationsData || []) as any[]);
 
@@ -470,6 +483,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       .on('postgres_changes', { event: '*', schema: 'public', table: 'user_schedules' }, () => fetchDataRef.current())
       .on('postgres_changes', { event: '*', schema: 'public', table: 'vacation_requests' }, () => fetchDataRef.current())
       .on('postgres_changes', { event: '*', schema: 'public', table: 'holidays' }, () => fetchDataRef.current())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'authority_relations' }, () => fetchDataRef.current())
       .subscribe((status) => {
         if (status === 'SUBSCRIBED') console.log("[Supabase] Channel ready.");
         if (status === 'CLOSED') console.warn("[Supabase] Channel closed.");
@@ -677,12 +691,12 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     await api.updateMission(missionId, { assigned_to: [], status: 'Pendiente' });
   };
 
-  const addMissionMilestone = async (missionId: string, description: string, imageFile: File | null) => {
+  const addMissionMilestone = async (missionId: string, description: string, imageFile: File | null, milestoneType: MissionMilestoneType = MissionMilestoneType.NOTE) => {
     if (currentUser?.id.startsWith('demo-')) { showToast('Acción simulada en modo demo.', 'success'); return; }
     if (!currentUser) throw new Error("User not authenticated");
     let imageUrl: string | null = null;
     if (imageFile) imageUrl = await api.uploadMilestoneImage(currentUser.id, missionId, imageFile);
-    await api.addMissionMilestone({ mission_id: missionId, user_id: currentUser.id, description, image_url: imageUrl });
+    await api.addMissionMilestone({ mission_id: missionId, user_id: currentUser.id, description, image_url: imageUrl, milestone_type: milestoneType });
   };
 
   const addSupply = (data: Omit<Supply, 'id' | 'created_at' | 'stock_quantity'>, photoFile: File | null) => {
@@ -973,6 +987,28 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } catch (e) { showToast('Error al eliminar feriado.', 'error'); }
   };
 
+  const upsertAuthorityRelation = async (managerId: string, subordinateId: string, notes?: string | null) => {
+    if (currentUser?.id.startsWith('demo-')) { showToast('Acción simulada en modo demo.', 'success'); return; }
+    try {
+      await api.upsertAuthorityRelation(managerId, subordinateId, notes);
+      showToast('Relación de autoridad actualizada.', 'success');
+      fetchData();
+    } catch (e) {
+      showToast(e instanceof Error ? e.message : 'Error al actualizar relación de autoridad.', 'error');
+    }
+  };
+
+  const removeAuthorityRelation = async (subordinateId: string) => {
+    if (currentUser?.id.startsWith('demo-')) { showToast('Acción simulada en modo demo.', 'success'); return; }
+    try {
+      await api.removeAuthorityRelation(subordinateId);
+      showToast('Relación de autoridad removida.', 'success');
+      fetchData();
+    } catch (e) {
+      showToast(e instanceof Error ? e.message : 'Error al remover relación de autoridad.', 'error');
+    }
+  };
+
   const value: DataContextType = useMemo(() => ({
     currentUser,
     users,
@@ -993,6 +1029,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     userRewards,
     loading,
     viewingProfileOf,
+    authorityRelations,
     setViewingProfileOf,
     updateMission,
     updateUser,
@@ -1046,11 +1083,13 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     deleteReward,
     holidays,
     addHoliday,
-    deleteHoliday
+    deleteHoliday,
+    upsertAuthorityRelation,
+    removeAuthorityRelation
   }), [
     currentUser, users, missions, allInventoryItems, allBadges, missionMilestones, supplies, 
     missionSupplies, missionRequirements, salaries, payrollEvents, paymentPeriods, userSchedules, 
-    attendanceUsers, vacationRequests, rewardItems, userRewards, loading, viewingProfileOf, holidays,
+    attendanceUsers, vacationRequests, rewardItems, userRewards, loading, viewingProfileOf, holidays, authorityRelations,
     updateMission, updateUser, deactivateUser, updateUserAvatar, addMission, requestMission, 
     technicianRequestMission, requestToJoinMission, approveJoinRequest, rejectJoinRequest, 
     rejectMissionRequest, deleteMission, addMissionMilestone, toggleMilestoneSolution, 
@@ -1062,7 +1101,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     calculatePayPeriods, markPeriodAsPaid, registrarPagoParcial, addMissionRequirement, 
     updateMissionRequirement, deleteMissionRequirement, updateUserSchedule, requestVacation, 
     updateVacationStatus, deleteVacationRequest, purchaseReward, addReward, updateReward, 
-    deleteReward, addHoliday, deleteHoliday
+    deleteReward, addHoliday, deleteHoliday, upsertAuthorityRelation, removeAuthorityRelation
   ]);
 
   return (
@@ -1071,3 +1110,4 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     </DataContext.Provider>
   );
 };
+

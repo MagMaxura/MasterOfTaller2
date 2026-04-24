@@ -149,12 +149,20 @@ export interface Mission {
   success_points?: number;
 }
 
+export enum MissionMilestoneType {
+  BEFORE = 'BEFORE',
+  CHECKPOINT_2H = 'CHECKPOINT_2H',
+  AFTER = 'AFTER',
+  NOTE = 'NOTE',
+}
+
 export interface MissionMilestone {
   id: string;
   mission_id: string;
   user_id: string;
   description: string;
   image_url: string | null;
+  milestone_type: MissionMilestoneType;
   created_at: string;
   is_solution: boolean;
   mission: {
@@ -317,4 +325,14 @@ export interface Holiday {
   date: string;
   description: string;
   created_at?: string;
+}
+
+export interface AuthorityRelation {
+  id: string;
+  manager_id: string;
+  subordinate_id: string;
+  active: boolean;
+  notes?: string | null;
+  created_at: string;
+  updated_at?: string;
 }

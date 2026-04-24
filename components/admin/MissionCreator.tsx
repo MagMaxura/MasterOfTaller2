@@ -1,9 +1,18 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { User, Role, MissionDifficulty, Company } from '../../types';
 import { useData } from '../../contexts/DataContext';
 import { useToast } from '../../contexts/ToastContext';
 import { generateMissionDetails } from '../../services/geminiService';
 import { AiIcon } from '../Icons';
+import { canManageUserFromPanel, isOperationsManager, OPERATIONS_MANAGED_ROLES } from '../../utils/operationsPermissions';
+
+const AI_SKILL_PRESETS = [
+    {
+        id: 'personnel-optimizer',
+        label: 'Skill: Gestion de Personal',
+        prompt: 'Optimiza la gestion de personal: definir tareas claras por rol, prioridades, dependencias, control de avances diarios y checkpoints fotograficos (antes, cada 2 horas y despues), con plazo realista y entregables medibles.'
+    }
+];
 
 const MissionCreator: React.FC<{ users: User[] }> = ({ users }) => {
     const { currentUser, addMission } = useData();
@@ -24,8 +33,18 @@ const MissionCreator: React.FC<{ users: User[] }> = ({ users }) => {
     const [aiPrompt, setAiPrompt] = useState('');
     const [isAiLoading, setIsAiLoading] = useState(false);
 
+    useEffect(() => {
+        if (isOperationsManager(currentUser) && currentUser.company) {
+            setTargetCompany(currentUser.company);
+        }
+    }, [currentUser]);
 
-    const assignableUsers = users.filter(u => u.role !== Role.ADMIN);
+
+    const assignableUsers = users.filter(u => {
+        if (!currentUser) return false;
+        if (currentUser.role === Role.ADMIN) return u.role !== Role.ADMIN;
+        return canManageUserFromPanel(currentUser, u);
+    });
 
     const handleAssigneeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
         const selectedId = e.target.value;
@@ -151,6 +170,18 @@ const MissionCreator: React.FC<{ users: User[] }> = ({ users }) => {
                         <span>Generar con IA</span>
                     </button>
                 </div>
+                <div className="flex flex-wrap gap-2 mt-3">
+                    {AI_SKILL_PRESETS.map(preset => (
+                        <button
+                            key={preset.id}
+                            type="button"
+                            onClick={() => setAiPrompt(preset.prompt)}
+                            className="px-3 py-1.5 rounded-full border border-brand-accent text-xs font-bold text-brand-light hover:text-white hover:border-brand-blue transition-colors"
+                        >
+                            {preset.label}
+                        </button>
+                    ))}
+                </div>
             </div>
 
             {error && <p className="bg-brand-red/20 text-brand-red p-2 rounded-md text-sm">{error}</p>}
@@ -215,6 +246,7 @@ const MissionCreator: React.FC<{ users: User[] }> = ({ users }) => {
                     <select
                         value={targetCompany}
                         onChange={e => setTargetCompany(e.target.value as Company)}
+                        disabled={isOperationsManager(currentUser) && !!currentUser?.company}
                         className="w-full bg-brand-primary p-3 rounded border border-brand-accent text-sm font-bold focus:ring-2 focus:ring-brand-blue outline-none transition-all"
                     >
                         <option value="">-- TODAS (Público) --</option>
@@ -231,7 +263,7 @@ const MissionCreator: React.FC<{ users: User[] }> = ({ users }) => {
                         className="w-full bg-brand-primary p-3 rounded border border-brand-accent text-sm font-bold focus:ring-2 focus:ring-brand-blue outline-none transition-all"
                     >
                         <option value="">-- TODAS (Público) --</option>
-                        {Object.values(Role).map(r => (
+                        {(isOperationsManager(currentUser) ? OPERATIONS_MANAGED_ROLES : Object.values(Role)).map(r => (
                             <option key={r} value={r}>{r.toUpperCase()}</option>
                         ))}
                     </select>

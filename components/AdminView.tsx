@@ -27,6 +27,7 @@ import SetSalaryModal from './admin/payroll/SetSalaryModal';
 import AddPayrollEventModal from './admin/payroll/AddPayrollEventModal';
 import AttendanceModal from './admin/modals/AttendanceModal';
 import NotificationSubscriber from './admin/NotificationSubscriber';
+import OrgChartManagement from './admin/OrgChartManagement';
 import { supabaseAttendance } from '../config';
 import { api } from '../services/api';
 import { Role as UserRole } from '../types';
@@ -58,6 +59,8 @@ const AdminView: React.FC = () => {
     const missionRequestsCount = useMemo(() => missions.filter(m => m.status === MissionStatus.REQUESTED).length, [missions]);
     const vacationRequestsCount = useMemo(() => vacationRequests.filter(r => r.status === 'PENDIENTE').length, [vacationRequests]);
     const totalRequestsCount = missionRequestsCount + vacationRequestsCount;
+    const isAdmin = currentUser?.role === UserRole.ADMIN;
+    const isOperations = currentUser?.role === UserRole.OPERATIONS;
 
     const TABS = [
         { id: 'manage', label: 'Gestionar', icon: <UserIcon /> },
@@ -70,13 +73,32 @@ const AdminView: React.FC = () => {
         { id: 'create', label: 'Crear Misión', icon: <PlusIcon /> },
         { id: 'stock', label: 'Stock (Equipo)', icon: <BoxIcon /> },
         { id: 'rewards', label: 'Premios', icon: <StarIcon /> },
+        { id: 'orgchart', label: 'Organigrama', icon: <ChartIcon /> },
         { id: 'supplies', label: 'Insumos', icon: <BoxIcon /> },
         { id: 'calendar', label: 'Calendario', icon: <CalendarIcon /> },
         { id: 'live_map', label: 'Mapa', icon: <MapPinIcon /> },
         { id: 'settings', label: 'Configuración', icon: <CogIcon /> },
     ];
 
-    const activeTabLabel = useMemo(() => TABS.find(tab => tab.id === activeTab)?.label || 'Panel de Administrador', [activeTab]);
+    const visibleTabs = useMemo(() => {
+        if (isAdmin) return TABS;
+        if (isOperations) {
+            const operationsTabs = new Set(['manage', 'missions', 'requests', 'create', 'calendar', 'orgchart']);
+            return TABS.filter(tab => operationsTabs.has(tab.id));
+        }
+        return [];
+    }, [TABS, isAdmin, isOperations]);
+
+    useEffect(() => {
+        if (!visibleTabs.some(tab => tab.id === activeTab) && visibleTabs.length > 0) {
+            setActiveTab(visibleTabs[0].id);
+        }
+    }, [activeTab, visibleTabs]);
+
+    const activeTabLabel = useMemo(
+        () => visibleTabs.find(tab => tab.id === activeTab)?.label || 'Panel de Gestión',
+        [activeTab, visibleTabs]
+    );
 
     if (!currentUser) return null;
 
@@ -96,7 +118,7 @@ const AdminView: React.FC = () => {
             </div>
 
             <nav className="flex-grow flex flex-col space-y-1.5 overflow-y-auto px-4 custom-scrollbar">
-                {TABS.filter(tab => currentUser.role === UserRole.ADMIN || tab.id !== 'payroll').map(tab => (
+                {visibleTabs.map(tab => (
                     <button
                         key={tab.id}
                         onClick={() => {
@@ -202,6 +224,9 @@ const AdminView: React.FC = () => {
                         </div>
                         <div className={activeTab === 'rewards' ? 'block' : 'hidden'}>
                             <RewardManagement />
+                        </div>
+                        <div className={activeTab === 'orgchart' ? 'block' : 'hidden'}>
+                            <OrgChartManagement />
                         </div>
                         <div className={activeTab === 'calendar' ? 'block' : 'hidden'}>
                             <MissionCalendar

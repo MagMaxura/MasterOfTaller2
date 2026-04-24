@@ -1,4 +1,4 @@
-
+﻿
 import React from 'react';
 import { User, MissionStatus, Role, Company } from '../../types';
 import { useData } from '../../contexts/DataContext';
@@ -6,6 +6,7 @@ import { useToast } from '../../contexts/ToastContext';
 import { PlusIcon, StarIcon, BoxIcon, BadgeIcon, CurrencyDollarIcon, BellIcon, LogoutIcon, UserIcon, ClockIcon, EditIcon, CalendarIcon } from '../Icons';
 import VacationApprovalModal from './modals/VacationApprovalModal';
 import { calculateTotalVacationDays } from '../../utils/vacation';
+import { canManageUserFromPanel, OPERATIONS_MANAGED_ROLES } from '../../utils/operationsPermissions';
 
 const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS' }).format(amount);
@@ -25,9 +26,13 @@ const UserManagement: React.FC<{
     const [vacationUser, setVacationUser] = React.useState<User | null>(null);
     const { vacationRequests } = useData();
 
-    const filteredUsers = users.filter(u => u.role === activeRole);
+    const isAdmin = currentUser?.role === Role.ADMIN;
+    const isOperationsManager = currentUser?.role === Role.OPERATIONS;
+    const canManageTasksAndEpp = isAdmin || isOperationsManager;
+    const manageableUsers = users.filter(u => canManageUserFromPanel(currentUser, u));
+    const filteredUsers = manageableUsers.filter(u => u.role === activeRole);
 
-    const roles = [
+    const allRoles = [
         { id: Role.TECHNICIAN, label: 'Técnicos' },
         { id: Role.OPERATIONS, label: 'Operaciones' },
         { id: Role.ADMINISTRATIVE, label: 'Administración' },
@@ -35,19 +40,28 @@ const UserManagement: React.FC<{
         { id: Role.SALES, label: 'Ventas' },
         { id: Role.CLEANING, label: 'Limpieza' },
     ];
+    const roles = isOperationsManager
+        ? allRoles.filter(r => OPERATIONS_MANAGED_ROLES.includes(r.id))
+        : allRoles;
+
+    React.useEffect(() => {
+        if (!roles.some(r => r.id === activeRole) && roles.length > 0) {
+            setActiveRole(roles[0].id);
+        }
+    }, [activeRole, roles]);
 
     const companies = Object.values(Company);
 
     const handleNotifyClick = (user: User) => {
         if (!user.pushSubscription) {
-            showToast(`${user.name} no está suscrito a las notificaciones.`, 'info');
+            showToast(`${user.name} no estÃ¡ suscrito a las notificaciones.`, 'info');
             return;
         }
         onNotifyUser(user);
     };
 
     const handleDeactivate = async (userToDeactivate: User) => {
-        if (window.confirm(`¿Estás seguro de que quieres desactivar a ${userToDeactivate.name}?`)) {
+        if (window.confirm(`Â¿EstÃ¡s seguro de que quieres desactivar a ${userToDeactivate.name}?`)) {
             try {
                 await deactivateUser(userToDeactivate.id);
                 showToast(`${userToDeactivate.name} ha sido desactivado.`, 'success');
@@ -81,8 +95,8 @@ const UserManagement: React.FC<{
         <div className="space-y-6">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
-                    <h3 className="text-2xl font-black text-brand-highlight tracking-tight">Gestión de Personal</h3>
-                    <p className="text-sm text-brand-light">Administra el talento de todas las áreas de la empresa.</p>
+                    <h3 className="text-2xl font-black text-brand-highlight tracking-tight">GestiÃ³n de Personal</h3>
+                    <p className="text-sm text-brand-light">Administra el talento de todas las Ã¡reas de la empresa.</p>
                 </div>
                 <div className="flex bg-brand-secondary p-1 rounded-2xl border border-brand-accent shadow-inner overflow-x-auto whitespace-nowrap scrollbar-hide">
                     {roles.map(role => (
@@ -114,7 +128,7 @@ const UserManagement: React.FC<{
                     <tbody className="divide-y divide-brand-accent md:divide-none">
                         {filteredUsers.length === 0 && (
                             <tr>
-                                <td colSpan={5} className="p-12 text-center text-brand-light italic">No hay personal registrado en esta área.</td>
+                                <td colSpan={5} className="p-12 text-center text-brand-light italic">No hay personal registrado en esta Ã¡rea.</td>
                             </tr>
                         )}
                         {filteredUsers.map(user => {
@@ -135,7 +149,7 @@ const UserManagement: React.FC<{
                                                 <h4 className="font-black text-brand-highlight leading-tight">{user.name}</h4>
                                                 {!user.attendance_id && (
                                                     <span className="inline-block bg-brand-orange/10 text-brand-orange text-[8px] font-black uppercase tracking-tighter px-1.5 py-0.5 rounded-full mt-0.5 border border-brand-orange/20 animate-pulse">
-                                                        ⚠ Requiere Vinculación
+                                                        âš  Requiere VinculaciÃ³n
                                                     </span>
                                                 )}
                                                 <button onClick={() => setViewingProfileOf(user)} className="text-[10px] uppercase tracking-wider font-bold text-brand-blue hover:text-brand-highlight flex items-center gap-1 mt-0.5 transition-colors">
@@ -172,7 +186,7 @@ const UserManagement: React.FC<{
                                             <div className="flex justify-center gap-4 text-sm">
                                                 <div className="text-center">
                                                     <span className="text-brand-green font-black block leading-none">{completed}</span>
-                                                    <span className="text-[8px] font-black uppercase text-brand-light tracking-tighter">Éxitos</span>
+                                                    <span className="text-[8px] font-black uppercase text-brand-light tracking-tighter">Ã‰xitos</span>
                                                 </div>
                                                 <div className="text-center opacity-70">
                                                     <span className="text-brand-blue font-black block leading-none">{inProgress}</span>
@@ -198,16 +212,30 @@ const UserManagement: React.FC<{
 
                                     <td className="p-5 md:p-4 text-right block md:table-cell border-t md:border-t-0 border-brand-accent/30 md:rounded-r-2xl bg-brand-secondary/30 md:bg-transparent">
                                         <div className="flex justify-end gap-2 sm:gap-3 flex-wrap">
-                                            <ActionBtn onClick={() => onShowAttendance(user)} color="blue" icon={<ClockIcon className="w-4 h-4" />} label="Asistencia" />
-                                            {currentUser?.role === Role.ADMIN && (
+                                            {canManageTasksAndEpp && (
+                                                <ActionBtn onClick={() => onShowAttendance(user)} color="blue" icon={<ClockIcon className="w-4 h-4" />} label="Asistencia" />
+                                            )}
+                                            {isAdmin && (
                                                 <ActionBtn onClick={() => onSetSalary(user)} color="green" icon={<CurrencyDollarIcon className="w-4 h-4" />} label="Salario" />
                                             )}
-                                            <ActionBtn onClick={() => setEditingUser(user)} color="orange" icon={<EditIcon className="w-4 h-4" />} label="Editar Perfil" />
-                                            <ActionBtn onClick={() => setVacationUser(user)} color="green" icon={<CalendarIcon className="w-4 h-4" />} label="Vacaciones" />
-                                            <ActionBtn onClick={() => onManageInventory(user)} color="blue" icon={<BoxIcon className="w-4 h-4" />} label="Stock" />
-                                            <ActionBtn onClick={() => onManageBadges(user)} color="orange" icon={<BadgeIcon className="w-4 h-4" />} label="Logros" />
-                                            <ActionBtn onClick={() => handleNotifyClick(user)} color="blue" icon={<BellIcon className="w-4 h-4" />} label="Notificar" disabled={!user.pushSubscription} />
-                                            <ActionBtn onClick={() => handleDeactivate(user)} color="red" icon={<LogoutIcon className="w-4 h-4" />} label="Baja" />
+                                            {isAdmin && (
+                                                <ActionBtn onClick={() => setEditingUser(user)} color="orange" icon={<EditIcon className="w-4 h-4" />} label="Editar Perfil" />
+                                            )}
+                                            {isAdmin && (
+                                                <ActionBtn onClick={() => setVacationUser(user)} color="green" icon={<CalendarIcon className="w-4 h-4" />} label="Vacaciones" />
+                                            )}
+                                            {canManageTasksAndEpp && (
+                                                <ActionBtn onClick={() => onManageInventory(user)} color="blue" icon={<BoxIcon className="w-4 h-4" />} label="EPP" />
+                                            )}
+                                            {isAdmin && (
+                                                <ActionBtn onClick={() => onManageBadges(user)} color="orange" icon={<BadgeIcon className="w-4 h-4" />} label="Logros" />
+                                            )}
+                                            {isAdmin && (
+                                                <ActionBtn onClick={() => handleNotifyClick(user)} color="blue" icon={<BellIcon className="w-4 h-4" />} label="Notificar" disabled={!user.pushSubscription} />
+                                            )}
+                                            {isAdmin && (
+                                                <ActionBtn onClick={() => handleDeactivate(user)} color="red" icon={<LogoutIcon className="w-4 h-4" />} label="Baja" />
+                                            )}
                                         </div>
                                     </td>
                                 </tr>
@@ -226,7 +254,7 @@ const UserManagement: React.FC<{
                         </div>
                         <form onSubmit={handleUpdateUser} className="p-8 space-y-6">
                             <div className="space-y-2">
-                                <label className="text-[10px] font-black text-brand-light uppercase tracking-widest ml-1">Área / Rol</label>
+                                <label className="text-[10px] font-black text-brand-light uppercase tracking-widest ml-1">Ãrea / Rol</label>
                                 <select
                                     className="w-full bg-brand-secondary border border-brand-accent rounded-2xl px-4 py-3 font-bold text-brand-highlight focus:ring-2 focus:ring-brand-blue outline-none transition-all"
                                     value={editingUser.role}
@@ -310,7 +338,7 @@ const UserManagement: React.FC<{
                                     />
                                 </div>
                                 <div className="space-y-2">
-                                    <label className="text-[10px] font-black text-brand-light uppercase tracking-widest ml-1">Días Disponibles</label>
+                                    <label className="text-[10px] font-black text-brand-light uppercase tracking-widest ml-1">DÃ­as Disponibles</label>
                                     <input
                                         type="number"
                                         className="w-full bg-brand-secondary border border-brand-accent rounded-2xl px-4 py-3 font-bold text-brand-highlight focus:ring-2 focus:ring-brand-blue outline-none transition-all"
@@ -377,3 +405,4 @@ const ActionBtn: React.FC<{
 };
 
 export default UserManagement;
+

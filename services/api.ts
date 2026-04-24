@@ -66,6 +66,7 @@ export const api = {
       supabase.from('reward_items').select('*'),
       supabase.from('user_rewards').select('*, reward:reward_items(*)'),
       supabase.from('holidays').select('*').order('date', { ascending: true }),
+      supabase.from('authority_relations').select('*').eq('active', true),
     ];
   },
 
@@ -78,7 +79,7 @@ export const api = {
       supabase.from('salarios').select(salaryColumns),
       supabase.from('eventos_nomina').select(payrollEventColumns).order('fecha_evento', { ascending: false }),
       supabase.from('periodos_pago').select(`${paymentPeriodColumns}, events:eventos_nomina(*)`).order('fecha_pago', { ascending: false }),
-      supabase.from('mission_milestones').select('id, mission_id, user_id, description, image_url, created_at, is_solution, mission:missions(title, required_skills)').order('created_at', { ascending: true }),
+      supabase.from('mission_milestones').select('id, mission_id, user_id, description, image_url, milestone_type, created_at, is_solution, mission:missions(title, required_skills)').order('created_at', { ascending: true }),
     ];
   },
 
@@ -132,6 +133,18 @@ export const api = {
   async toggleMilestoneSolution(milestoneId: string, isSolution: boolean) {
     const { error } = await supabase.from('mission_milestones').update({ is_solution: isSolution }).eq('id', milestoneId);
     if (error) throw new Error(error.message);
+  },
+  async validateMissionEvidence(missionId: string, endAt?: string) {
+    const { data, error } = await (supabase as any).rpc('validate_mission_evidence', {
+      p_mission_id: missionId,
+      p_end_at: endAt ?? new Date().toISOString()
+    });
+    if (error) throw new Error(error.message);
+    const result = Array.isArray(data) ? data[0] : data;
+    return {
+      is_valid: Boolean(result?.is_valid),
+      message: String(result?.message || 'Validación incompleta')
+    };
   },
   async assignInventoryItem(userId: string, itemId: string, assignedAt?: string, variantId?: string) {
     const { data, error } = await supabase.from('user_inventory').insert({
@@ -436,6 +449,32 @@ export const api = {
   },
   async deleteHoliday(id: string) {
     const { error } = await supabase.from('holidays').delete().eq('id', id);
+    if (error) throw new Error(error.message);
+  },
+  // --- ORGANIGRAMA ---
+  async upsertAuthorityRelation(managerId: string, subordinateId: string, notes?: string | null) {
+    // Ensure one active manager per subordinate at a time.
+    const { error: deactivateError } = await supabase
+      .from('authority_relations')
+      .update({ active: false, updated_at: new Date().toISOString() })
+      .eq('subordinate_id', subordinateId)
+      .eq('active', true);
+    if (deactivateError) throw new Error(deactivateError.message);
+
+    const { error } = await supabase.from('authority_relations').insert({
+      manager_id: managerId,
+      subordinate_id: subordinateId,
+      active: true,
+      notes: notes ?? null
+    });
+    if (error) throw new Error(error.message);
+  },
+  async removeAuthorityRelation(subordinateId: string) {
+    const { error } = await supabase
+      .from('authority_relations')
+      .update({ active: false, updated_at: new Date().toISOString() })
+      .eq('subordinate_id', subordinateId)
+      .eq('active', true);
     if (error) throw new Error(error.message);
   }
 };
