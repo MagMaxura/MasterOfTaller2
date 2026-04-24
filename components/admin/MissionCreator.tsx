@@ -14,7 +14,14 @@ const AI_SKILL_PRESETS = [
     }
 ];
 
-const MissionCreator: React.FC<{ users: User[] }> = ({ users }) => {
+interface MissionCreatorProps {
+    users: User[];
+    onCreated?: () => void;
+    onCancel?: () => void;
+    initialStartDate?: string;
+}
+
+const MissionCreator: React.FC<MissionCreatorProps> = ({ users, onCreated, onCancel, initialStartDate }) => {
     const { currentUser, addMission } = useData();
     const { showToast } = useToast();
     const [title, setTitle] = useState('');
@@ -24,7 +31,7 @@ const MissionCreator: React.FC<{ users: User[] }> = ({ users }) => {
     const [bonusMonetario, setBonusMonetario] = useState(0);
     const [assignedTo, setAssignedTo] = useState<string[]>([]);
     const [deadline, setDeadline] = useState('');
-    const [startDate, setStartDate] = useState(new Date().toISOString().split('T')[0]);
+    const [startDate, setStartDate] = useState(initialStartDate || new Date().toISOString().split('T')[0]);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState('');
     const [visibleTo, setVisibleTo] = useState<string[]>([]);
@@ -38,6 +45,10 @@ const MissionCreator: React.FC<{ users: User[] }> = ({ users }) => {
             setTargetCompany(currentUser.company);
         }
     }, [currentUser]);
+
+    useEffect(() => {
+        if (initialStartDate) setStartDate(initialStartDate);
+    }, [initialStartDate]);
 
 
     const assignableUsers = users.filter(u => {
@@ -132,6 +143,7 @@ const MissionCreator: React.FC<{ users: User[] }> = ({ users }) => {
             setTargetCompany('');
             setTargetRole('');
             setAiPrompt('');
+            onCreated?.();
         } catch (err) {
             showToast(err instanceof Error ? err.message : 'Error al crear la misión.', 'error');
         } finally {
@@ -270,12 +282,25 @@ const MissionCreator: React.FC<{ users: User[] }> = ({ users }) => {
                 </div>
             </div>
 
-            <button type="submit" disabled={isLoading} className="w-full mt-4 bg-brand-blue text-white font-bold py-3 px-4 rounded-lg flex items-center justify-center gap-2 disabled:bg-brand-accent">
-                {isLoading && <div className="w-5 h-5 border-2 border-t-transparent border-white rounded-full animate-spin"></div>}
-                Crear Misión
-            </button>
+            <div className="flex gap-3">
+                {onCancel && (
+                    <button
+                        type="button"
+                        onClick={onCancel}
+                        className="w-full mt-4 bg-brand-accent text-brand-highlight font-bold py-3 px-4 rounded-lg"
+                    >
+                        Cancelar
+                    </button>
+                )}
+                <button type="submit" disabled={isLoading} className="w-full mt-4 bg-brand-blue text-white font-bold py-3 px-4 rounded-lg flex items-center justify-center gap-2 disabled:bg-brand-accent">
+                    {isLoading && <div className="w-5 h-5 border-2 border-t-transparent border-white rounded-full animate-spin"></div>}
+                    Crear Mision
+                </button>
+            </div>
         </form>
     );
 };
 
 export default MissionCreator;
+
+

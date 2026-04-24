@@ -5,7 +5,8 @@ import AdminMissionCard from './missions/AdminMissionCard';
 import KnowledgeBase from '../knowledge/KnowledgeBase';
 import MissionCalendar from '../MissionCalendar';
 import MissionsGanttView from './missions/MissionsGanttView';
-import { BookOpenIcon, CalendarIcon, ChartIcon, TasksIcon } from '../Icons';
+import MissionCreator from './MissionCreator';
+import { BookOpenIcon, CalendarIcon, ChartIcon, PlusIcon, TasksIcon } from '../Icons';
 
 type MissionsViewMode = 'kanban' | 'gantt' | 'almanac';
 
@@ -14,7 +15,8 @@ const MissionColumn: React.FC<{
   missions: Mission[];
   onOpenMission: (mission: Mission) => void;
   onEditMission: (mission: Mission) => void;
-}> = ({ title, missions, onOpenMission, onEditMission }) => {
+  onCreateMission: () => void;
+}> = ({ title, missions, onOpenMission, onEditMission, onCreateMission }) => {
   const config: { [key: string]: { color: string; label: string } } = {
     [MissionStatus.PENDING]: { color: 'border-brand-light bg-brand-light/5 text-brand-light', label: 'Pendientes' },
     [MissionStatus.IN_PROGRESS]: { color: 'border-brand-blue bg-brand-blue/5 text-brand-blue', label: 'En Curso' },
@@ -24,16 +26,30 @@ const MissionColumn: React.FC<{
   const status = config[title] || { color: 'border-brand-light', label: title };
 
   return (
-    <div className="flex-1">
+    <div className="flex-1" onDoubleClick={onCreateMission}>
       <div className={`p-4 rounded-2xl mb-6 border-l-4 shadow-sm flex items-center justify-between ${status.color}`}>
         <h3 className="font-black text-xs uppercase tracking-widest">{status.label}</h3>
-        <span className="font-black text-[10px] bg-white/50 px-2 py-0.5 rounded-lg">{missions.length}</span>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={onCreateMission}
+            className="p-1.5 rounded-lg bg-white/60 hover:bg-white text-brand-blue transition-colors"
+            title="Crear nueva mision"
+          >
+            <PlusIcon className="w-3.5 h-3.5" />
+          </button>
+          <span className="font-black text-[10px] bg-white/50 px-2 py-0.5 rounded-lg">{missions.length}</span>
+        </div>
       </div>
       <div className="space-y-6">
         {missions.length === 0 ? (
-          <div className="p-12 border-2 border-dashed border-brand-accent rounded-3xl text-center bg-white/50">
+          <button
+            type="button"
+            onClick={onCreateMission}
+            className="w-full p-12 border-2 border-dashed border-brand-accent rounded-3xl text-center bg-white/50 hover:bg-white/80 transition-colors"
+          >
             <span className="text-[10px] font-black uppercase tracking-widest text-brand-light opacity-30">Vacio</span>
-          </div>
+          </button>
         ) : (
           missions
             .sort((a, b) => new Date(b.deadline).getTime() - new Date(a.deadline).getTime())
@@ -54,6 +70,8 @@ const MissionsManager: React.FC<MissionsManagerProps> = ({ onOpenMission, onEdit
   const [activeTab, setActiveTab] = useState<MissionStatus>(MissionStatus.IN_PROGRESS);
   const [showKnowledgeBase, setShowKnowledgeBase] = useState(false);
   const [viewMode, setViewMode] = useState<MissionsViewMode>('kanban');
+  const [isCreatingMission, setIsCreatingMission] = useState(false);
+  const [createStartDate, setCreateStartDate] = useState<string | undefined>(undefined);
 
   const { pending, inProgress, completed } = useMemo(() => {
     const missionsToShow = missions.filter(m => m.status !== MissionStatus.REQUESTED);
@@ -72,6 +90,10 @@ const MissionsManager: React.FC<MissionsManagerProps> = ({ onOpenMission, onEdit
 
   const selectedStatusMissions = TABS.find(tab => tab.id === activeTab)?.missions ?? [];
   const allMissionRows = useMemo(() => [...inProgress, ...pending, ...completed], [completed, inProgress, pending]);
+  const openCreateMission = (date?: string) => {
+    setCreateStartDate(date);
+    setIsCreatingMission(true);
+  };
 
   return (
     <div className="space-y-8">
@@ -92,6 +114,18 @@ const MissionsManager: React.FC<MissionsManagerProps> = ({ onOpenMission, onEdit
           {showKnowledgeBase ? 'Ver Misiones' : 'Base de Saber'}
         </button>
       </div>
+      {!showKnowledgeBase && (
+        <div className="flex justify-end">
+          <button
+            type="button"
+            onClick={() => openCreateMission()}
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-brand-blue text-white text-xs font-black uppercase tracking-widest shadow-premium hover:brightness-110 transition-all"
+          >
+            <PlusIcon className="w-4 h-4" />
+            Nueva Mision
+          </button>
+        </div>
+      )}
 
       {showKnowledgeBase ? (
         <div className="animate-fadeIn">
@@ -161,6 +195,7 @@ const MissionsManager: React.FC<MissionsManagerProps> = ({ onOpenMission, onEdit
                     missions={selectedStatusMissions}
                     onOpenMission={onOpenMission}
                     onEditMission={onEditMission}
+                    onCreateMission={() => openCreateMission()}
                   />
                 </div>
               </div>
@@ -173,6 +208,7 @@ const MissionsManager: React.FC<MissionsManagerProps> = ({ onOpenMission, onEdit
                     missions={tab.missions}
                     onOpenMission={onOpenMission}
                     onEditMission={onEditMission}
+                    onCreateMission={() => openCreateMission()}
                   />
                 ))}
               </div>
@@ -181,16 +217,34 @@ const MissionsManager: React.FC<MissionsManagerProps> = ({ onOpenMission, onEdit
 
           {viewMode === 'gantt' && (
             <div className="animate-fadeIn">
-              <MissionsGanttView missions={selectedStatusMissions} users={users} onOpenMission={onOpenMission} />
+              <MissionsGanttView missions={selectedStatusMissions} users={users} onOpenMission={onOpenMission} onCreateMission={() => openCreateMission()} />
             </div>
           )}
 
           {viewMode === 'almanac' && (
             <div className="animate-fadeIn">
-              <MissionCalendar missionOnly missions={selectedStatusMissions.length > 0 ? selectedStatusMissions : allMissionRows} users={users} onOpenMission={onOpenMission} />
+              <MissionCalendar
+                missionOnly
+                missions={selectedStatusMissions.length > 0 ? selectedStatusMissions : allMissionRows}
+                users={users}
+                onOpenMission={onOpenMission}
+                onCreateMissionAtDate={(date) => openCreateMission(date)}
+              />
             </div>
           )}
         </>
+      )}
+      {isCreatingMission && (
+        <div className="fixed inset-0 z-40 bg-slate-900/60 backdrop-blur-sm p-4 overflow-y-auto">
+          <div className="max-w-5xl mx-auto py-6">
+            <MissionCreator
+              users={users}
+              initialStartDate={createStartDate}
+              onCancel={() => setIsCreatingMission(false)}
+              onCreated={() => setIsCreatingMission(false)}
+            />
+          </div>
+        </div>
       )}
     </div>
   );

@@ -78,6 +78,7 @@ interface MissionCalendarProps {
   missions: Mission[];
   users: User[];
   missionOnly?: boolean;
+  onCreateMissionAtDate?: (date: string) => void;
   payrollEvents?: PayrollEvent[];
   vacationRequests?: VacationRequest[];
   holidays?: Holiday[];
@@ -88,7 +89,7 @@ interface MissionCalendarProps {
   onDeleteHoliday?: (id: string) => void;
 }
 
-const MissionCalendar: React.FC<MissionCalendarProps> = ({ missions, users, missionOnly = false, payrollEvents = [], vacationRequests = [], holidays = [], onOpenMission, onEditPayrollEvent, onRequestVacation, onAddHoliday, onDeleteHoliday }) => {
+const MissionCalendar: React.FC<MissionCalendarProps> = ({ missions, users, missionOnly = false, onCreateMissionAtDate, payrollEvents = [], vacationRequests = [], holidays = [], onOpenMission, onEditPayrollEvent, onRequestVacation, onAddHoliday, onDeleteHoliday }) => {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [viewMode, setViewMode] = useState<'missions' | 'attendance'>('missions');
 
@@ -274,6 +275,10 @@ const MissionCalendar: React.FC<MissionCalendarProps> = ({ missions, users, miss
   };
   
   const handleDayClick = (dateStr: string) => {
+    if (missionOnly) {
+      onCreateMissionAtDate?.(dateStr);
+      return;
+    }
     if (!missionOnly && viewMode === 'attendance' && onAddHoliday) {
       const description = window.prompt("Ingrese el nombre del feriado:");
       if (description) onAddHoliday(dateStr, description);

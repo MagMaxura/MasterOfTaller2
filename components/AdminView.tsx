@@ -5,7 +5,6 @@ import { useData } from '../contexts/DataContext';
 import { useAuth } from '../contexts/AuthContext';
 
 import UserManagement from './admin/UserManagement';
-import MissionCreator from './admin/MissionCreator';
 import StockManagement from './admin/stock/StockManagement';
 import CreateItemModal from './admin/stock/CreateItemModal';
 import InventoryManagementModal from './admin/modals/InventoryManagementModal';
@@ -33,7 +32,7 @@ import { api } from '../services/api';
 import { Role as UserRole } from '../types';
 import LunchConfirmationCard from './technician/LunchConfirmationCard';
 
-import { PlusIcon, BoxIcon, CalendarIcon, MapPinIcon, UserIcon, TasksIcon, BookOpenIcon, LogoutIcon, MenuIcon, ChartIcon, CurrencyDollarIcon, CogIcon, StarIcon } from './Icons';
+import { BoxIcon, CalendarIcon, MapPinIcon, UserIcon, TasksIcon, BookOpenIcon, LogoutIcon, MenuIcon, ChartIcon, CurrencyDollarIcon, CogIcon, StarIcon } from './Icons';
 
 // --- MAIN COMPONENT ---
 const AdminView: React.FC = () => {
@@ -70,7 +69,6 @@ const AdminView: React.FC = () => {
         { id: 'missions', label: 'Misiones', icon: <TasksIcon /> },
         { id: 'requests', label: 'Solicitudes', icon: <TasksIcon />, notification: totalRequestsCount > 0 },
         { id: 'leaderboard', label: 'Clasificación', icon: <ChartIcon /> },
-        { id: 'create', label: 'Crear Misión', icon: <PlusIcon /> },
         { id: 'stock', label: 'Stock (Equipo)', icon: <BoxIcon /> },
         { id: 'rewards', label: 'Premios', icon: <StarIcon /> },
         { id: 'orgchart', label: 'Organigrama', icon: <ChartIcon /> },
@@ -83,7 +81,7 @@ const AdminView: React.FC = () => {
     const visibleTabs = useMemo(() => {
         if (isAdmin) return TABS;
         if (isOperations) {
-            const operationsTabs = new Set(['manage', 'missions', 'requests', 'create', 'calendar', 'orgchart']);
+            const operationsTabs = new Set(['manage', 'missions', 'requests', 'calendar', 'orgchart']);
             return TABS.filter(tab => operationsTabs.has(tab.id));
         }
         return [];
@@ -213,9 +211,6 @@ const AdminView: React.FC = () => {
                         <div className={activeTab === 'leaderboard' ? 'block' : 'hidden'}>
                             <Leaderboard users={users} />
                         </div>
-                        <div className={activeTab === 'create' ? 'block' : 'hidden'}>
-                            <MissionCreator users={users} />
-                        </div>
                         <div className={activeTab === 'stock' ? 'block' : 'hidden'}>
                             <StockManagement onOpenCreateModal={() => setIsCreateItemModalOpen(true)} />
                         </div>
@@ -284,3 +279,5 @@ const AdminView: React.FC = () => {
 };
 
 export default AdminView;
+
+

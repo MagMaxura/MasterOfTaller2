@@ -5,6 +5,7 @@ interface MissionsGanttViewProps {
   missions: Mission[];
   users: User[];
   onOpenMission?: (mission: Mission) => void;
+  onCreateMission?: () => void;
 }
 
 const STATUS_STYLES: Record<MissionStatus, string> = {
@@ -16,7 +17,7 @@ const STATUS_STYLES: Record<MissionStatus, string> = {
 
 const dayDiff = (a: Date, b: Date) => Math.floor((a.getTime() - b.getTime()) / 86400000);
 
-const MissionsGanttView: React.FC<MissionsGanttViewProps> = ({ missions, users, onOpenMission }) => {
+const MissionsGanttView: React.FC<MissionsGanttViewProps> = ({ missions, users, onOpenMission, onCreateMission }) => {
   const usersMap = useMemo(() => new Map(users.map(user => [user.id, user])), [users]);
 
   const { orderedMissions, timelineStart, timelineEnd, totalDays, monthMarkers } = useMemo(() => {
@@ -54,14 +55,20 @@ const MissionsGanttView: React.FC<MissionsGanttViewProps> = ({ missions, users, 
 
   if (orderedMissions.length === 0) {
     return (
-      <div className="p-12 border-2 border-dashed border-brand-accent rounded-3xl text-center bg-white/50">
+      <div
+        className="p-12 border-2 border-dashed border-brand-accent rounded-3xl text-center bg-white/50 cursor-pointer hover:bg-white/70 transition-colors"
+        onClick={() => onCreateMission?.()}
+      >
         <span className="text-[10px] font-black uppercase tracking-widest text-brand-light opacity-40">Sin misiones para mostrar</span>
       </div>
     );
   }
 
   return (
-    <div className="bg-white/60 border border-brand-accent rounded-3xl p-4 md:p-6 overflow-x-auto">
+    <div
+      className="bg-white/60 border border-brand-accent rounded-3xl p-4 md:p-6 overflow-x-auto cursor-pointer"
+      onDoubleClick={() => onCreateMission?.()}
+    >
       <div className="min-w-[780px]">
         <div className="relative h-10 mb-4 border-b border-brand-accent/60">
           {monthMarkers.map(marker => {
