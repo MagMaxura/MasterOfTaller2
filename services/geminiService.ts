@@ -1,14 +1,22 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { MissionDifficulty } from '../types';
 
+const geminiApiKey =
+  import.meta.env.VITE_GEMINI_API_KEY ||
+  import.meta.env.VITE_API_KEY ||
+  '';
+
 // Se implementa la inicialización diferida (lazy initialization) del cliente de IA.
 // Esto evita que la aplicación se bloquee al inicio si la variable de entorno API_KEY
 // no está disponible de inmediato. El cliente se creará solo cuando se llame a una función que lo necesite.
 let ai: GoogleGenAI | null = null;
 const getAiClient = (): GoogleGenAI => {
+  if (!geminiApiKey) {
+    throw new Error("Falta configurar VITE_GEMINI_API_KEY en el entorno.");
+  }
   if (!ai) {
     // La inicialización se produce aquí, en el primer uso.
-    ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+    ai = new GoogleGenAI({ apiKey: geminiApiKey });
   }
   return ai;
 };

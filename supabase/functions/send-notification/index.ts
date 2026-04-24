@@ -16,14 +16,11 @@
  *
  * 2. SUPABASE_SERVICE_ROLE_KEY: La clave de servicio (service_role) de tu proyecto.
  *
- * 3. VAPID_PUBLIC_KEY: (La que generaste en tu terminal)
- *    BNwGnpUSIkrptf7RZtl-HTeZ9fimzqTtZMyRwVWj8mLVYcj7Di0-QCUBxCQqSLcy3LyMkQavAzt6wcWJT4oiYEE
+ * 3. VAPID_PUBLIC_KEY: Tu clave pública VAPID.
  *
- * 4. VAPID_PRIVATE_KEY: (La que generaste en tu terminal)
- *    u9a518AQkNXHq55YKNvJzy2YHZDiF2nVbJOFVFUzD9E
+ * 4. VAPID_PRIVATE_KEY: Tu clave privada VAPID.
  *
- * 5. VAPID_SUBJECT: (Usa tu email de contacto, SIN comillas)
- *    mailto:maxiuranga5@gmail.com
+ * 5. VAPID_SUBJECT: Un mailto de contacto (por ejemplo, mailto:tu-email@dominio.com).
  *
  * ¡Asegúrate de que no haya espacios en blanco al copiar y pegar las claves!
  * =====================================================================================

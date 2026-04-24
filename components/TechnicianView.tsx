@@ -33,7 +33,7 @@ interface TechnicianUIProps {
 }
 
 const TechnicianUI: React.FC<TechnicianUIProps> = ({ user, isAdminViewing = false, onBackToAdmin }) => {
-    const { missions, users, vacationRequests, payrollEvents } = useData();
+    const { missions, users, vacationRequests, payrollEvents, holidays } = useData();
     const isCleaningRole = useMemo(() => user.role === Role.CLEANING, [user.role]);
     const [activeTab, setActiveTab] = useState(isCleaningRole ? 'profile' : 'missions');
     const [selectedMission, setSelectedMission] = useState<Mission | null>(null);
@@ -140,7 +140,7 @@ const TechnicianUI: React.FC<TechnicianUIProps> = ({ user, isAdminViewing = fals
                 <MissionCalendar
                     missions={userMissions}
                     users={users}
-                    holidays={useData().holidays}
+                    holidays={holidays}
                     vacationRequests={vacationRequests.filter(r => r.user_id === user.id)}
                     payrollEvents={payrollEvents.filter(e => e.user_id === user.id)}
                     onOpenMission={setSelectedMission}
