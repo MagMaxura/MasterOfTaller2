@@ -4,6 +4,7 @@ import { LEVEL_THRESHOLDS, EARLY_COMPLETION_BONUS_XP } from '../../../config';
 import { useData } from '../../../contexts/DataContext';
 import { useToast } from '../../../contexts/ToastContext';
 import { hasSupplyAdminBadge } from '../../../utils/ranks';
+import { getCurrentGeoSnapshot } from '../../../utils/geo';
 import { api } from '../../../services/api';
 import { CameraIcon, StarIcon, BadgeIcon, CalendarIcon, FlagIcon, CurrencyDollarIcon, BookOpenIcon } from '../../Icons';
 import AssignSuppliesModal from '../../admin/missions/AssignSuppliesModal';
@@ -354,7 +355,29 @@ const MissionDetailsModal: React.FC<{
 
     setIsUpdating(true);
     try {
-      await addMissionMilestone(mission.id, newMilestoneText, newMilestoneImage, newMilestoneType);
+      const mustCaptureGeo = currentUser?.role === Role.TECHNICIAN;
+      let metadata:
+        | {
+            capturedAt?: string;
+            capturedLat?: number | null;
+            capturedLng?: number | null;
+            locationAccuracyM?: number | null;
+            exifTakenAt?: string | null;
+          }
+        | undefined;
+
+      if (mustCaptureGeo) {
+        const geo = await getCurrentGeoSnapshot();
+        metadata = {
+          capturedAt: geo.capturedAt,
+          capturedLat: geo.lat,
+          capturedLng: geo.lng,
+          locationAccuracyM: geo.accuracy,
+          exifTakenAt: newMilestoneImage?.lastModified ? new Date(newMilestoneImage.lastModified).toISOString() : null
+        };
+      }
+
+      await addMissionMilestone(mission.id, newMilestoneText, newMilestoneImage, newMilestoneType, metadata);
       showToast('Reporte registrado con exito', 'success');
       setNewMilestoneText('');
       setNewMilestoneImage(null);
@@ -510,6 +533,12 @@ const MissionDetailsModal: React.FC<{
                             </div>
                           </div>
                           <p className="text-slate-300 text-sm leading-relaxed font-medium whitespace-pre-wrap">{milestone.description}</p>
+                          {(milestone.captured_lat != null && milestone.captured_lng != null) && (
+                            <p className="text-[10px] text-slate-500 mt-2 font-bold">
+                              Ubicacion: {milestone.captured_lat.toFixed(5)}, {milestone.captured_lng.toFixed(5)}
+                              {milestone.location_accuracy_m != null ? ` (±${Math.round(milestone.location_accuracy_m)}m)` : ''}
+                            </p>
+                          )}
                           {milestone.image_url && (
                             <div className="mt-4 rounded-xl overflow-hidden border border-white/5 shadow-2xl bg-black/40">
                               <img src={milestone.image_url} alt="Evidencia" className="w-full h-auto max-h-[500px] object-contain cursor-zoom-in hover:scale-[1.02] transition-transform duration-500" onClick={() => window.open(milestone.image_url!, '_blank')} />

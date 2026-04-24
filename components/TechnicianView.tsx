@@ -16,6 +16,7 @@ import PaymentsView from './technician/payments/PaymentsView';
 import RequestVacationModal from './technician/modals/RequestVacationModal';
 import RewardStore from './technician/rewards/RewardStore';
 import { hasSupplyAdminBadge, hasEquipmentAdminBadge, COOK_BADGE_NAME, DINER_BADGE_NAME } from '../utils/ranks';
+import { getCurrentGeoSnapshot } from '../utils/geo';
 import StockManagement from './admin/stock/StockManagement';
 import CreateItemModal from './admin/stock/CreateItemModal';
 import KitchenManagement from './admin/KitchenManagement';
@@ -46,33 +47,31 @@ const TechnicianUI: React.FC<TechnicianUIProps> = ({ user, isAdminViewing = fals
 
     // Removed package.json fetch to avoid 404 errors
 
-    // Geolocation tracking has been disabled to prevent unnecessary notification prompts per user request
-    /*
-    useEffect(() => {
-        if (isAdminViewing || !navigator.geolocation) return;
+        useEffect(() => {
+        if (isAdminViewing || user.role !== Role.TECHNICIAN) return;
         let intervalId: number | undefined;
         const updateLocation = () => {
-            navigator.geolocation.getCurrentPosition(
-                async (position) => {
-                    const { latitude, longitude } = position.coords;
+            getCurrentGeoSnapshot({ timeout: 10000, maximumAge: 30000 })
+                .then(async (geo) => {
                     if (supabase) {
-                        const { error } = await supabase.from('profiles').update({ lat: latitude, lng: longitude, location_last_update: new Date().toISOString() }).eq('id', user.id);
-                        if (error) console.error('Error al actualizar la ubicación:', error.message);
+                        const { error } = await supabase.from('profiles').update({
+                            lat: geo.lat,
+                            lng: geo.lng,
+                            location_last_update: geo.capturedAt
+                        }).eq('id', user.id);
+                        if (error) console.error('Error al actualizar la ubicacion:', error.message);
                     }
-                },
-                (error) => {
-                    console.error(`Error de geolocalización: ${error.message}`);
-                    if (error.code === error.PERMISSION_DENIED && intervalId) clearInterval(intervalId);
-                },
-                { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
-            );
+                })
+                .catch((error) => {
+                    console.error(`Error de geolocalizacion: ${error instanceof Error ? error.message : String(error)}`);
+                    if (intervalId) clearInterval(intervalId);
+                });
         };
         updateLocation();
         intervalId = window.setInterval(updateLocation, 30000);
         return () => { if (intervalId) clearInterval(intervalId); };
 
-    }, [user.id, isAdminViewing]);
-    */
+    }, [user.id, user.role, isAdminViewing]);
 
 
     const userMissions = useMemo(() => {
@@ -259,3 +258,5 @@ const TechnicianView: React.FC<TechnicianViewProps> = (props) => {
 
 
 export default TechnicianView;
+
+

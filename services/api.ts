@@ -79,7 +79,7 @@ export const api = {
       supabase.from('salarios').select(salaryColumns),
       supabase.from('eventos_nomina').select(payrollEventColumns).order('fecha_evento', { ascending: false }),
       supabase.from('periodos_pago').select(`${paymentPeriodColumns}, events:eventos_nomina(*)`).order('fecha_pago', { ascending: false }),
-      supabase.from('mission_milestones').select('id, mission_id, user_id, description, image_url, milestone_type, created_at, is_solution, mission:missions(title, required_skills)').order('created_at', { ascending: true }),
+      supabase.from('mission_milestones').select('id, mission_id, user_id, description, image_url, milestone_type, captured_at, captured_lat, captured_lng, location_accuracy_m, exif_taken_at, created_at, is_solution, mission:missions(title, required_skills)').order('created_at', { ascending: true }),
     ];
   },
 

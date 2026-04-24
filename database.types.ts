@@ -172,6 +172,11 @@ export interface Database {
           description: string
           image_url: string | null
           milestone_type: Database["public"]["Enums"]["mission_milestone_type"]
+          captured_at: string
+          captured_lat: number | null
+          captured_lng: number | null
+          location_accuracy_m: number | null
+          exif_taken_at: string | null
           created_at: string
           is_solution: boolean
         }
@@ -182,6 +187,11 @@ export interface Database {
           description: string
           image_url?: string | null
           milestone_type?: Database["public"]["Enums"]["mission_milestone_type"]
+          captured_at?: string
+          captured_lat?: number | null
+          captured_lng?: number | null
+          location_accuracy_m?: number | null
+          exif_taken_at?: string | null
           created_at?: string
           is_solution?: boolean
         }
@@ -192,6 +202,11 @@ export interface Database {
           description?: string
           image_url?: string | null
           milestone_type?: Database["public"]["Enums"]["mission_milestone_type"]
+          captured_at?: string
+          captured_lat?: number | null
+          captured_lng?: number | null
+          location_accuracy_m?: number | null
+          exif_taken_at?: string | null
           created_at?: string
           is_solution?: boolean
         }

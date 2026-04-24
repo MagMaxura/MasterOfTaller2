@@ -44,7 +44,19 @@ interface DataContextType {
   rejectJoinRequest: (requestMissionId: string) => Promise<void>;
   rejectMissionRequest: (missionId: string) => Promise<void>;
   deleteMission: (missionId: string) => Promise<void>;
-  addMissionMilestone: (missionId: string, description: string, imageFile: File | null, milestoneType?: MissionMilestoneType) => Promise<void>;
+  addMissionMilestone: (
+    missionId: string,
+    description: string,
+    imageFile: File | null,
+    milestoneType?: MissionMilestoneType,
+    metadata?: {
+      capturedAt?: string;
+      capturedLat?: number | null;
+      capturedLng?: number | null;
+      locationAccuracyM?: number | null;
+      exifTakenAt?: string | null;
+    }
+  ) => Promise<void>;
   toggleMilestoneSolution: (milestoneId: string, isSolution: boolean) => Promise<void>;
   assignInventoryItem: (userId: string, itemId: string, variantId?: string) => Promise<void>;
   removeInventoryItem: (userInventoryId: string) => Promise<void>;
@@ -421,7 +433,12 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
           mileRes.data.map((m: any) => ({
             ...m,
             is_solution: m.is_solution ?? false,
-            milestone_type: m.milestone_type ?? MissionMilestoneType.NOTE
+            milestone_type: m.milestone_type ?? MissionMilestoneType.NOTE,
+            captured_at: m.captured_at ?? m.created_at,
+            captured_lat: m.captured_lat ?? null,
+            captured_lng: m.captured_lng ?? null,
+            location_accuracy_m: m.location_accuracy_m ?? null,
+            exif_taken_at: m.exif_taken_at ?? null
           })) as MissionMilestone[]
         );
       }
@@ -691,12 +708,35 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     await api.updateMission(missionId, { assigned_to: [], status: 'Pendiente' });
   };
 
-  const addMissionMilestone = async (missionId: string, description: string, imageFile: File | null, milestoneType: MissionMilestoneType = MissionMilestoneType.NOTE) => {
+  const addMissionMilestone = async (
+    missionId: string,
+    description: string,
+    imageFile: File | null,
+    milestoneType: MissionMilestoneType = MissionMilestoneType.NOTE,
+    metadata?: {
+      capturedAt?: string;
+      capturedLat?: number | null;
+      capturedLng?: number | null;
+      locationAccuracyM?: number | null;
+      exifTakenAt?: string | null;
+    }
+  ) => {
     if (currentUser?.id.startsWith('demo-')) { showToast('Acción simulada en modo demo.', 'success'); return; }
     if (!currentUser) throw new Error("User not authenticated");
     let imageUrl: string | null = null;
     if (imageFile) imageUrl = await api.uploadMilestoneImage(currentUser.id, missionId, imageFile);
-    await api.addMissionMilestone({ mission_id: missionId, user_id: currentUser.id, description, image_url: imageUrl, milestone_type: milestoneType });
+    await api.addMissionMilestone({
+      mission_id: missionId,
+      user_id: currentUser.id,
+      description,
+      image_url: imageUrl,
+      milestone_type: milestoneType,
+      captured_at: metadata?.capturedAt ?? new Date().toISOString(),
+      captured_lat: metadata?.capturedLat ?? null,
+      captured_lng: metadata?.capturedLng ?? null,
+      location_accuracy_m: metadata?.locationAccuracyM ?? null,
+      exif_taken_at: metadata?.exifTakenAt ?? null
+    });
   };
 
   const addSupply = (data: Omit<Supply, 'id' | 'created_at' | 'stock_quantity'>, photoFile: File | null) => {
