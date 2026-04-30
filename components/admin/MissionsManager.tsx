@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Mission, MissionStatus } from '../../types';
 import { useData } from '../../contexts/DataContext';
 import AdminMissionCard from './missions/AdminMissionCard';
@@ -234,17 +235,31 @@ const MissionsManager: React.FC<MissionsManagerProps> = ({ onOpenMission, onEdit
           )}
         </>
       )}
-      {isCreatingMission && (
-        <div className="fixed inset-0 z-40 bg-slate-900/60 backdrop-blur-sm p-4 overflow-y-auto">
-          <div className="max-w-5xl mx-auto py-6">
-            <MissionCreator
-              users={users}
-              initialStartDate={createStartDate}
-              onCancel={() => setIsCreatingMission(false)}
-              onCreated={() => setIsCreatingMission(false)}
-            />
+      {isCreatingMission && createPortal(
+        <div className="fixed inset-0 z-[100] flex items-start justify-center bg-slate-900/60 backdrop-blur-sm p-3 sm:p-4 md:p-6 overflow-hidden">
+          <div className="w-full max-w-[1120px] max-h-[calc(100vh-1.5rem)] sm:max-h-[calc(100vh-2rem)] md:max-h-[calc(100vh-3rem)] bg-brand-primary rounded-2xl border border-brand-accent shadow-2xl flex flex-col overflow-hidden">
+            <div className="flex items-center justify-between px-5 md:px-6 py-4 border-b border-brand-accent bg-brand-primary">
+              <h3 className="text-brand-highlight font-black text-sm md:text-lg uppercase tracking-wider">Nueva Mision</h3>
+              <button
+                type="button"
+                onClick={() => setIsCreatingMission(false)}
+                className="text-brand-light hover:text-brand-highlight text-3xl leading-none"
+                aria-label="Cerrar"
+              >
+                &times;
+              </button>
+            </div>
+            <div className="flex-1 min-h-0 overflow-y-auto p-4 md:p-6 custom-scrollbar">
+              <MissionCreator
+                users={users}
+                initialStartDate={createStartDate}
+                onCancel={() => setIsCreatingMission(false)}
+                onCreated={() => setIsCreatingMission(false)}
+              />
+            </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
