@@ -28,6 +28,23 @@ import PermissionsManagement from './permissions/PermissionsManagement';
 
 import { PlusIcon, BoxIcon, CalendarIcon, MapPinIcon, UserIcon, TasksIcon, BookOpenIcon, LogoutIcon, MenuIcon, ChartIcon, CurrencyDollarIcon, LockIcon } from '../Icons';
 
+// --- TAB DEFINITIONS ---
+const ALL_TABS_BASE = [
+    { id: 'manage', label: 'Gestionar', icon: <UserIcon /> },
+    { id: 'missions', label: 'Misiones', icon: <TasksIcon /> },
+    { id: 'requests', label: 'Solicitudes', icon: <TasksIcon />, hasNotification: true },
+    { id: 'payroll', label: 'Nómina', icon: <ChartIcon /> },
+    { id: 'recurring_incomes', label: 'Ingresos', icon: <CurrencyDollarIcon /> },
+    { id: 'customers', label: 'Clientes', icon: <UserIcon /> },
+    { id: 'loans', label: 'Préstamos', icon: <CurrencyDollarIcon /> },
+    { id: 'leaderboard', label: 'Clasificación', icon: <ChartIcon /> },
+    { id: 'create', label: 'Crear Misión', icon: <PlusIcon /> },
+    { id: 'stock', label: 'Stock (Equipo)', icon: <BoxIcon /> },
+    { id: 'supplies', label: 'Insumos', icon: <BoxIcon /> },
+    { id: 'calendar', label: 'Calendario', icon: <CalendarIcon /> },
+    { id: 'live_map', label: 'Mapa', icon: <MapPinIcon /> },
+];
+
 // --- MAIN COMPONENT ---
 const AdminView: React.FC = () => {
     const { handleLogout } = useAuth();
@@ -46,35 +63,29 @@ const AdminView: React.FC = () => {
 
     const missionRequestsCount = useMemo(() => missions.filter(m => m.status === MissionStatus.REQUESTED).length, [missions]);
 
-    const ALL_TABS = [
-        { id: 'manage', label: 'Gestionar', icon: <UserIcon /> },
-        { id: 'missions', label: 'Misiones', icon: <TasksIcon /> },
-        { id: 'requests', label: 'Solicitudes', icon: <TasksIcon />, notification: missionRequestsCount > 0 },
-        { id: 'payroll', label: 'Nómina', icon: <ChartIcon /> },
-        { id: 'recurring_incomes', label: 'Ingresos', icon: <CurrencyDollarIcon /> },
-        { id: 'customers', label: 'Clientes', icon: <UserIcon /> },
-        { id: 'loans', label: 'Préstamos', icon: <CurrencyDollarIcon /> },
-        { id: 'leaderboard', label: 'Clasificación', icon: <ChartIcon /> },
-        { id: 'create', label: 'Crear Misión', icon: <PlusIcon /> },
-        { id: 'stock', label: 'Stock (Equipo)', icon: <BoxIcon /> },
-        { id: 'supplies', label: 'Insumos', icon: <BoxIcon /> },
-        { id: 'calendar', label: 'Calendario', icon: <CalendarIcon /> },
-        { id: 'live_map', label: 'Mapa', icon: <MapPinIcon /> },
-    ];
+    const tabsWithNotifications = useMemo(() => {
+        return ALL_TABS_BASE.map(tab => ({
+            ...tab,
+            notification: tab.id === 'requests' ? missionRequestsCount > 0 : false
+        }));
+    }, [missionRequestsCount]);
 
-    const isSuperAdmin = currentUser?.role === Role.ADMIN;
+    const isSuperAdmin = currentUser?.role === Role.ADMIN || currentUser?.role === 'administrador';
     
     const displayTabs = useMemo(() => {
-        const filtered = ALL_TABS.filter(tab => canAccess(tab.id));
-        
+        // SuperAdmin/Admin see everything by default
         if (isSuperAdmin) {
-            filtered.push({ id: 'permissions', label: 'Permisos', icon: <LockIcon /> });
+            return [
+                ...tabsWithNotifications,
+                { id: 'permissions', label: 'Permisos', icon: <LockIcon /> }
+            ];
         }
         
-        return filtered;
-    }, [isSuperAdmin, missionRequestsCount, canAccess]);
+        // Others are filtered by canAccess
+        return tabsWithNotifications.filter(tab => canAccess(tab.id));
+    }, [isSuperAdmin, tabsWithNotifications, canAccess]); 
 
-    const activeTabLabel = useMemo(() => ALL_TABS.find(tab => tab.id === activeTab)?.label || 'Panel de Administrador', [activeTab]);
+    const activeTabLabel = useMemo(() => tabsWithNotifications.find(tab => tab.id === activeTab)?.label || 'Panel de Administrador', [activeTab, tabsWithNotifications]);
 
     if (!currentUser) return null;
 
