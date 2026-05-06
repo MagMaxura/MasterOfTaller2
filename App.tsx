@@ -33,7 +33,7 @@ const AppContent: React.FC = () => {
     return <TechnicianView user={fullViewingProfile} isAdminViewing={true} onBackToAdmin={() => setViewingProfileOf(null)} />;
   }
 
-  if (currentUser.role === Role.ADMIN || currentUser.role === Role.OPERATIONS) {
+  if ([Role.ADMIN, Role.OPERATIONS, Role.SALES, Role.ADMINISTRATIVE, Role.MARKETING].includes(currentUser.role as Role)) {
     return <AdminView />;
   }
 
