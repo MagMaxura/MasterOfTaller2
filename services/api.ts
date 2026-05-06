@@ -67,6 +67,7 @@ export const api = {
       supabase.from('authority_relations').select('*').eq('active', true),
       supabase.from('recurring_incomes').select('*').order('created_at', { ascending: false }),
       supabase.from('customer_tracking').select('*').order('created_at', { ascending: false }),
+      supabase.from('module_permissions').select('*'),
     ];
   },
 
@@ -384,6 +385,22 @@ export const api = {
   },
   async deleteCustomerProject(id: string) {
     const { error } = await supabase.from('customer_tracking').delete().eq('id', id);
+    if (error) throw new Error(error.message);
+  },
+  // --- MODULE PERMISSIONS ---
+  async getModulePermissions() {
+    const { data, error } = await supabase.from('module_permissions').select('*');
+    if (error) throw new Error(error.message);
+    return data;
+  },
+  async upsertModulePermission(data: any) {
+    const { error } = await supabase.from('module_permissions').upsert(data, {
+      onConflict: data.user_id ? 'user_id, module_id' : data.role ? 'role, module_id' : 'company, module_id'
+    });
+    if (error) throw new Error(error.message);
+  },
+  async deleteModulePermission(id: string) {
+    const { error } = await supabase.from('module_permissions').delete().eq('id', id);
     if (error) throw new Error(error.message);
   }
 };

@@ -362,3 +362,13 @@ export interface CustomerProject {
   status: string;
   created_at: string;
 }
+
+export interface ModulePermission {
+  id: string;
+  role?: Role;
+  user_id?: string;
+  company?: string;
+  module_id: string;
+  is_enabled: boolean;
+  created_at: string;
+}

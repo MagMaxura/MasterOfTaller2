@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect, useMemo, createContext, useContext, useRef } from 'react';
-import { User, Mission, InventoryItem, EquipmentSlot, MissionMilestone, MissionStatus, UserInventoryItem, Supply, MissionSupply, Badge, Salary, PayrollEvent, PaymentPeriod, Role, MissionDifficulty, PayrollEventType, MissionRequirement, Company, AttendanceSummary, UserSchedule, VacationRequest, Reward, UserReward, Holiday, AuthorityRelation, MissionMilestoneType, RecurringIncome, CustomerProject } from '../types';
+import { User, Mission, InventoryItem, EquipmentSlot, MissionMilestone, MissionStatus, UserInventoryItem, Supply, MissionSupply, Badge, Salary, PayrollEvent, PaymentPeriod, Role, MissionDifficulty, PayrollEventType, MissionRequirement, Company, AttendanceSummary, UserSchedule, VacationRequest, Reward, UserReward, Holiday, AuthorityRelation, MissionMilestoneType, RecurringIncome, CustomerProject, ModulePermission } from '../types';
 import { supabase } from '../config';
 import { transformSupabaseProfileToUser } from '../utils/dataTransformers';
 import { useAuth } from './AuthContext';
@@ -31,6 +31,7 @@ interface DataContextType {
   authorityRelations: AuthorityRelation[];
   recurringIncomes: RecurringIncome[];
   customerProjects: CustomerProject[];
+  modulePermissions: ModulePermission[];
   loading: boolean;
   viewingProfileOf: User | null;
   setViewingProfileOf: (user: User | null) => void;
@@ -107,6 +108,9 @@ interface DataContextType {
   addCustomerProject: (data: Omit<CustomerProject, 'id' | 'created_at'>) => Promise<void>;
   updateCustomerProject: (id: string, data: Partial<CustomerProject>) => Promise<void>;
   deleteCustomerProject: (id: string) => Promise<void>;
+  upsertModulePermission: (data: Partial<ModulePermission>) => Promise<void>;
+  deleteModulePermission: (id: string) => Promise<void>;
+  canAccess: (moduleId: string) => boolean;
 }
 
 // --- CONTEXT CREATION ---
@@ -144,6 +148,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [authorityRelations, setAuthorityRelations] = useState<AuthorityRelation[]>([]);
   const [recurringIncomes, setRecurringIncomes] = useState<RecurringIncome[]>([]);
   const [customerProjects, setCustomerProjects] = useState<CustomerProject[]>([]);
+  const [modulePermissions, setModulePermissions] = useState<ModulePermission[]>([]);
   const [loading, setLoading] = useState(true);
   const [viewingProfileOf, setViewingProfileOf] = useState<User | null>(null);
   const lastReconcileRef = useRef<number>(0);
@@ -437,7 +442,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         api.getVacationRequests()
       ]);
 
-      const [invRes, badgeRes, supRes, mSupRes, reqRes, rewRes, uRewRes, holRes, orgRes, recRes, custRes] = await Promise.all(l2Promises);
+      const [invRes, badgeRes, supRes, mSupRes, reqRes, rewRes, uRewRes, holRes, orgRes, recRes, custRes, permRes] = await Promise.all(l2Promises);
       const [salRes, payRes, perRes, mileRes] = await Promise.all(l3Promises);
 
       // Level 2 updates
@@ -452,6 +457,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (orgRes.data) setAuthorityRelations(orgRes.data as AuthorityRelation[]);
       if (recRes.data) setRecurringIncomes(recRes.data as RecurringIncome[]);
       if (custRes.data) setCustomerProjects(custRes.data as CustomerProject[]);
+      if (permRes.data) setModulePermissions(permRes.data as ModulePermission[]);
 
       // Level 3 updates
       if (salRes.data) setSalaries(salRes.data as Salary[]);
@@ -534,6 +540,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       .on('postgres_changes', { event: '*', schema: 'public', table: 'authority_relations' }, () => fetchDataRef.current())
       .on('postgres_changes', { event: '*', schema: 'public', table: 'recurring_incomes' }, () => fetchDataRef.current())
       .on('postgres_changes', { event: '*', schema: 'public', table: 'customer_tracking' }, () => fetchDataRef.current())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'module_permissions' }, () => fetchDataRef.current())
       .subscribe((status) => {
         if (status === 'SUBSCRIBED') console.log("[Supabase] Channel ready.");
         if (status === 'CLOSED') console.warn("[Supabase] Channel closed.");
@@ -1159,6 +1166,41 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } catch (e) { showToast('Error al eliminar proyecto.', 'error'); }
   };
 
+  const upsertModulePermission = async (data: Partial<ModulePermission>) => {
+    if (currentUser?.id.startsWith('demo-')) { showToast('Acción simulada en modo demo.', 'success'); return; }
+    try {
+      await api.upsertModulePermission(data);
+      showToast('Permiso actualizado.', 'success');
+      fetchData();
+    } catch (e) { showToast('Error al actualizar permiso.', 'error'); }
+  };
+
+  const deleteModulePermission = async (id: string) => {
+    if (currentUser?.id.startsWith('demo-')) { showToast('Acción simulada en modo demo.', 'success'); return; }
+    try {
+      await api.deleteModulePermission(id);
+      showToast('Permiso eliminado.', 'success');
+      fetchData();
+    } catch (e) { showToast('Error al eliminar permiso.', 'error'); }
+  };
+
+  const canAccess = useCallback((moduleId: string): boolean => {
+    if (!currentUser) return false;
+    if (currentUser.role === Role.ADMIN) return true; // Admins have master access unless explicitly blocked? No, usually master.
+    
+    // Check priority: User > Role > Company
+    const userPerm = modulePermissions.find(p => p.user_id === currentUser.id && p.module_id === moduleId);
+    if (userPerm) return userPerm.is_enabled;
+
+    const rolePerm = modulePermissions.find(p => p.role === currentUser.role && p.module_id === moduleId);
+    if (rolePerm) return rolePerm.is_enabled;
+
+    const companyPerm = modulePermissions.find(p => p.company === currentUser.company && p.module_id === moduleId);
+    if (companyPerm) return companyPerm.is_enabled;
+
+    return false; // Default: no access
+  }, [currentUser, modulePermissions]);
+
   const upsertAuthorityRelation = async (managerId: string, subordinateId: string, notes?: string | null) => {
     if (currentUser?.id.startsWith('demo-')) { showToast('Acción simulada en modo demo.', 'success'); return; }
     try {
@@ -1262,7 +1304,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }), [
     currentUser, users, missions, allInventoryItems, allBadges, missionMilestones, supplies, 
     missionSupplies, missionRequirements, salaries, payrollEvents, paymentPeriods, userSchedules, 
-    attendanceUsers, vacationRequests, rewardItems, userRewards, loading, viewingProfileOf, holidays, authorityRelations, recurringIncomes, customerProjects,
+    attendanceUsers, vacationRequests, rewardItems, userRewards, loading, viewingProfileOf, holidays, authorityRelations, recurringIncomes, customerProjects, modulePermissions,
     updateMission, updateUser, deactivateUser, updateUserAvatar, addMission, requestMission, 
     technicianRequestMission, requestToJoinMission, approveJoinRequest, rejectJoinRequest, 
     rejectMissionRequest, deleteMission, addMissionMilestone, toggleMilestoneSolution, 
@@ -1276,7 +1318,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     updateVacationStatus, deleteVacationRequest, purchaseReward, addReward, updateReward, 
     deleteReward, addHoliday, deleteHoliday, upsertAuthorityRelation, removeAuthorityRelation,
     addRecurringIncome, updateRecurringIncome, deleteRecurringIncome,
-    addCustomerProject, updateCustomerProject, deleteCustomerProject
+    addCustomerProject, updateCustomerProject, deleteCustomerProject,
+    upsertModulePermission, deleteModulePermission, canAccess
   ]);
 
   return (

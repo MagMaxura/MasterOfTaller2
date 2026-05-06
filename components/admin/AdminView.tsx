@@ -24,13 +24,14 @@ import PayrollManagement from './payroll/PayrollManagement';
 import LoanManagement from './payroll/LoanManagement';
 import RecurringIncomesManagement from './recurring_incomes/RecurringIncomesManagement';
 import CustomerTracking from './customers/CustomerTracking';
+import PermissionsManagement from './permissions/PermissionsManagement';
 
-import { PlusIcon, BoxIcon, CalendarIcon, MapPinIcon, UserIcon, TasksIcon, BookOpenIcon, LogoutIcon, MenuIcon, ChartIcon, CurrencyDollarIcon } from '../Icons';
+import { PlusIcon, BoxIcon, CalendarIcon, MapPinIcon, UserIcon, TasksIcon, BookOpenIcon, LogoutIcon, MenuIcon, ChartIcon, CurrencyDollarIcon, LockIcon } from '../Icons';
 
 // --- MAIN COMPONENT ---
 const AdminView: React.FC = () => {
     const { handleLogout } = useAuth();
-    const { missions, users, payrollEvents, currentUser } = useData();
+    const { missions, users, payrollEvents, currentUser, canAccess } = useData();
     const [activeTab, setActiveTab] = useState('manage');
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const [managingInventoryFor, setManagingInventoryFor] = useState<User | null>(null);
@@ -45,11 +46,13 @@ const AdminView: React.FC = () => {
 
     const missionRequestsCount = useMemo(() => missions.filter(m => m.status === MissionStatus.REQUESTED).length, [missions]);
 
-    const TABS = [
+    const ALL_TABS = [
         { id: 'manage', label: 'Gestionar', icon: <UserIcon /> },
         { id: 'missions', label: 'Misiones', icon: <TasksIcon /> },
         { id: 'requests', label: 'Solicitudes', icon: <TasksIcon />, notification: missionRequestsCount > 0 },
         { id: 'payroll', label: 'Nómina', icon: <ChartIcon /> },
+        { id: 'recurring_incomes', label: 'Ingresos', icon: <CurrencyDollarIcon /> },
+        { id: 'customers', label: 'Clientes', icon: <UserIcon /> },
         { id: 'loans', label: 'Préstamos', icon: <CurrencyDollarIcon /> },
         { id: 'leaderboard', label: 'Clasificación', icon: <ChartIcon /> },
         { id: 'create', label: 'Crear Misión', icon: <PlusIcon /> },
@@ -60,26 +63,18 @@ const AdminView: React.FC = () => {
     ];
 
     const isSuperAdmin = currentUser?.role === Role.ADMIN;
-    const isSalesOrAdmin = [Role.ADMIN, Role.SALES, Role.ADMINISTRATIVE].includes(currentUser?.role as Role);
     
     const displayTabs = useMemo(() => {
-        let tabs = [...TABS];
-        
-        if (isSalesOrAdmin) {
-            tabs.splice(1, 0, { id: 'customers', label: 'Clientes', icon: <UserIcon /> });
-        }
+        const filtered = ALL_TABS.filter(tab => canAccess(tab.id));
         
         if (isSuperAdmin) {
-            const payrollIndex = tabs.findIndex(t => t.id === 'payroll');
-            if (payrollIndex !== -1) {
-                tabs.splice(payrollIndex + 1, 0, { id: 'recurring_incomes', label: 'Ingresos', icon: <CurrencyDollarIcon /> });
-            }
+            filtered.push({ id: 'permissions', label: 'Permisos', icon: <LockIcon /> });
         }
         
-        return tabs;
-    }, [isSuperAdmin, isSalesOrAdmin, missionRequestsCount]);
+        return filtered;
+    }, [isSuperAdmin, missionRequestsCount, canAccess]);
 
-    const activeTabLabel = useMemo(() => TABS.find(tab => tab.id === activeTab)?.label || 'Panel de Administrador', [activeTab]);
+    const activeTabLabel = useMemo(() => ALL_TABS.find(tab => tab.id === activeTab)?.label || 'Panel de Administrador', [activeTab]);
 
     if (!currentUser) return null;
 
@@ -168,9 +163,12 @@ const AdminView: React.FC = () => {
                             <RecurringIncomesManagement />
                         </div>
                     )}
-                    {isSalesOrAdmin && (
-                        <div className={activeTab === 'customers' ? 'block' : 'hidden'}>
-                            <CustomerTracking />
+                    <div className={activeTab === 'customers' ? 'block' : 'hidden'}>
+                        <CustomerTracking />
+                    </div>
+                    {isSuperAdmin && (
+                        <div className={activeTab === 'permissions' ? 'block' : 'hidden'}>
+                            <PermissionsManagement />
                         </div>
                     )}
                     <div className={activeTab === 'manage' ? 'block' : 'hidden'}>
