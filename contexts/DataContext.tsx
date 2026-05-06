@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect, useMemo, createContext, useContext, useRef } from 'react';
-import { User, Mission, InventoryItem, EquipmentSlot, MissionMilestone, MissionStatus, UserInventoryItem, Supply, MissionSupply, Badge, Salary, PayrollEvent, PaymentPeriod, Role, MissionDifficulty, PayrollEventType, MissionRequirement, Company, AttendanceSummary, UserSchedule, VacationRequest, Reward, UserReward, Holiday, AuthorityRelation, MissionMilestoneType, RecurringIncome } from '../types';
+import { User, Mission, InventoryItem, EquipmentSlot, MissionMilestone, MissionStatus, UserInventoryItem, Supply, MissionSupply, Badge, Salary, PayrollEvent, PaymentPeriod, Role, MissionDifficulty, PayrollEventType, MissionRequirement, Company, AttendanceSummary, UserSchedule, VacationRequest, Reward, UserReward, Holiday, AuthorityRelation, MissionMilestoneType, RecurringIncome, CustomerProject } from '../types';
 import { supabase } from '../config';
 import { transformSupabaseProfileToUser } from '../utils/dataTransformers';
 import { useAuth } from './AuthContext';
@@ -30,6 +30,7 @@ interface DataContextType {
   holidays: Holiday[];
   authorityRelations: AuthorityRelation[];
   recurringIncomes: RecurringIncome[];
+  customerProjects: CustomerProject[];
   loading: boolean;
   viewingProfileOf: User | null;
   setViewingProfileOf: (user: User | null) => void;
@@ -103,6 +104,9 @@ interface DataContextType {
   addRecurringIncome: (data: Omit<RecurringIncome, 'id' | 'created_at'>) => Promise<void>;
   updateRecurringIncome: (id: string, data: Partial<RecurringIncome>) => Promise<void>;
   deleteRecurringIncome: (id: string) => Promise<void>;
+  addCustomerProject: (data: Omit<CustomerProject, 'id' | 'created_at'>) => Promise<void>;
+  updateCustomerProject: (id: string, data: Partial<CustomerProject>) => Promise<void>;
+  deleteCustomerProject: (id: string) => Promise<void>;
 }
 
 // --- CONTEXT CREATION ---
@@ -139,6 +143,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [holidays, setHolidays] = useState<Holiday[]>([]);
   const [authorityRelations, setAuthorityRelations] = useState<AuthorityRelation[]>([]);
   const [recurringIncomes, setRecurringIncomes] = useState<RecurringIncome[]>([]);
+  const [customerProjects, setCustomerProjects] = useState<CustomerProject[]>([]);
   const [loading, setLoading] = useState(true);
   const [viewingProfileOf, setViewingProfileOf] = useState<User | null>(null);
   const lastReconcileRef = useRef<number>(0);
@@ -432,7 +437,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         api.getVacationRequests()
       ]);
 
-      const [invRes, badgeRes, supRes, mSupRes, reqRes, rewRes, uRewRes, holRes, orgRes, recRes] = await Promise.all(l2Promises);
+      const [invRes, badgeRes, supRes, mSupRes, reqRes, rewRes, uRewRes, holRes, orgRes, recRes, custRes] = await Promise.all(l2Promises);
       const [salRes, payRes, perRes, mileRes] = await Promise.all(l3Promises);
 
       // Level 2 updates
@@ -446,6 +451,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (holRes && (holRes as any).data) setHolidays((holRes as any).data as Holiday[]);
       if (orgRes.data) setAuthorityRelations(orgRes.data as AuthorityRelation[]);
       if (recRes.data) setRecurringIncomes(recRes.data as RecurringIncome[]);
+      if (custRes.data) setCustomerProjects(custRes.data as CustomerProject[]);
 
       // Level 3 updates
       if (salRes.data) setSalaries(salRes.data as Salary[]);
@@ -527,6 +533,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       .on('postgres_changes', { event: '*', schema: 'public', table: 'holidays' }, () => fetchDataRef.current())
       .on('postgres_changes', { event: '*', schema: 'public', table: 'authority_relations' }, () => fetchDataRef.current())
       .on('postgres_changes', { event: '*', schema: 'public', table: 'recurring_incomes' }, () => fetchDataRef.current())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'customer_tracking' }, () => fetchDataRef.current())
       .subscribe((status) => {
         if (status === 'SUBSCRIBED') console.log("[Supabase] Channel ready.");
         if (status === 'CLOSED') console.warn("[Supabase] Channel closed.");
@@ -1123,6 +1130,35 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } catch (e) { showToast('Error al eliminar ingreso.', 'error'); }
   };
 
+  const addCustomerProject = async (data: any) => {
+    if (currentUser?.id.startsWith('demo-')) { showToast('Acción simulada en modo demo.', 'success'); return; }
+    try {
+      await api.addCustomerProject(data);
+      showToast('Proyecto de cliente añadido.', 'success');
+      fetchData();
+    } catch (e) { showToast('Error al añadir proyecto.', 'error'); }
+  };
+
+  const updateCustomerProject = async (id: string, data: any) => {
+    if (currentUser?.id.startsWith('demo-')) { showToast('Acción simulada en modo demo.', 'success'); return; }
+    try {
+      await api.updateCustomerProject(id, data);
+      showToast('Proyecto de cliente actualizado.', 'success');
+      fetchData();
+    } catch (e) { showToast('Error al actualizar proyecto.', 'error'); }
+  };
+
+  const deleteCustomerProject = async (id: string) => {
+    if (currentUser?.id.startsWith('demo-')) { showToast('Acción simulada en modo demo.', 'success'); return; }
+    try {
+      if (window.confirm('¿Estás seguro de eliminar este proyecto?')) {
+        await api.deleteCustomerProject(id);
+        showToast('Proyecto de cliente eliminado.', 'success');
+        fetchData();
+      }
+    } catch (e) { showToast('Error al eliminar proyecto.', 'error'); }
+  };
+
   const upsertAuthorityRelation = async (managerId: string, subordinateId: string, notes?: string | null) => {
     if (currentUser?.id.startsWith('demo-')) { showToast('Acción simulada en modo demo.', 'success'); return; }
     try {
@@ -1226,7 +1262,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }), [
     currentUser, users, missions, allInventoryItems, allBadges, missionMilestones, supplies, 
     missionSupplies, missionRequirements, salaries, payrollEvents, paymentPeriods, userSchedules, 
-    attendanceUsers, vacationRequests, rewardItems, userRewards, loading, viewingProfileOf, holidays, authorityRelations, recurringIncomes,
+    attendanceUsers, vacationRequests, rewardItems, userRewards, loading, viewingProfileOf, holidays, authorityRelations, recurringIncomes, customerProjects,
     updateMission, updateUser, deactivateUser, updateUserAvatar, addMission, requestMission, 
     technicianRequestMission, requestToJoinMission, approveJoinRequest, rejectJoinRequest, 
     rejectMissionRequest, deleteMission, addMissionMilestone, toggleMilestoneSolution, 
@@ -1239,7 +1275,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     updateMissionRequirement, deleteMissionRequirement, updateUserSchedule, requestVacation, 
     updateVacationStatus, deleteVacationRequest, purchaseReward, addReward, updateReward, 
     deleteReward, addHoliday, deleteHoliday, upsertAuthorityRelation, removeAuthorityRelation,
-    addRecurringIncome, updateRecurringIncome, deleteRecurringIncome
+    addRecurringIncome, updateRecurringIncome, deleteRecurringIncome,
+    addCustomerProject, updateCustomerProject, deleteCustomerProject
   ]);
 
   return (

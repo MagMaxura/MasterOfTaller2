@@ -66,6 +66,7 @@ export const api = {
       supabase.from('holidays').select('*').order('date', { ascending: true }),
       supabase.from('authority_relations').select('*').eq('active', true),
       supabase.from('recurring_incomes').select('*').order('created_at', { ascending: false }),
+      supabase.from('customer_tracking').select('*').order('created_at', { ascending: false }),
     ];
   },
 
@@ -365,6 +366,24 @@ export const api = {
   },
   async deleteRecurringIncome(id: string) {
     const { error } = await supabase.from('recurring_incomes').delete().eq('id', id);
+    if (error) throw new Error(error.message);
+  },
+  // --- CUSTOMER TRACKING ---
+  async getCustomerProjects() {
+    const { data, error } = await supabase.from('customer_tracking').select('*').order('created_at', { ascending: false });
+    if (error) throw new Error(error.message);
+    return data;
+  },
+  async addCustomerProject(data: any) {
+    const { error } = await supabase.from('customer_tracking').insert(data);
+    if (error) throw new Error(error.message);
+  },
+  async updateCustomerProject(id: string, data: any) {
+    const { error } = await supabase.from('customer_tracking').update(data).eq('id', id);
+    if (error) throw new Error(error.message);
+  },
+  async deleteCustomerProject(id: string) {
+    const { error } = await supabase.from('customer_tracking').delete().eq('id', id);
     if (error) throw new Error(error.message);
   }
 };

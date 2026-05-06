@@ -23,6 +23,7 @@ import AddPayrollEventModal from './payroll/AddPayrollEventModal';
 import PayrollManagement from './payroll/PayrollManagement';
 import LoanManagement from './payroll/LoanManagement';
 import RecurringIncomesManagement from './recurring_incomes/RecurringIncomesManagement';
+import CustomerTracking from './customers/CustomerTracking';
 
 import { PlusIcon, BoxIcon, CalendarIcon, MapPinIcon, UserIcon, TasksIcon, BookOpenIcon, LogoutIcon, MenuIcon, ChartIcon, CurrencyDollarIcon } from '../Icons';
 
@@ -44,21 +45,39 @@ const AdminView: React.FC = () => {
 
     const missionRequestsCount = useMemo(() => missions.filter(m => m.status === MissionStatus.REQUESTED).length, [missions]);
 
+    const TABS = [
+        { id: 'manage', label: 'Gestionar', icon: <UserIcon /> },
+        { id: 'missions', label: 'Misiones', icon: <TasksIcon /> },
+        { id: 'requests', label: 'Solicitudes', icon: <TasksIcon />, notification: missionRequestsCount > 0 },
+        { id: 'payroll', label: 'Nómina', icon: <ChartIcon /> },
+        { id: 'loans', label: 'Préstamos', icon: <CurrencyDollarIcon /> },
+        { id: 'leaderboard', label: 'Clasificación', icon: <ChartIcon /> },
+        { id: 'create', label: 'Crear Misión', icon: <PlusIcon /> },
+        { id: 'stock', label: 'Stock (Equipo)', icon: <BoxIcon /> },
+        { id: 'supplies', label: 'Insumos', icon: <BoxIcon /> },
+        { id: 'calendar', label: 'Calendario', icon: <CalendarIcon /> },
         { id: 'live_map', label: 'Mapa', icon: <MapPinIcon /> },
     ];
 
     const isSuperAdmin = currentUser?.role === Role.ADMIN;
+    const isSalesOrAdmin = [Role.ADMIN, Role.SALES, Role.ADMINISTRATIVE].includes(currentUser?.role as Role);
     
     const displayTabs = useMemo(() => {
-        if (isSuperAdmin) {
-            return [
-                ...TABS.slice(0, 5),
-                { id: 'recurring_incomes', label: 'Ingresos', icon: <CurrencyDollarIcon /> },
-                ...TABS.slice(5)
-            ];
+        let tabs = [...TABS];
+        
+        if (isSalesOrAdmin) {
+            tabs.splice(1, 0, { id: 'customers', label: 'Clientes', icon: <UserIcon /> });
         }
-        return TABS;
-    }, [isSuperAdmin, missionRequestsCount]);
+        
+        if (isSuperAdmin) {
+            const payrollIndex = tabs.findIndex(t => t.id === 'payroll');
+            if (payrollIndex !== -1) {
+                tabs.splice(payrollIndex + 1, 0, { id: 'recurring_incomes', label: 'Ingresos', icon: <CurrencyDollarIcon /> });
+            }
+        }
+        
+        return tabs;
+    }, [isSuperAdmin, isSalesOrAdmin, missionRequestsCount]);
 
     const activeTabLabel = useMemo(() => TABS.find(tab => tab.id === activeTab)?.label || 'Panel de Administrador', [activeTab]);
 
@@ -147,6 +166,11 @@ const AdminView: React.FC = () => {
                     {isSuperAdmin && (
                         <div className={activeTab === 'recurring_incomes' ? 'block' : 'hidden'}>
                             <RecurringIncomesManagement />
+                        </div>
+                    )}
+                    {isSalesOrAdmin && (
+                        <div className={activeTab === 'customers' ? 'block' : 'hidden'}>
+                            <CustomerTracking />
                         </div>
                     )}
                     <div className={activeTab === 'manage' ? 'block' : 'hidden'}>

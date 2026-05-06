@@ -350,3 +350,15 @@ export interface RecurringIncome {
   invoice_name: string;
   created_at: string;
 }
+
+export interface CustomerProject {
+  id: string;
+  customer_name: string;
+  project_name: string;
+  company: string;
+  phone: string;
+  job_type: string;
+  requirements: string;
+  status: string;
+  created_at: string;
+}
