@@ -1,6 +1,6 @@
 
 import React, { useState, useMemo } from 'react';
-import { User, Mission, MissionStatus, PayrollEvent } from '../../types';
+import { User, Mission, MissionStatus, PayrollEvent, Role } from '../../types';
 import { useData } from '../../contexts/DataContext';
 import { useAuth } from '../../contexts/AuthContext';
 
@@ -22,6 +22,7 @@ import Leaderboard from '../common/Leaderboard';
 import AddPayrollEventModal from './payroll/AddPayrollEventModal';
 import PayrollManagement from './payroll/PayrollManagement';
 import LoanManagement from './payroll/LoanManagement';
+import RecurringIncomesManagement from './recurring_incomes/RecurringIncomesManagement';
 
 import { PlusIcon, BoxIcon, CalendarIcon, MapPinIcon, UserIcon, TasksIcon, BookOpenIcon, LogoutIcon, MenuIcon, ChartIcon, CurrencyDollarIcon } from '../Icons';
 
@@ -43,19 +44,21 @@ const AdminView: React.FC = () => {
 
     const missionRequestsCount = useMemo(() => missions.filter(m => m.status === MissionStatus.REQUESTED).length, [missions]);
 
-    const TABS = [
-        { id: 'manage', label: 'Gestionar', icon: <UserIcon /> },
-        { id: 'missions', label: 'Misiones', icon: <TasksIcon /> },
-        { id: 'requests', label: 'Solicitudes', icon: <TasksIcon />, notification: missionRequestsCount > 0 },
-        { id: 'payroll', label: 'Nómina', icon: <ChartIcon /> },
-        { id: 'loans', label: 'Préstamos', icon: <CurrencyDollarIcon /> },
-        { id: 'leaderboard', label: 'Clasificación', icon: <ChartIcon /> },
-        { id: 'create', label: 'Crear Misión', icon: <PlusIcon /> },
-        { id: 'stock', label: 'Stock (Equipo)', icon: <BoxIcon /> },
-        { id: 'supplies', label: 'Insumos', icon: <BoxIcon /> },
-        { id: 'calendar', label: 'Calendario', icon: <CalendarIcon /> },
         { id: 'live_map', label: 'Mapa', icon: <MapPinIcon /> },
     ];
+
+    const isSuperAdmin = currentUser?.role === Role.ADMIN;
+    
+    const displayTabs = useMemo(() => {
+        if (isSuperAdmin) {
+            return [
+                ...TABS.slice(0, 5),
+                { id: 'recurring_incomes', label: 'Ingresos', icon: <CurrencyDollarIcon /> },
+                ...TABS.slice(5)
+            ];
+        }
+        return TABS;
+    }, [isSuperAdmin, missionRequestsCount]);
 
     const activeTabLabel = useMemo(() => TABS.find(tab => tab.id === activeTab)?.label || 'Panel de Administrador', [activeTab]);
 
@@ -71,7 +74,7 @@ const AdminView: React.FC = () => {
                 </div>
             </div>
             <nav className="flex-grow flex flex-col space-y-2">
-                {TABS.map(tab => (
+                {displayTabs.map(tab => (
                     <button
                         key={tab.id}
                         onClick={() => {
@@ -141,6 +144,11 @@ const AdminView: React.FC = () => {
                     <div className={activeTab === 'loans' ? 'block' : 'hidden'}>
                         <LoanManagement />
                     </div>
+                    {isSuperAdmin && (
+                        <div className={activeTab === 'recurring_incomes' ? 'block' : 'hidden'}>
+                            <RecurringIncomesManagement />
+                        </div>
+                    )}
                     <div className={activeTab === 'manage' ? 'block' : 'hidden'}>
                         <UserManagement
                             onManageInventory={setManagingInventoryFor}

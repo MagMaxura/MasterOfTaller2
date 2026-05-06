@@ -82,8 +82,10 @@ const TechnicianPayRow: React.FC<{
     onEditSchedule: (user: User) => void;
     onMarkAsPaid: (periodId: string) => void;
     onPartialPayment: (period: PaymentPeriod) => void;
-}> = ({ user, period, onAddEvent, onEditEvent, onEditSchedule, onMarkAsPaid, onPartialPayment }) => {
+    onRecalculate: (userId: string) => Promise<void>;
+}> = ({ user, period, onAddEvent, onEditEvent, onEditSchedule, onMarkAsPaid, onPartialPayment, onRecalculate }) => {
     const [isExpanded, setIsExpanded] = useState(false);
+    const [localLoading, setLocalLoading] = useState(false);
 
     // Group events for summary
     const summary = useMemo(() => {
@@ -190,12 +192,34 @@ const TechnicianPayRow: React.FC<{
                             </div>
                         )}
                         {period?.estado !== PaymentStatus.PAID && (
-                            <button
-                                onClick={(e) => { e.stopPropagation(); onAddEvent && onAddEvent(user); }}
-                                className="flex-1 sm:flex-none bg-brand-blue text-white text-[10px] font-black uppercase px-4 py-2 rounded-xl hover:bg-blue-600 transition-all shadow-lg active:scale-95"
-                            >
-                                Evento
-                            </button>
+                            <div className="flex gap-1">
+                                <button
+                                    onClick={async (e) => { 
+                                        e.stopPropagation(); 
+                                        setLocalLoading(true);
+                                        await onRecalculate(user.id);
+                                        setLocalLoading(false);
+                                    }}
+                                    disabled={localLoading}
+                                    className="flex-1 sm:flex-none bg-brand-orange text-white text-[10px] font-black uppercase px-3 py-2 rounded-xl hover:bg-brand-orange/80 transition-all shadow-lg active:scale-95 flex items-center justify-center gap-1 min-w-[90px]"
+                                    title="Recalcular asistencia y nómina para este usuario"
+                                >
+                                    {localLoading ? (
+                                        <div className="w-3 h-3 border-2 border-t-transparent border-white rounded-full animate-spin"></div>
+                                    ) : (
+                                        <>
+                                            <ClockIcon className="w-3.5 h-3.5" />
+                                            <span>Recalcular</span>
+                                        </>
+                                    )}
+                                </button>
+                                <button
+                                    onClick={(e) => { e.stopPropagation(); onAddEvent && onAddEvent(user); }}
+                                    className="flex-1 sm:flex-none bg-brand-blue text-white text-[10px] font-black uppercase px-4 py-2 rounded-xl hover:bg-blue-600 transition-all shadow-lg active:scale-95"
+                                >
+                                    Evento
+                                </button>
+                            </div>
                         )}
                     </div>
                 </div>
@@ -313,7 +337,7 @@ interface PayrollManagementProps {
 }
 
 const PayrollManagement: React.FC<PayrollManagementProps> = ({ onAddEvent, onEditEvent }) => {
-    const { users, paymentPeriods, userSchedules, calculatePayPeriods, markPeriodAsPaid, registrarPagoParcial, updateUserSchedule } = useData();
+    const { users, paymentPeriods, userSchedules, calculatePayPeriods, calculateUserPayroll, markPeriodAsPaid, registrarPagoParcial, updateUserSchedule } = useData();
     const [isLoading, setIsLoading] = useState<'calculating' | 'paying' | null>(null);
     const [editingScheduleUser, setEditingScheduleUser] = useState<User | null>(null);
     const [partialPayPeriod, setPartialPayPeriod] = useState<PaymentPeriod | null>(null);
@@ -499,6 +523,7 @@ const PayrollManagement: React.FC<PayrollManagementProps> = ({ onAddEvent, onEdi
                                 onEditSchedule={(u) => setEditingScheduleUser(u)}
                                 onMarkAsPaid={handleMarkSingleAsPaid}
                                 onPartialPayment={(p) => setPartialPayPeriod(p)}
+                                onRecalculate={calculateUserPayroll}
                             />
                         })}
                     </div>

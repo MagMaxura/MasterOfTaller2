@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect, useMemo, createContext, useContext, useRef } from 'react';
-import { User, Mission, InventoryItem, EquipmentSlot, MissionMilestone, MissionStatus, UserInventoryItem, Supply, MissionSupply, Badge, Salary, PayrollEvent, PaymentPeriod, Role, MissionDifficulty, PayrollEventType, MissionRequirement, Company, AttendanceSummary, UserSchedule, VacationRequest, Reward, UserReward, Holiday, AuthorityRelation, MissionMilestoneType } from '../types';
+import { User, Mission, InventoryItem, EquipmentSlot, MissionMilestone, MissionStatus, UserInventoryItem, Supply, MissionSupply, Badge, Salary, PayrollEvent, PaymentPeriod, Role, MissionDifficulty, PayrollEventType, MissionRequirement, Company, AttendanceSummary, UserSchedule, VacationRequest, Reward, UserReward, Holiday, AuthorityRelation, MissionMilestoneType, RecurringIncome } from '../types';
 import { supabase } from '../config';
 import { transformSupabaseProfileToUser } from '../utils/dataTransformers';
 import { useAuth } from './AuthContext';
@@ -29,6 +29,7 @@ interface DataContextType {
   userRewards: UserReward[];
   holidays: Holiday[];
   authorityRelations: AuthorityRelation[];
+  recurringIncomes: RecurringIncome[];
   loading: boolean;
   viewingProfileOf: User | null;
   setViewingProfileOf: (user: User | null) => void;
@@ -81,6 +82,7 @@ interface DataContextType {
   deletePayrollEvent: (id: string) => Promise<void>;
   createMissionBonusEvent: (userId: string, mission: Mission) => Promise<void>;
   calculatePayPeriods: () => Promise<void>;
+  calculateUserPayroll: (userId: string) => Promise<void>;
   markPeriodAsPaid: (periodId: string) => Promise<void>;
   registrarPagoParcial: (periodId: string, monto: number) => Promise<void>;
   addMissionRequirement: (missionId: string, description: string, quantity: number) => Promise<void>;
@@ -98,6 +100,9 @@ interface DataContextType {
   deleteHoliday: (id: string) => Promise<void>;
   upsertAuthorityRelation: (managerId: string, subordinateId: string, notes?: string | null) => Promise<void>;
   removeAuthorityRelation: (subordinateId: string) => Promise<void>;
+  addRecurringIncome: (data: Omit<RecurringIncome, 'id' | 'created_at'>) => Promise<void>;
+  updateRecurringIncome: (id: string, data: Partial<RecurringIncome>) => Promise<void>;
+  deleteRecurringIncome: (id: string) => Promise<void>;
 }
 
 // --- CONTEXT CREATION ---
@@ -133,6 +138,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [userRewards, setUserRewards] = useState<UserReward[]>([]);
   const [holidays, setHolidays] = useState<Holiday[]>([]);
   const [authorityRelations, setAuthorityRelations] = useState<AuthorityRelation[]>([]);
+  const [recurringIncomes, setRecurringIncomes] = useState<RecurringIncome[]>([]);
   const [loading, setLoading] = useState(true);
   const [viewingProfileOf, setViewingProfileOf] = useState<User | null>(null);
   const lastReconcileRef = useRef<number>(0);
@@ -200,8 +206,17 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
                const diffMinutes = (checkInDate.getHours() * 60 + checkInDate.getMinutes()) - (stH * 60 + stM);
                const currentTardinessEvent = currentEvents.find(e => e.user_id === user.id && e.fecha_evento === date && e.tipo === PayrollEventType.TARDINESS);
 
-               if (diffMinutes > (schedule.tolerance_minutes ?? 10) && !currentTardinessEvent) {
-                 await api.addPayrollEvent({ user_id: user.id, tipo: PayrollEventType.TARDINESS, monto: 0, descripcion: `TARDANZA (Entrada: ${checkInDate.getHours()}:${checkInDate.getMinutes().toString().padStart(2, '0')})`, fecha_evento: date, justificado: false, notas_justificacion: '' } as any);
+               if (diffMinutes > (schedule.tolerance_minutes ?? 10)) {
+                 const newDesc = `TARDANZA (Entrada: ${checkInDate.getHours()}:${checkInDate.getMinutes().toString().padStart(2, '0')})`;
+                 if (!currentTardinessEvent) {
+                   await api.addPayrollEvent({ user_id: user.id, tipo: PayrollEventType.TARDINESS, monto: 0, descripcion: newDesc, fecha_evento: date, justificado: false, notas_justificacion: '' } as any);
+                   changed = true;
+                 } else if (currentTardinessEvent.descripcion !== newDesc) {
+                   await api.updatePayrollEvent(currentTardinessEvent.id, { descripcion: newDesc, monto: 0 });
+                   changed = true;
+                 }
+               } else if (currentTardinessEvent) {
+                 await api.deletePayrollEvent(currentTardinessEvent.id);
                  changed = true;
                }
              }
@@ -212,8 +227,17 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
                const diffEarlyMinutes = (etH * 60 + etM) - (checkOutDate.getHours() * 60 + checkOutDate.getMinutes());
                const currentEarlyEvent = currentEvents.find(e => e.user_id === user.id && e.fecha_evento === date && e.tipo === PayrollEventType.EARLY_DEPARTURE);
 
-               if (diffEarlyMinutes > (schedule.exit_tolerance_minutes ?? 10) && !currentEarlyEvent) {
-                 await api.addPayrollEvent({ user_id: user.id, tipo: PayrollEventType.EARLY_DEPARTURE, monto: 0, descripcion: `SALIDA TEMPRANA (Salida: ${checkOutDate.getHours()}:${checkOutDate.getMinutes().toString().padStart(2, '0')})`, fecha_evento: date, justificado: false, notas_justificacion: '' } as any);
+               if (diffEarlyMinutes > (schedule.exit_tolerance_minutes ?? 10)) {
+                 const newDesc = `SALIDA TEMPRANA (Salida: ${checkOutDate.getHours()}:${checkOutDate.getMinutes().toString().padStart(2, '0')})`;
+                 if (!currentEarlyEvent) {
+                   await api.addPayrollEvent({ user_id: user.id, tipo: PayrollEventType.EARLY_DEPARTURE, monto: 0, descripcion: newDesc, fecha_evento: date, justificado: false, notas_justificacion: '' } as any);
+                   changed = true;
+                 } else if (currentEarlyEvent.descripcion !== newDesc) {
+                   await api.updatePayrollEvent(currentEarlyEvent.id, { descripcion: newDesc, monto: 0 });
+                   changed = true;
+                 }
+               } else if (currentEarlyEvent) {
+                 await api.deletePayrollEvent(currentEarlyEvent.id);
                  changed = true;
                }
              }
@@ -408,7 +432,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         api.getVacationRequests()
       ]);
 
-      const [invRes, badgeRes, supRes, mSupRes, reqRes, rewRes, uRewRes, holRes, orgRes] = await Promise.all(l2Promises);
+      const [invRes, badgeRes, supRes, mSupRes, reqRes, rewRes, uRewRes, holRes, orgRes, recRes] = await Promise.all(l2Promises);
       const [salRes, payRes, perRes, mileRes] = await Promise.all(l3Promises);
 
       // Level 2 updates
@@ -421,6 +445,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (uRewRes.data) setUserRewards(uRewRes.data as UserReward[]);
       if (holRes && (holRes as any).data) setHolidays((holRes as any).data as Holiday[]);
       if (orgRes.data) setAuthorityRelations(orgRes.data as AuthorityRelation[]);
+      if (recRes.data) setRecurringIncomes(recRes.data as RecurringIncome[]);
 
       // Level 3 updates
       if (salRes.data) setSalaries(salRes.data as Salary[]);
@@ -501,6 +526,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       .on('postgres_changes', { event: '*', schema: 'public', table: 'vacation_requests' }, () => fetchDataRef.current())
       .on('postgres_changes', { event: '*', schema: 'public', table: 'holidays' }, () => fetchDataRef.current())
       .on('postgres_changes', { event: '*', schema: 'public', table: 'authority_relations' }, () => fetchDataRef.current())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'recurring_incomes' }, () => fetchDataRef.current())
       .subscribe((status) => {
         if (status === 'SUBSCRIBED') console.log("[Supabase] Channel ready.");
         if (status === 'CLOSED') console.warn("[Supabase] Channel closed.");
@@ -868,6 +894,47 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       showToast(`Nómina y asistencia calculadas para los períodos vigentes.`, 'success');
     } catch (e) { showToast((e as Error).message, 'error'); }
   };
+
+  const calculateUserPayroll = async (userId: string) => {
+    if (currentUser?.id.startsWith('demo-')) { showToast('Acción simulada en modo demo.', 'success'); return; }
+    
+    const user = users.find(u => u.id === userId);
+    if (!user) return;
+
+    const today = new Date();
+    const day = today.getDate();
+    const year = today.getFullYear();
+    const month = today.getMonth();
+    const formatDate = (d: Date) => d.toISOString().split('T')[0];
+    const periodsToCalculate: { start: string, end: string }[] = [];
+
+    // Replicate period logic (Standard + Shifted)
+    if (day <= 10) {
+      periodsToCalculate.push({ start: formatDate(new Date(year, month - 1, 16)), end: formatDate(new Date(year, month, 0)) });
+      periodsToCalculate.push({ start: formatDate(new Date(year, month - 1, 21)), end: formatDate(new Date(year, month, 5)) });
+    } else if (day >= 11 && day <= 20) {
+      periodsToCalculate.push({ start: formatDate(new Date(year, month, 1)), end: formatDate(new Date(year, month, 15)) });
+      periodsToCalculate.push({ start: formatDate(new Date(year, month, 6)), end: formatDate(new Date(year, month, 20)) });
+    } else if (day >= 21 && day <= 25) {
+      periodsToCalculate.push({ start: formatDate(new Date(year, month, 16)), end: formatDate(new Date(year, month + 1, 0)) });
+      periodsToCalculate.push({ start: formatDate(new Date(year, month, 6)), end: formatDate(new Date(year, month, 20)) });
+    } else {
+      periodsToCalculate.push({ start: formatDate(new Date(year, month, 16)), end: formatDate(new Date(year, month + 1, 0)) });
+      periodsToCalculate.push({ start: formatDate(new Date(year, month, 21)), end: formatDate(new Date(year, month + 1, 5)) });
+    }
+
+    try {
+      for (const p of periodsToCalculate) {
+        // Sync ONLY for this user
+        await reconcilePeriodAttendance([user], payrollEvents, p.start, p.end, holidays, vacationRequests, userSchedules);
+        // Calculate payroll globally (it's safe as it's an UPSERT and fast)
+        await api.calculatePayroll(p.start, p.end);
+      }
+      await fetchData();
+      showToast(`Asistencia y nómina actualizadas para ${user.name}.`, 'success');
+    } catch (e) { showToast((e as Error).message, 'error'); }
+  };
+
   const markPeriodAsPaid = async (periodId: string) => {
     if (currentUser?.id.startsWith('demo-')) { showToast('Acción simulada en modo demo.', 'success'); return; }
     try {
@@ -1027,6 +1094,35 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } catch (e) { showToast('Error al eliminar feriado.', 'error'); }
   };
 
+  const addRecurringIncome = async (data: any) => {
+    if (currentUser?.id.startsWith('demo-')) { showToast('Acción simulada en modo demo.', 'success'); return; }
+    try {
+      await api.addRecurringIncome(data);
+      showToast('Ingreso recurrente añadido.', 'success');
+      fetchData();
+    } catch (e) { showToast('Error al añadir ingreso.', 'error'); }
+  };
+
+  const updateRecurringIncome = async (id: string, data: any) => {
+    if (currentUser?.id.startsWith('demo-')) { showToast('Acción simulada en modo demo.', 'success'); return; }
+    try {
+      await api.updateRecurringIncome(id, data);
+      showToast('Ingreso recurrente actualizado.', 'success');
+      fetchData();
+    } catch (e) { showToast('Error al actualizar ingreso.', 'error'); }
+  };
+
+  const deleteRecurringIncome = async (id: string) => {
+    if (currentUser?.id.startsWith('demo-')) { showToast('Acción simulada en modo demo.', 'success'); return; }
+    try {
+      if (window.confirm('¿Estás seguro de eliminar este ingreso?')) {
+        await api.deleteRecurringIncome(id);
+        showToast('Ingreso recurrente eliminado.', 'success');
+        fetchData();
+      }
+    } catch (e) { showToast('Error al eliminar ingreso.', 'error'); }
+  };
+
   const upsertAuthorityRelation = async (managerId: string, subordinateId: string, notes?: string | null) => {
     if (currentUser?.id.startsWith('demo-')) { showToast('Acción simulada en modo demo.', 'success'); return; }
     try {
@@ -1108,6 +1204,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     deletePayrollEvent,
     createMissionBonusEvent,
     calculatePayPeriods,
+    calculateUserPayroll,
     markPeriodAsPaid,
     registrarPagoParcial,
     addMissionRequirement,
@@ -1129,7 +1226,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }), [
     currentUser, users, missions, allInventoryItems, allBadges, missionMilestones, supplies, 
     missionSupplies, missionRequirements, salaries, payrollEvents, paymentPeriods, userSchedules, 
-    attendanceUsers, vacationRequests, rewardItems, userRewards, loading, viewingProfileOf, holidays, authorityRelations,
+    attendanceUsers, vacationRequests, rewardItems, userRewards, loading, viewingProfileOf, holidays, authorityRelations, recurringIncomes,
     updateMission, updateUser, deactivateUser, updateUserAvatar, addMission, requestMission, 
     technicianRequestMission, requestToJoinMission, approveJoinRequest, rejectJoinRequest, 
     rejectMissionRequest, deleteMission, addMissionMilestone, toggleMilestoneSolution, 
@@ -1138,10 +1235,11 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     sendNotification, addSupply, updateSupply, deleteSupply, assignSupplyToMission, 
     updateMissionSupply, removeSupplyFromMission, assignBadge, revokeBadge, setSalary, 
     addPayrollEvent, updatePayrollEvent, deletePayrollEvent, createMissionBonusEvent, 
-    calculatePayPeriods, markPeriodAsPaid, registrarPagoParcial, addMissionRequirement, 
+    calculatePayPeriods, calculateUserPayroll, markPeriodAsPaid, registrarPagoParcial, addMissionRequirement, 
     updateMissionRequirement, deleteMissionRequirement, updateUserSchedule, requestVacation, 
     updateVacationStatus, deleteVacationRequest, purchaseReward, addReward, updateReward, 
-    deleteReward, addHoliday, deleteHoliday, upsertAuthorityRelation, removeAuthorityRelation
+    deleteReward, addHoliday, deleteHoliday, upsertAuthorityRelation, removeAuthorityRelation,
+    addRecurringIncome, updateRecurringIncome, deleteRecurringIncome
   ]);
 
   return (
@@ -1150,4 +1248,3 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     </DataContext.Provider>
   );
 };
-

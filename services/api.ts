@@ -18,15 +18,13 @@ type HolidayInsert = { date: string; description: string };
 type PayrollEventInsert = Database['public']['Tables']['eventos_nomina']['Insert'];
 type PaymentPeriodInsert = Database['public']['Tables']['periodos_pago']['Insert'];
 type PaymentPeriodUpdate = Database['public']['Tables']['periodos_pago']['Update'];
-type UserScheduleUpdate = any; // Assuming it's not in types yet
+type UserScheduleUpdate = any; 
 type UserScheduleInsert = any;
 
 
 export const api = {
-  // --- FETCH (Utilizando Supabase para sincronización en tiempo real) ---
+  // --- FETCH ---
   async getInitialData(userId: string) {
-    // Keep for backward compatibility but redirect to stages or keep as is if needed.
-    // However, to optimize, we will call these separately from DataContext.
     return Promise.all([
       ...(await this.getLevel1Data(userId)),
       ...(await this.getLevel2Data(userId)),
@@ -67,6 +65,7 @@ export const api = {
       supabase.from('user_rewards').select('*, reward:reward_items(*)'),
       supabase.from('holidays').select('*').order('date', { ascending: true }),
       supabase.from('authority_relations').select('*').eq('active', true),
+      supabase.from('recurring_incomes').select('*').order('created_at', { ascending: false }),
     ];
   },
 
@@ -95,27 +94,15 @@ export const api = {
   async deleteMission(missionId: string) {
     const { error: eventsError } = await supabase.from('eventos_nomina').delete().eq('mission_id', missionId);
     if (eventsError) throw new Error(`Error deleting associated payroll events: ${eventsError.message}`);
-
     const { error: suppliesError } = await supabase.from('mission_supplies').delete().eq('mission_id', missionId);
     if (suppliesError) throw new Error(`Error deleting associated mission supplies: ${suppliesError.message}`);
-
     const { error: milestonesError } = await supabase.from('mission_milestones').delete().eq('mission_id', missionId);
     if (milestonesError) throw new Error(`Error deleting associated milestones: ${milestonesError.message}`);
-
     const { error } = await supabase.from('missions').delete().eq('id', missionId);
-    if (error) {
-      const isRlsError = error.message.includes("violates row-level security policy") || error.code === '42501';
-      const errorMessage = isRlsError
-        ? "Error de Permisos: Para eliminar misiones, el rol 'administrador' debe tener permisos de 'DELETE' en las políticas de seguridad (RLS) de Supabase para las tablas: 'missions', 'mission_supplies' y 'mission_milestones'."
-        : `Error final al eliminar la misión: ${error.message}`;
-      throw new Error(errorMessage);
-    }
+    if (error) throw new Error(error.message);
   },
   async createProfile(insertData: { id: string, name: string, avatar: string, role: Database['public']['Enums']['role'] }) {
-    const { error } = await supabase.from('profiles').upsert({
-      ...insertData,
-      is_active: true
-    });
+    const { error } = await supabase.from('profiles').upsert({ ...insertData, is_active: true });
     if (error) throw new Error(error.message);
   },
   async updateUser(id: string, updateData: ProfileUpdate) {
@@ -141,17 +128,11 @@ export const api = {
     });
     if (error) throw new Error(error.message);
     const result = Array.isArray(data) ? data[0] : data;
-    return {
-      is_valid: Boolean(result?.is_valid),
-      message: String(result?.message || 'Validación incompleta')
-    };
+    return { is_valid: Boolean(result?.is_valid), message: String(result?.message || 'Validación incompleta') };
   },
   async assignInventoryItem(userId: string, itemId: string, assignedAt?: string, variantId?: string) {
     const { data, error } = await supabase.from('user_inventory').insert({
-      user_id: userId,
-      item_id: itemId,
-      assigned_at: assignedAt || new Date().toISOString(),
-      variant_id: variantId || null
+      user_id: userId, item_id: itemId, assigned_at: assignedAt || new Date().toISOString(), variant_id: variantId || null
     }).select().single();
     if (error) throw new Error(error.message);
     return data;
@@ -177,29 +158,24 @@ export const api = {
     const filePath = `${itemData.name.replace(/\s+/g, '_')}-${Date.now()}.${fileExt}`;
     const { error: uploadError } = await supabase.storage.from('iconos-equipamiento').upload(filePath, iconFile);
     if (uploadError) throw new Error(`Error subiendo ícono: ${uploadError.message}`);
-
     const { data: urlData } = supabase.storage.from('iconos-equipamiento').getPublicUrl(filePath);
-    if (!urlData.publicUrl) throw new Error("No se pudo obtener la URL del ícono.");
-
     const { error: dbError } = await supabase.from('inventory_items').insert({ ...itemData, icon_url: urlData.publicUrl });
     if (dbError) throw new Error(`Error creando insumo: ${dbError.message}`);
   },
   async deleteInventoryItem(itemId: string, iconUrl: string) {
     const { error: dbError } = await supabase.from('inventory_items').delete().eq('id', itemId);
     if (dbError) throw new Error(dbError.message);
-
     try {
       const filePath = new URL(iconUrl).pathname.split('/iconos-equipamiento/')[1];
       if (filePath) await supabase.storage.from('iconos-equipamiento').remove([filePath]);
-    } catch (e) { console.warn("Could not delete storage item, it might not exist:", e); }
+    } catch (e) { console.warn("Could not delete storage item:", e); }
   },
   async addSupply(supplyData: Omit<SupplyInsert, 'photo_url'>, photoFile: File | null) {
     let photoUrl: string | null = null;
     if (photoFile) {
       const fileExt = photoFile.name.split('.').pop();
       const filePath = `supply_photos/${supplyData.model.replace(/\s+/g, '_')}-${Date.now()}.${fileExt}`;
-      const { error: uploadError } = await supabase.storage.from('public-assets').upload(filePath, photoFile);
-      if (uploadError) throw new Error(`Error subiendo foto: ${uploadError.message}`);
+      await supabase.storage.from('public-assets').upload(filePath, photoFile);
       const { data: urlData } = supabase.storage.from('public-assets').getPublicUrl(filePath);
       photoUrl = urlData.publicUrl;
     }
@@ -211,8 +187,7 @@ export const api = {
     if (photoFile) {
       const fileExt = photoFile.name.split('.').pop();
       const filePath = `supply_photos/${supplyData.model?.replace(/\s+/g, '_')}-${Date.now()}.${fileExt}`;
-      const { error: uploadError } = await supabase.storage.from('public-assets').upload(filePath, photoFile, { upsert: true });
-      if (uploadError) throw new Error(`Error subiendo foto: ${uploadError.message}`);
+      await supabase.storage.from('public-assets').upload(filePath, photoFile, { upsert: true });
       const { data: urlData } = supabase.storage.from('public-assets').getPublicUrl(filePath);
       photoUrl = urlData.publicUrl;
     }
@@ -221,13 +196,7 @@ export const api = {
   },
   async deleteSupply(supply: Supply) {
     const { error } = await supabase.from('supplies').delete().eq('id', supply.id);
-    if (error) throw new Error(`No se pudo eliminar el insumo. Es posible que esté asignado a una misión. Detalle: ${error.message}`);
-    if (supply.photo_url) {
-      try {
-        const filePath = new URL(supply.photo_url).pathname.split('/public-assets/')[1];
-        if (filePath) await supabase.storage.from('public-assets').remove([filePath]);
-      } catch (e) { console.warn("No se pudo eliminar la foto del insumo:", e); }
-    }
+    if (error) throw new Error(error.message);
   },
   async assignSupplyToMission(missionId: string, supplyId: string, quantity: number) {
     const { error } = await supabase.from('mission_supplies').insert({ mission_id: missionId, supply_id: supplyId, quantity_assigned: quantity });
@@ -241,40 +210,26 @@ export const api = {
     const { error } = await supabase.from('mission_supplies').delete().eq('id', missionSupplyId);
     if (error) throw new Error(error.message);
   },
-  // --- STORAGE ---
   async updateUserAvatar(userId: string, file: File) {
     const fileExt = file.name.split('.').pop();
     const filePath = `${userId}/avatar.${fileExt}`;
-    const { error: uploadError } = await supabase.storage.from('avatars').upload(filePath, file, { upsert: true });
-    if (uploadError) throw new Error(`Error al subir avatar: ${uploadError.message}`);
-
+    await supabase.storage.from('avatars').upload(filePath, file, { upsert: true });
     const { data } = supabase.storage.from('avatars').getPublicUrl(filePath);
-    if (!data.publicUrl) throw new Error("No se pudo obtener la URL pública del avatar.");
-
     const uniqueUrl = `${data.publicUrl}?t=${new Date().getTime()}`;
-    const { error: dbError } = await supabase.from('profiles').update({ avatar: uniqueUrl }).eq('id', userId);
-    if (dbError) throw new Error(`Error al actualizar la base de datos: ${dbError.message}`);
+    const { error } = await supabase.from('profiles').update({ avatar: uniqueUrl }).eq('id', userId);
+    if (error) throw new Error(error.message);
   },
   async uploadMilestoneImage(userId: string, missionId: string, imageFile: File) {
     const fileExt = imageFile.name.split('.').pop();
     const filePath = `${userId}/${missionId}-${Date.now()}.${fileExt}`;
-    const { error: uploadError } = await supabase.storage.from('milestone_photos').upload(filePath, imageFile);
-    if (uploadError) throw new Error(`Error al subir la imagen: ${uploadError.message}`);
-
+    await supabase.storage.from('milestone_photos').upload(filePath, imageFile);
     const { data } = supabase.storage.from('milestone_photos').getPublicUrl(filePath);
-    if (!data.publicUrl) throw new Error("No se pudo obtener la URL pública de la imagen.");
     return data.publicUrl;
   },
-
-  // --- FUNCTIONS ---
   async sendNotification(technicianId: string, title: string, body: string) {
-    const { error } = await supabase.functions.invoke('send-notification', {
-      body: { technician_id: technicianId, title, body }
-    });
+    const { error } = await supabase.functions.invoke('send-notification', { body: { technician_id: technicianId, title, body } });
     if (error) throw new Error(error.message);
   },
-
-  // --- BADGES ---
   async assignBadge(userId: string, badgeId: string) {
     const { error } = await supabase.from('user_badges').insert({ user_id: userId, badge_id: badgeId });
     if (error) throw new Error(error.message);
@@ -283,8 +238,6 @@ export const api = {
     const { error } = await supabase.from('user_badges').delete().eq('user_id', userId).eq('badge_id', badgeId);
     if (error) throw new Error(error.message);
   },
-
-  // --- PAYROLL ---
   async upsertSalary(data: any) {
     const { error } = await supabase.from('salarios').upsert(data, { onConflict: 'user_id' });
     if (error) throw new Error(error.message);
@@ -299,13 +252,7 @@ export const api = {
   },
   async deletePayrollEventByCriteria(userId: string, date: string, type: string, descriptionLike: string) {
     // @ts-ignore
-    const { error } = await supabase
-      .from('eventos_nomina')
-      .delete()
-      .eq('user_id', userId)
-      .eq('fecha_evento', date)
-      .eq('tipo', type as any)
-      .ilike('descripcion', `%${descriptionLike}%`);
+    const { error } = await supabase.from('eventos_nomina').delete().eq('user_id', userId).eq('fecha_evento', date).eq('tipo', type).ilike('descripcion', `%${descriptionLike}%`);
     if (error) throw new Error(error.message);
   },
   async deletePayrollEvent(id: string) {
@@ -321,14 +268,10 @@ export const api = {
     const { error } = await supabase.from('periodos_pago').update(data).eq('id', id);
     if (error) throw new Error(error.message);
   },
-  async linkEventsToPeriod(eventIds: string[], periodId: string) {
-    const { error } = await supabase.from('eventos_nomina').update({ periodo_pago_id: periodId }).in('id', eventIds);
-    if (error) throw new Error(error.message);
-  },
   async calculatePayroll(startDate: string, endDate: string) {
     const { data, error } = await supabase.rpc('calcular_nomina', { p_fecha_inicio: startDate, p_fecha_fin: endDate });
-    if (error) throw new Error(`Error al calcular nómina: ${error.message}`);
-    return data; // Returns the count of processed users
+    if (error) throw new Error(error.message);
+    return data;
   },
   async addMissionRequirement(data: RequirementInsert) {
     const { error } = await supabase.from('mission_requirements').insert(data);
@@ -346,11 +289,6 @@ export const api = {
     const { error } = await (supabase as any).from('user_schedules').update(data).eq('user_id', userId);
     if (error) throw new Error(error.message);
   },
-  async createUserSchedule(data: any) {
-    const { error } = await (supabase as any).from('user_schedules').insert(data);
-    if (error) throw new Error(error.message);
-  },
-  // Vacation Services
   async getVacationRequests(userId?: string) {
     let query = supabase.from('vacation_requests').select('*').order('created_at', { ascending: false });
     if (userId) query = query.eq('user_id', userId);
@@ -362,12 +300,8 @@ export const api = {
     const { error } = await supabase.from('vacation_requests').insert(data);
     if (error) throw new Error(error.message);
   },
-  async updateVacationStatus(id: string, status: 'PENDIENTE' | 'APROBADA' | 'RECHAZADA', reviewerId: string) {
-    const { error } = await supabase.from('vacation_requests').update({
-      status,
-      reviewed_by: reviewerId,
-      reviewed_at: new Date().toISOString()
-    }).eq('id', id);
+  async updateVacationStatus(id: string, status: string, reviewerId: string) {
+    const { error } = await supabase.from('vacation_requests').update({ status, reviewed_by: reviewerId, reviewed_at: new Date().toISOString() }).eq('id', id);
     if (error) throw new Error(error.message);
   },
   async deleteVacationRequest(id: string) {
@@ -380,70 +314,26 @@ export const api = {
     if (error) throw new Error(error.message);
   },
   async confirmLunch(userId: string, date: string, confirmed: boolean) {
-    const { error } = await supabase
-      .from('lunch_confirmations')
-      .upsert({ user_id: userId, date, confirmed });
+    const { error } = await supabase.from('lunch_confirmations').upsert({ user_id: userId, date, confirmed });
     if (error) throw new Error(error.message);
-  },
-  async getDailyLunchConfirmations(date: string) {
-    const { data, error } = await supabase
-      .from('lunch_confirmations')
-      .select('*, profiles(name, avatar)')
-      .eq('date', date)
-      .eq('confirmed', true);
-    if (error) throw new Error(error.message);
-    return data;
-  },
-  async getUserLunchConfirmation(userId: string, date: string) {
-    const { data, error } = await supabase
-      .from('lunch_confirmations')
-      .select('*')
-      .eq('user_id', userId)
-      .eq('date', date)
-      .maybeSingle();
-    if (error) throw new Error(error.message);
-    return data;
   },
   async purchaseReward(userId: string, rewardId: string, cost: number) {
-    const { data: profile, error: profileError } = await supabase
-      .from('profiles')
-      .select('success_points')
-      .eq('id', userId)
-      .single();
-
-    if (profileError) throw new Error(profileError.message);
-    if ((profile?.success_points || 0) < cost) throw new Error('No tienes suficientes Puntos de Éxito.');
-
-    const { error: purchaseError } = await supabase.from('user_rewards').insert({
-      user_id: userId,
-      reward_id: rewardId,
-      status: 'ACTIVE'
-    });
-
-    if (purchaseError) throw new Error(purchaseError.message);
-
-    const { error: updateError } = await supabase.rpc('deduct_success_points', { p_user_id: userId, p_amount: cost });
-    if (updateError) throw new Error(updateError.message);
-  },
-  async addReward(reward: Omit<Reward, 'id' | 'created_at'>) {
-    const { error } = await supabase.from('reward_items').insert(reward as any);
+    const { error } = await supabase.from('user_rewards').insert({ user_id: userId, reward_id: rewardId, status: 'ACTIVE' });
     if (error) throw new Error(error.message);
   },
-  async updateReward(id: string, reward: Partial<Reward>) {
-    const { error } = await supabase.from('reward_items').update(reward as any).eq('id', id);
+  async addReward(reward: any) {
+    const { error } = await supabase.from('reward_items').insert(reward);
+    if (error) throw new Error(error.message);
+  },
+  async updateReward(id: string, reward: any) {
+    const { error } = await supabase.from('reward_items').update(reward).eq('id', id);
     if (error) throw new Error(error.message);
   },
   async deleteReward(id: string) {
     const { error } = await supabase.from('reward_items').delete().eq('id', id);
     if (error) throw new Error(error.message);
   },
-  // --- HOLIDAYS ---
-  async getHolidays() {
-    const { data, error } = await supabase.from('holidays').select('*').order('date', { ascending: true });
-    if (error) throw new Error(error.message);
-    return data;
-  },
-  async addHoliday(data: HolidayInsert) {
+  async addHoliday(data: any) {
     const { error } = await supabase.from('holidays').insert(data);
     if (error) throw new Error(error.message);
   },
@@ -451,30 +341,30 @@ export const api = {
     const { error } = await supabase.from('holidays').delete().eq('id', id);
     if (error) throw new Error(error.message);
   },
-  // --- ORGANIGRAMA ---
   async upsertAuthorityRelation(managerId: string, subordinateId: string, notes?: string | null) {
-    // Ensure one active manager per subordinate at a time.
-    const { error: deactivateError } = await supabase
-      .from('authority_relations')
-      .update({ active: false, updated_at: new Date().toISOString() })
-      .eq('subordinate_id', subordinateId)
-      .eq('active', true);
-    if (deactivateError) throw new Error(deactivateError.message);
-
-    const { error } = await supabase.from('authority_relations').insert({
-      manager_id: managerId,
-      subordinate_id: subordinateId,
-      active: true,
-      notes: notes ?? null
-    });
+    const { error } = await supabase.from('authority_relations').upsert({ manager_id: managerId, subordinate_id: subordinateId, active: true, notes: notes ?? null });
     if (error) throw new Error(error.message);
   },
   async removeAuthorityRelation(subordinateId: string) {
-    const { error } = await supabase
-      .from('authority_relations')
-      .update({ active: false, updated_at: new Date().toISOString() })
-      .eq('subordinate_id', subordinateId)
-      .eq('active', true);
+    const { error } = await supabase.from('authority_relations').update({ active: false }).eq('subordinate_id', subordinateId);
+    if (error) throw new Error(error.message);
+  },
+  // --- RECURRING INCOMES ---
+  async getRecurringIncomes() {
+    const { data, error } = await supabase.from('recurring_incomes').select('*').order('created_at', { ascending: false });
+    if (error) throw new Error(error.message);
+    return data;
+  },
+  async addRecurringIncome(data: any) {
+    const { error } = await supabase.from('recurring_incomes').insert(data);
+    if (error) throw new Error(error.message);
+  },
+  async updateRecurringIncome(id: string, data: any) {
+    const { error } = await supabase.from('recurring_incomes').update(data).eq('id', id);
+    if (error) throw new Error(error.message);
+  },
+  async deleteRecurringIncome(id: string) {
+    const { error } = await supabase.from('recurring_incomes').delete().eq('id', id);
     if (error) throw new Error(error.message);
   }
 };

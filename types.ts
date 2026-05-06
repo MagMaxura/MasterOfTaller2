@@ -341,3 +341,12 @@ export interface AuthorityRelation {
   created_at: string;
   updated_at?: string;
 }
+
+export interface RecurringIncome {
+  id: string;
+  company: Company;
+  amount: number;
+  period: string;
+  invoice_name: string;
+  created_at: string;
+}
