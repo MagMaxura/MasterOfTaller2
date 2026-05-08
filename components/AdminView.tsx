@@ -29,17 +29,18 @@ import NotificationSubscriber from './admin/NotificationSubscriber';
 import OrgChartManagement from './admin/OrgChartManagement';
 import CustomerTracking from './admin/customers/CustomerTracking';
 import RecurringIncomesManagement from './admin/recurring_incomes/RecurringIncomesManagement';
+import PermissionsManagement from './admin/permissions/PermissionsManagement';
 import { supabaseAttendance } from '../config';
 import { api } from '../services/api';
 import { Role as UserRole } from '../types';
 import LunchConfirmationCard from './technician/LunchConfirmationCard';
 
-import { BoxIcon, CalendarIcon, MapPinIcon, UserIcon, TasksIcon, BookOpenIcon, LogoutIcon, MenuIcon, ChartIcon, CurrencyDollarIcon, CogIcon, StarIcon, BriefcaseIcon, CreditCardIcon } from './Icons';
+import { BoxIcon, CalendarIcon, MapPinIcon, UserIcon, TasksIcon, BookOpenIcon, LogoutIcon, MenuIcon, ChartIcon, CurrencyDollarIcon, CogIcon, StarIcon, BriefcaseIcon, CreditCardIcon, LockIcon } from './Icons';
 
 // --- MAIN COMPONENT ---
 const AdminView: React.FC = () => {
     const { handleLogout } = useAuth();
-    const { currentUser, missions, users, vacationRequests, payrollEvents } = useData();
+    const { currentUser, missions, users, vacationRequests, canAccess } = useData();
     const [activeTab, setActiveTab] = useState('manage');
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const [managingInventoryFor, setManagingInventoryFor] = useState<User | null>(null);
@@ -82,24 +83,14 @@ const AdminView: React.FC = () => {
         { id: 'supplies', label: 'Insumos', icon: <BoxIcon /> },
         { id: 'calendar', label: 'Calendario', icon: <CalendarIcon /> },
         { id: 'live_map', label: 'Mapa', icon: <MapPinIcon /> },
+        { id: 'permissions', label: 'Accesos', icon: <LockIcon /> },
         { id: 'settings', label: 'Configuración', icon: <CogIcon /> },
     ];
 
     const visibleTabs = useMemo(() => {
         if (isAdmin) return TABS;
-        
-        const operationsTabs = new Set(['manage', 'missions', 'requests', 'customers', 'calendar', 'orgchart']);
-        const salesTabs = new Set(['manage', 'customers', 'recurring_incomes', 'calendar']);
-        const marketingTabs = new Set(['manage', 'customers', 'calendar']);
-        const adminStaffTabs = new Set(['manage', 'payroll', 'holidays', 'loans', 'calendar']);
-
-        if (isOperations) return TABS.filter(tab => operationsTabs.has(tab.id));
-        if (isSales) return TABS.filter(tab => salesTabs.has(tab.id));
-        if (isMarketing) return TABS.filter(tab => marketingTabs.has(tab.id));
-        if (isAdministrative) return TABS.filter(tab => adminStaffTabs.has(tab.id));
-
-        return TABS.filter(tab => tab.id === 'manage');
-    }, [TABS, isAdmin, isOperations, isSales, isMarketing, isAdministrative]);
+        return TABS.filter(tab => canAccess(tab.id));
+    }, [TABS, isAdmin, canAccess]);
 
     useEffect(() => {
         if (!visibleTabs.some(tab => tab.id === activeTab) && visibleTabs.length > 0) {
@@ -227,6 +218,9 @@ const AdminView: React.FC = () => {
                         </div>
                         <div className={activeTab === 'recurring_incomes' ? 'block' : 'hidden'}>
                             <RecurringIncomesManagement />
+                        </div>
+                        <div className={activeTab === 'permissions' ? 'block' : 'hidden'}>
+                            <PermissionsManagement />
                         </div>
                         <div className="hidden">
                             <div className="requests_dummy" />
