@@ -27,12 +27,14 @@ import AddPayrollEventModal from './admin/payroll/AddPayrollEventModal';
 import AttendanceModal from './admin/modals/AttendanceModal';
 import NotificationSubscriber from './admin/NotificationSubscriber';
 import OrgChartManagement from './admin/OrgChartManagement';
+import CustomerTracking from './admin/customers/CustomerTracking';
+import RecurringIncomesManagement from './admin/recurring_incomes/RecurringIncomesManagement';
 import { supabaseAttendance } from '../config';
 import { api } from '../services/api';
 import { Role as UserRole } from '../types';
 import LunchConfirmationCard from './technician/LunchConfirmationCard';
 
-import { BoxIcon, CalendarIcon, MapPinIcon, UserIcon, TasksIcon, BookOpenIcon, LogoutIcon, MenuIcon, ChartIcon, CurrencyDollarIcon, CogIcon, StarIcon } from './Icons';
+import { BoxIcon, CalendarIcon, MapPinIcon, UserIcon, TasksIcon, BookOpenIcon, LogoutIcon, MenuIcon, ChartIcon, CurrencyDollarIcon, CogIcon, StarIcon, BriefcaseIcon, CreditCardIcon } from './Icons';
 
 // --- MAIN COMPONENT ---
 const AdminView: React.FC = () => {
@@ -60,6 +62,9 @@ const AdminView: React.FC = () => {
     const totalRequestsCount = missionRequestsCount + vacationRequestsCount;
     const isAdmin = currentUser?.role === UserRole.ADMIN;
     const isOperations = currentUser?.role === UserRole.OPERATIONS;
+    const isSales = currentUser?.role === UserRole.SALES;
+    const isMarketing = currentUser?.role === UserRole.MARKETING;
+    const isAdministrative = currentUser?.role === UserRole.ADMINISTRATIVE;
 
     const TABS = [
         { id: 'manage', label: 'Gestionar', icon: <UserIcon /> },
@@ -68,6 +73,8 @@ const AdminView: React.FC = () => {
         { id: 'loans', label: 'Préstamos', icon: <CurrencyDollarIcon /> },
         { id: 'missions', label: 'Misiones', icon: <TasksIcon /> },
         { id: 'requests', label: 'Solicitudes', icon: <TasksIcon />, notification: totalRequestsCount > 0 },
+        { id: 'customers', label: 'Seguimiento', icon: <BriefcaseIcon /> },
+        { id: 'recurring_incomes', label: 'Ingresos', icon: <CreditCardIcon /> },
         { id: 'leaderboard', label: 'Clasificación', icon: <ChartIcon /> },
         { id: 'stock', label: 'Stock (Equipo)', icon: <BoxIcon /> },
         { id: 'rewards', label: 'Premios', icon: <StarIcon /> },
@@ -80,12 +87,19 @@ const AdminView: React.FC = () => {
 
     const visibleTabs = useMemo(() => {
         if (isAdmin) return TABS;
-        if (isOperations) {
-            const operationsTabs = new Set(['manage', 'missions', 'requests', 'calendar', 'orgchart']);
-            return TABS.filter(tab => operationsTabs.has(tab.id));
-        }
-        return [];
-    }, [TABS, isAdmin, isOperations]);
+        
+        const operationsTabs = new Set(['manage', 'missions', 'requests', 'customers', 'calendar', 'orgchart']);
+        const salesTabs = new Set(['manage', 'customers', 'recurring_incomes', 'calendar']);
+        const marketingTabs = new Set(['manage', 'customers', 'calendar']);
+        const adminStaffTabs = new Set(['manage', 'payroll', 'holidays', 'loans', 'calendar']);
+
+        if (isOperations) return TABS.filter(tab => operationsTabs.has(tab.id));
+        if (isSales) return TABS.filter(tab => salesTabs.has(tab.id));
+        if (isMarketing) return TABS.filter(tab => marketingTabs.has(tab.id));
+        if (isAdministrative) return TABS.filter(tab => adminStaffTabs.has(tab.id));
+
+        return TABS.filter(tab => tab.id === 'manage');
+    }, [TABS, isAdmin, isOperations, isSales, isMarketing, isAdministrative]);
 
     useEffect(() => {
         if (!visibleTabs.some(tab => tab.id === activeTab) && visibleTabs.length > 0) {
@@ -207,6 +221,15 @@ const AdminView: React.FC = () => {
                         </div>
                         <div className={activeTab === 'requests' ? 'block' : 'hidden'}>
                             <MissionRequests onReview={setEditingMission} />
+                        </div>
+                        <div className={activeTab === 'customers' ? 'block' : 'hidden'}>
+                            <CustomerTracking />
+                        </div>
+                        <div className={activeTab === 'recurring_incomes' ? 'block' : 'hidden'}>
+                            <RecurringIncomesManagement />
+                        </div>
+                        <div className="hidden">
+                            <div className="requests_dummy" />
                         </div>
                         <div className={activeTab === 'leaderboard' ? 'block' : 'hidden'}>
                             <Leaderboard users={users} />

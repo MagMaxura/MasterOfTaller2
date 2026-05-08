@@ -1300,7 +1300,19 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     addHoliday,
     deleteHoliday,
     upsertAuthorityRelation,
-    removeAuthorityRelation
+    removeAuthorityRelation,
+    recurringIncomes,
+    customerProjects,
+    modulePermissions,
+    addRecurringIncome,
+    updateRecurringIncome,
+    deleteRecurringIncome,
+    addCustomerProject,
+    updateCustomerProject,
+    deleteCustomerProject,
+    upsertModulePermission,
+    deleteModulePermission,
+    canAccess
   }), [
     currentUser, users, missions, allInventoryItems, allBadges, missionMilestones, supplies, 
     missionSupplies, missionRequirements, salaries, payrollEvents, paymentPeriods, userSchedules, 
