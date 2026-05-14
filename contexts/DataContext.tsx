@@ -255,12 +255,40 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
 
         // --- 3. DENSE ABSENCE GENERATOR (Skip holidays, weekends, vacations) ---
+        // Quincenas: del 6 al 20 y del 21 al 5 del mes siguiente.
+        // Un día se considera falta si el usuario no registró ingreso antes de las 13:00
+        // (hora de corte), a menos que su horario de inicio sea posterior a las 13:00,
+        // en cuyo caso se usa ese horario como corte.
         const start = new Date(startDate); start.setHours(0,0,0,0);
         const end = new Date(endDate); end.setHours(23,59,59,999);
         const iter = new Date(start);
-        
+
+        const todayLocal = new Date();
+        todayLocal.setHours(0, 0, 0, 0);
+        const todayStr = todayLocal.toISOString().split('T')[0];
+
+        // Default cutoff: 13:00. If the user's schedule has a later start_time, use that.
+        const userSchedule = currentSchedules.find((s: any) => s.user_id === user.id);
+        const scheduleStartHour = userSchedule?.start_time
+          ? parseInt((userSchedule.start_time as string).split(':')[0], 10)
+          : 0;
+        const cutoffHour = Math.max(13, scheduleStartHour);
+
         while (iter <= end) {
           const dateStr = iter.toISOString().split('T')[0];
+
+          // Never mark future days as absent
+          if (dateStr > todayStr) {
+            iter.setDate(iter.getDate() + 1);
+            continue;
+          }
+
+          // For today, only mark absent if the cutoff hour has already passed
+          if (dateStr === todayStr && new Date().getHours() < cutoffHour) {
+            iter.setDate(iter.getDate() + 1);
+            continue;
+          }
+
           const isWeekend = iter.getDay() === 0 || iter.getDay() === 6;
           const isHoliday = currentHolidays.some(h => h.date === dateStr);
           const isVacation = currentVacations.some(v => v.user_id === user.id && v.status === 'APROBADA' && dateStr >= v.start_date && dateStr <= v.end_date);
