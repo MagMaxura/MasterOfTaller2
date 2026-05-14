@@ -31,3 +31,22 @@ Este proyecto tiene las siguientes características de infraestructura:
     *   **Supabase:** Credenciales públicas (Anon Key) disponibles en `config.ts` / `constants.tsx`. NO hay acceso directo a SQL (Service Role Key no disponible), por lo que las migraciones o correcciones de datos deben hacerse vía Frontend (autenticado como Admin) o Scripts manuales del usuario.
 
 **Nota:** Cualquier cambio subido a GitHub (`git push`) disparará un nuevo deploy en Vercel, lo cual puede tomar unos minutos en reflejarse en producción.
+
+## Reglas de Negocio — Asistencia y Nómina
+
+### Períodos de Pago (Quincenas)
+- **Quincena 1:** del día **6 al 20** de cada mes.
+- **Quincena 2:** del día **21 al 5** del mes siguiente.
+
+### Regla de Falta por Ausencia
+Un día hábil se descuenta como **Falta** cuando se cumplen TODAS estas condiciones:
+1. El día ya transcurrió (nunca se descuentan días futuros).
+2. El usuario no registró ningún ingreso en el sistema de asistencia.
+3. La hora de corte ya pasó:
+   - **Corte por defecto: 13:00 hs.** — si el usuario no fichó ingreso antes de las 13:00, el día se marca como falta.
+   - **Excepción:** si el horario de inicio configurado para el usuario es posterior a las 13:00, se usa ese horario como corte en lugar del predeterminado.
+4. El día no es fin de semana, feriado ni vacación aprobada.
+
+### Lógica de Generación Automática
+- **Frontend (`reconcilePeriodAttendance`):** Al sincronizar un período, cruza logs del sistema de asistencia con eventos de nómina. Nunca procesa fechas futuras ni la fecha actual antes de las 13:00.
+- **Cron SQL (`generate_daily_absences`):** Se ejecuta a las 00:01 AM UTC procesando el día **anterior** (`CURRENT_DATE - 1`). Genera faltas como placeholder; el reconciliador del frontend las corrige contra los logs reales.
