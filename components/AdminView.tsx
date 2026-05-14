@@ -40,7 +40,7 @@ import { BoxIcon, CalendarIcon, MapPinIcon, UserIcon, TasksIcon, BookOpenIcon, L
 // --- MAIN COMPONENT ---
 const AdminView: React.FC = () => {
     const { handleLogout } = useAuth();
-    const { currentUser, missions, users, vacationRequests, canAccess } = useData();
+    const { currentUser, missions, users, vacationRequests, payrollEvents, canAccess } = useData();
     const [activeTab, setActiveTab] = useState('manage');
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const [managingInventoryFor, setManagingInventoryFor] = useState<User | null>(null);

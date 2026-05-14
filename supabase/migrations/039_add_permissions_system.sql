@@ -1,7 +1,7 @@
 -- 039_add_permissions_system.sql
 CREATE TABLE IF NOT EXISTS public.module_permissions (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    role public.role, -- Using the existing role enum
+    role public.user_role, -- Using the existing role enum
     user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE,
     company TEXT, -- Using Company enum as string
     module_id TEXT NOT NULL,
@@ -33,7 +33,7 @@ ON public.module_permissions FOR SELECT
 USING (
     role IS NOT NULL AND role = (SELECT role FROM public.profiles WHERE id = auth.uid())
     OR user_id = auth.uid()
-    OR (company IS NOT NULL AND company = (SELECT company FROM public.profiles WHERE id = auth.uid()))
+    OR (company IS NOT NULL AND company = (SELECT company::TEXT FROM public.profiles WHERE id = auth.uid()))
 );
 
 -- Initial Seeding based on current logic
