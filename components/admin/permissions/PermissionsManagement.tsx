@@ -3,7 +3,8 @@ import { useData } from '../../../contexts/DataContext';
 import { Role, User } from '../../../types';
 import {
     LockIcon, UserIcon, BoxIcon, ChartIcon, CurrencyDollarIcon,
-    CalendarIcon, MapPinIcon, CogIcon, StarIcon, BriefcaseIcon, TasksIcon
+    CalendarIcon, MapPinIcon, CogIcon, StarIcon, BriefcaseIcon, TasksIcon,
+    ChefIcon, UtensilsIcon,
 } from '../../Icons';
 
 const MODULES = [
@@ -23,6 +24,8 @@ const MODULES = [
     { id: 'calendar', label: 'Calendario', icon: <CalendarIcon className="w-5 h-5" /> },
     { id: 'live_map', label: 'Mapa en Vivo', icon: <MapPinIcon className="w-5 h-5" /> },
     { id: 'settings', label: 'Configuración', icon: <CogIcon className="w-5 h-5" /> },
+    { id: 'cocinero', label: 'Cocinero (Gestión cocina)', icon: <ChefIcon className="w-5 h-5" /> },
+    { id: 'comensal', label: 'Comensal (Confirmar almuerzo)', icon: <UtensilsIcon className="w-5 h-5" /> },
 ];
 
 const ROLE_LABELS: Record<string, string> = {

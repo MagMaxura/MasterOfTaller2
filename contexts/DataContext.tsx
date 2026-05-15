@@ -111,6 +111,7 @@ interface DataContextType {
   upsertModulePermission: (data: Partial<ModulePermission>) => Promise<void>;
   deleteModulePermission: (id: string) => Promise<void>;
   canAccess: (moduleId: string) => boolean;
+  canAccessForUser: (userId: string, moduleId: string) => boolean;
 }
 
 // --- CONTEXT CREATION ---
@@ -1226,20 +1227,29 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const canAccess = useCallback((moduleId: string): boolean => {
     if (!currentUser) return false;
-    if (currentUser.role === Role.ADMIN) return true; // Admins have master access unless explicitly blocked? No, usually master.
-    
-    // Check priority: User > Role > Company
+    if (currentUser.role === Role.ADMIN) return true;
+
     const userPerm = modulePermissions.find(p => p.user_id === currentUser.id && p.module_id === moduleId);
     if (userPerm) return userPerm.is_enabled;
-
     const rolePerm = modulePermissions.find(p => p.role === currentUser.role && p.module_id === moduleId);
     if (rolePerm) return rolePerm.is_enabled;
-
     const companyPerm = modulePermissions.find(p => p.company === currentUser.company && p.module_id === moduleId);
     if (companyPerm) return companyPerm.is_enabled;
-
-    return false; // Default: no access
+    return false;
   }, [currentUser, modulePermissions]);
+
+  const canAccessForUser = useCallback((userId: string, moduleId: string): boolean => {
+    const target = users.find(u => u.id === userId);
+    if (!target) return false;
+    if (target.role === Role.ADMIN) return true;
+    const userPerm = modulePermissions.find(p => p.user_id === userId && p.module_id === moduleId);
+    if (userPerm) return userPerm.is_enabled;
+    const rolePerm = modulePermissions.find(p => p.role === target.role && p.module_id === moduleId);
+    if (rolePerm) return rolePerm.is_enabled;
+    const companyPerm = modulePermissions.find(p => p.company === target.company && p.module_id === moduleId);
+    if (companyPerm) return companyPerm.is_enabled;
+    return false;
+  }, [users, modulePermissions]);
 
   const upsertAuthorityRelation = async (managerId: string, subordinateId: string, notes?: string | null) => {
     if (currentUser?.id.startsWith('demo-')) { showToast('Acción simulada en modo demo.', 'success'); return; }
@@ -1352,26 +1362,27 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     deleteCustomerProject,
     upsertModulePermission,
     deleteModulePermission,
-    canAccess
+    canAccess,
+    canAccessForUser,
   }), [
-    currentUser, users, missions, allInventoryItems, allBadges, missionMilestones, supplies, 
-    missionSupplies, missionRequirements, salaries, payrollEvents, paymentPeriods, userSchedules, 
+    currentUser, users, missions, allInventoryItems, allBadges, missionMilestones, supplies,
+    missionSupplies, missionRequirements, salaries, payrollEvents, paymentPeriods, userSchedules,
     attendanceUsers, vacationRequests, rewardItems, userRewards, loading, viewingProfileOf, holidays, authorityRelations, recurringIncomes, customerProjects, modulePermissions,
-    updateMission, updateUser, deactivateUser, updateUserAvatar, addMission, requestMission, 
-    technicianRequestMission, requestToJoinMission, approveJoinRequest, rejectJoinRequest, 
-    rejectMissionRequest, deleteMission, addMissionMilestone, toggleMilestoneSolution, 
-    assignInventoryItem, removeInventoryItem, disposeOfInventoryItem, updateInventoryItemQuantity, 
-    updateInventoryVariantQuantity, addInventoryItem, deleteInventoryItem, savePushSubscription, 
-    sendNotification, addSupply, updateSupply, deleteSupply, assignSupplyToMission, 
-    updateMissionSupply, removeSupplyFromMission, assignBadge, revokeBadge, setSalary, 
-    addPayrollEvent, updatePayrollEvent, deletePayrollEvent, createMissionBonusEvent, 
-    calculatePayPeriods, calculateUserPayroll, markPeriodAsPaid, registrarPagoParcial, addMissionRequirement, 
-    updateMissionRequirement, deleteMissionRequirement, updateUserSchedule, requestVacation, 
-    updateVacationStatus, deleteVacationRequest, purchaseReward, addReward, updateReward, 
+    updateMission, updateUser, deactivateUser, updateUserAvatar, addMission, requestMission,
+    technicianRequestMission, requestToJoinMission, approveJoinRequest, rejectJoinRequest,
+    rejectMissionRequest, deleteMission, addMissionMilestone, toggleMilestoneSolution,
+    assignInventoryItem, removeInventoryItem, disposeOfInventoryItem, updateInventoryItemQuantity,
+    updateInventoryVariantQuantity, addInventoryItem, deleteInventoryItem, savePushSubscription,
+    sendNotification, addSupply, updateSupply, deleteSupply, assignSupplyToMission,
+    updateMissionSupply, removeSupplyFromMission, assignBadge, revokeBadge, setSalary,
+    addPayrollEvent, updatePayrollEvent, deletePayrollEvent, createMissionBonusEvent,
+    calculatePayPeriods, calculateUserPayroll, markPeriodAsPaid, registrarPagoParcial, addMissionRequirement,
+    updateMissionRequirement, deleteMissionRequirement, updateUserSchedule, requestVacation,
+    updateVacationStatus, deleteVacationRequest, purchaseReward, addReward, updateReward,
     deleteReward, addHoliday, deleteHoliday, upsertAuthorityRelation, removeAuthorityRelation,
     addRecurringIncome, updateRecurringIncome, deleteRecurringIncome,
     addCustomerProject, updateCustomerProject, deleteCustomerProject,
-    upsertModulePermission, deleteModulePermission, canAccess
+    upsertModulePermission, deleteModulePermission, canAccess, canAccessForUser,
   ]);
 
   return (

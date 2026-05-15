@@ -34,7 +34,7 @@ interface TechnicianUIProps {
 }
 
 const TechnicianUI: React.FC<TechnicianUIProps> = ({ user, isAdminViewing = false, onBackToAdmin }) => {
-    const { missions, users, vacationRequests, payrollEvents, holidays } = useData();
+    const { missions, users, vacationRequests, payrollEvents, holidays, canAccessForUser } = useData();
     const isCleaningRole = useMemo(() => user.role === Role.CLEANING, [user.role]);
     const [activeTab, setActiveTab] = useState(isCleaningRole ? 'profile' : 'missions');
     const [selectedMission, setSelectedMission] = useState<Mission | null>(null);
@@ -42,8 +42,8 @@ const TechnicianUI: React.FC<TechnicianUIProps> = ({ user, isAdminViewing = fals
     const [isRequestingVacation, setIsRequestingVacation] = useState(false);
     const userHasSupplyBadge = useMemo(() => hasSupplyAdminBadge(user), [user]);
     const userHasEquipmentBadge = useMemo(() => hasEquipmentAdminBadge(user), [user]);
-    const isCook = useMemo(() => user.badges.some(b => b.name === COOK_BADGE_NAME), [user]);
-    const isDiner = useMemo(() => user.role === 'administrador' || user.badges.some(b => b.name === DINER_BADGE_NAME), [user]);
+    const isCook = useMemo(() => user.badges.some(b => b.name === COOK_BADGE_NAME) || canAccessForUser(user.id, 'cocinero'), [user, canAccessForUser]);
+    const isDiner = useMemo(() => user.role === 'administrador' || user.badges.some(b => b.name === DINER_BADGE_NAME) || canAccessForUser(user.id, 'comensal'), [user, canAccessForUser]);
 
     // Removed package.json fetch to avoid 404 errors
 
