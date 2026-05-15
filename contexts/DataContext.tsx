@@ -211,17 +211,23 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
              const checkIn = dailyLogs.filter(l => ['IN', 'Entrada', 'ENTRADA'].includes(l.type as string)).sort((a,b) => a.timestamp.localeCompare(b.timestamp))[0];
              const checkOut = dailyLogs.filter(l => ['OUT', 'Salida', 'SALIDA'].includes(l.type as string)).sort((a,b) => b.timestamp.localeCompare(a.timestamp))[0];
 
+             // Normalize fecha_evento to 'YYYY-MM-DD' for comparison regardless of
+             // whether Supabase returns a plain date or a full ISO timestamp string.
+             const normDate = (s: string) => s.split('T')[0];
+
              if (checkIn) {
                const checkInDate = new Date(checkIn.timestamp);
                const [stH, stM] = schedule.start_time.split(':').map(Number);
                const diffMinutes = (checkInDate.getHours() * 60 + checkInDate.getMinutes()) - (stH * 60 + stM);
-               const currentTardinessEvent = currentEvents.find(e => e.user_id === user.id && e.fecha_evento === date && e.tipo === PayrollEventType.TARDINESS);
+               const currentTardinessEvent = currentEvents.find(e => e.user_id === user.id && normDate(e.fecha_evento) === date && e.tipo === PayrollEventType.TARDINESS);
 
                if (diffMinutes > (schedule.tolerance_minutes ?? 10)) {
                  const newDesc = `TARDANZA (Entrada: ${checkInDate.getHours()}:${checkInDate.getMinutes().toString().padStart(2, '0')})`;
                  if (!currentTardinessEvent) {
-                   await api.addPayrollEvent({ user_id: user.id, tipo: PayrollEventType.TARDINESS, monto: 0, descripcion: newDesc, fecha_evento: date, justificado: false, notas_justificacion: '' } as any);
-                   changed = true;
+                   try {
+                     await api.addPayrollEvent({ user_id: user.id, tipo: PayrollEventType.TARDINESS, monto: 0, descripcion: newDesc, fecha_evento: date, justificado: false, notas_justificacion: '' } as any);
+                     changed = true;
+                   } catch (e: any) { if (!e?.message?.includes('23505')) throw e; }
                  } else if (currentTardinessEvent.descripcion !== newDesc) {
                    await api.updatePayrollEvent(currentTardinessEvent.id, { descripcion: newDesc, monto: 0 });
                    changed = true;
@@ -236,13 +242,15 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
                const checkOutDate = new Date(checkOut.timestamp);
                const [etH, etM] = (schedule.end_time || (schedule as any).end_time).split(':').map(Number);
                const diffEarlyMinutes = (etH * 60 + etM) - (checkOutDate.getHours() * 60 + checkOutDate.getMinutes());
-               const currentEarlyEvent = currentEvents.find(e => e.user_id === user.id && e.fecha_evento === date && e.tipo === PayrollEventType.EARLY_DEPARTURE);
+               const currentEarlyEvent = currentEvents.find(e => e.user_id === user.id && normDate(e.fecha_evento) === date && e.tipo === PayrollEventType.EARLY_DEPARTURE);
 
                if (diffEarlyMinutes > (schedule.exit_tolerance_minutes ?? 10)) {
                  const newDesc = `SALIDA TEMPRANA (Salida: ${checkOutDate.getHours()}:${checkOutDate.getMinutes().toString().padStart(2, '0')})`;
                  if (!currentEarlyEvent) {
-                   await api.addPayrollEvent({ user_id: user.id, tipo: PayrollEventType.EARLY_DEPARTURE, monto: 0, descripcion: newDesc, fecha_evento: date, justificado: false, notas_justificacion: '' } as any);
-                   changed = true;
+                   try {
+                     await api.addPayrollEvent({ user_id: user.id, tipo: PayrollEventType.EARLY_DEPARTURE, monto: 0, descripcion: newDesc, fecha_evento: date, justificado: false, notas_justificacion: '' } as any);
+                     changed = true;
+                   } catch (e: any) { if (!e?.message?.includes('23505')) throw e; }
                  } else if (currentEarlyEvent.descripcion !== newDesc) {
                    await api.updatePayrollEvent(currentEarlyEvent.id, { descripcion: newDesc, monto: 0 });
                    changed = true;
