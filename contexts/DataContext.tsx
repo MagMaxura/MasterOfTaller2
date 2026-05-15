@@ -274,6 +274,10 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
           : 0;
         const cutoffHour = Math.max(13, scheduleStartHour);
 
+        // Track absences created in this run to avoid intra-run duplicates
+        // (currentEvents may be stale relative to what the DB cron already inserted)
+        const createdThisRun = new Set<string>();
+
         while (iter <= end) {
           const dateStr = iter.toISOString().split('T')[0];
 
@@ -293,11 +297,19 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
           const isHoliday = currentHolidays.some(h => h.date === dateStr);
           const isVacation = currentVacations.some(v => v.user_id === user.id && v.status === 'APROBADA' && dateStr >= v.start_date && dateStr <= v.end_date);
           const alreadyLogged = loggedDates.has(dateStr);
-          const alreadyHasAbsence = currentEvents.some(e => e.user_id === user.id && e.fecha_evento === dateStr && e.tipo === PayrollEventType.ABSENCE);
+          const alreadyHasAbsence =
+            createdThisRun.has(dateStr) ||
+            currentEvents.some(e => e.user_id === user.id && e.fecha_evento === dateStr && e.tipo === PayrollEventType.ABSENCE);
 
           if (!isWeekend && !isHoliday && !isVacation && !alreadyLogged && !alreadyHasAbsence) {
-             await api.addPayrollEvent({ user_id: user.id, tipo: PayrollEventType.ABSENCE, monto: 0, descripcion: 'FALTA INJUSTIFICADA (Sincronización)', fecha_evento: dateStr } as any);
-             changed = true;
+            try {
+              await api.addPayrollEvent({ user_id: user.id, tipo: PayrollEventType.ABSENCE, monto: 0, descripcion: 'FALTA INJUSTIFICADA (Sincronización)', fecha_evento: dateStr } as any);
+              createdThisRun.add(dateStr);
+              changed = true;
+            } catch (insertErr: any) {
+              // Unique index violation (23505): another process already created it — safe to ignore
+              if (!insertErr?.message?.includes('23505')) throw insertErr;
+            }
           }
           iter.setDate(iter.getDate() + 1);
         }
