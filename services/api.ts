@@ -315,6 +315,16 @@ export const api = {
     const { error } = await supabase.rpc('generate_daily_absences', { p_date: date });
     if (error) throw new Error(error.message);
   },
+  async getUserLunchConfirmation(userId: string, date: string) {
+    const { data, error } = await supabase
+      .from('lunch_confirmations')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('date', date)
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    return data;
+  },
   async confirmLunch(userId: string, date: string, confirmed: boolean) {
     const { error } = await supabase.from('lunch_confirmations').upsert({ user_id: userId, date, confirmed });
     if (error) throw new Error(error.message);

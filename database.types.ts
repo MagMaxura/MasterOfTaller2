@@ -948,6 +948,107 @@ export interface Database {
           }
         ]
       }
+      recurring_incomes: {
+        Row: {
+          id: string
+          company: string
+          amount: number
+          period: string
+          invoice_name: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          company: string
+          amount: number
+          period: string
+          invoice_name: string
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          company?: string
+          amount?: number
+          period?: string
+          invoice_name?: string
+          created_at?: string
+        }
+        Relationships: []
+      }
+      customer_tracking: {
+        Row: {
+          id: string
+          customer_name: string
+          project_name: string
+          company: string
+          phone: string | null
+          job_type: string | null
+          requirements: string | null
+          status: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          customer_name: string
+          project_name: string
+          company: string
+          phone?: string | null
+          job_type?: string | null
+          requirements?: string | null
+          status?: string
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          customer_name?: string
+          project_name?: string
+          company?: string
+          phone?: string | null
+          job_type?: string | null
+          requirements?: string | null
+          status?: string
+          created_at?: string
+        }
+        Relationships: []
+      }
+      module_permissions: {
+        Row: {
+          id: string
+          role: string | null
+          user_id: string | null
+          company: string | null
+          module_id: string
+          is_enabled: boolean
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          role?: string | null
+          user_id?: string | null
+          company?: string | null
+          module_id: string
+          is_enabled?: boolean
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          role?: string | null
+          user_id?: string | null
+          company?: string | null
+          module_id?: string
+          is_enabled?: boolean
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "module_permissions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
     }
     Views: {
       [_ in never]: never
