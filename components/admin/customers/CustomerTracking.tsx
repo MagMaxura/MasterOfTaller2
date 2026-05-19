@@ -1,22 +1,105 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { useData } from '../../../contexts/DataContext';
-import { CustomerProject, Company } from '../../../types';
-import { PlusIcon, EditIcon, TrashIcon, UserIcon, PhoneIcon, TasksIcon } from '../../Icons';
+import { CustomerProject, CustomerDoc, Company } from '../../../types';
+import { PlusIcon, EditIcon, TrashIcon, PhoneIcon } from '../../Icons';
+import { supabase } from '../../../config';
 
+const BUCKET = 'customer-docs';
+
+const STATUS_COLORS: Record<string, string> = {
+    'COMPLETADO':    'bg-green-100 text-green-700 border-green-200',
+    'EN PROGRESO':   'bg-blue-100 text-blue-700 border-blue-200',
+    'PRESUPUESTADO': 'bg-purple-100 text-purple-700 border-purple-200',
+    'CANCELADO':     'bg-red-100 text-red-700 border-red-200',
+    'PENDIENTE':     'bg-amber-100 text-amber-700 border-amber-200',
+};
+
+async function uploadFile(projectId: string, folder: string, file: File): Promise<string> {
+    const ext = file.name.split('.').pop();
+    const path = `${projectId}/${folder}/${Date.now()}.${ext}`;
+    const { error } = await supabase.storage.from(BUCKET).upload(path, file, { upsert: true });
+    if (error) throw new Error(error.message);
+    return path; // store path; bucket is private — signed URLs generated on demand
+}
+
+async function getSignedUrl(path: string): Promise<string> {
+    const { data, error } = await supabase.storage.from(BUCKET).createSignedUrl(path, 3600);
+    if (error || !data) throw new Error('No se pudo generar el enlace');
+    return data.signedUrl;
+}
+
+async function deleteStorageFile(path: string) {
+    await supabase.storage.from(BUCKET).remove([path]);
+}
+
+// ---- Subcomponent: file link with signed-URL download ----
+const DocLink: React.FC<{ doc: CustomerDoc; onDelete?: () => void }> = ({ doc, onDelete }) => {
+    const handleOpen = async () => {
+        try {
+            const url = await getSignedUrl(doc.url);
+            window.open(url, '_blank');
+        } catch { alert('No se pudo abrir el archivo.'); }
+    };
+    const isPdf = doc.name.toLowerCase().endsWith('.pdf');
+    return (
+        <div className="flex items-center gap-2 bg-brand-secondary rounded-xl px-3 py-2 border border-brand-accent group">
+            <span className="text-lg">{isPdf ? '📄' : '🖼️'}</span>
+            <button onClick={handleOpen} className="text-xs font-bold text-brand-blue hover:underline truncate max-w-[160px]" title={doc.name}>
+                {doc.name}
+            </button>
+            {onDelete && (
+                <button onClick={onDelete} className="ml-auto text-brand-light hover:text-brand-red transition-colors opacity-0 group-hover:opacity-100">
+                    ✕
+                </button>
+            )}
+        </div>
+    );
+};
+
+// ---- Subcomponent: upload button ----
+const UploadButton: React.FC<{
+    label: string;
+    accept: string;
+    loading: boolean;
+    onChange: (file: File) => void;
+}> = ({ label, accept, loading, onChange }) => {
+    const ref = useRef<HTMLInputElement>(null);
+    return (
+        <>
+            <input ref={ref} type="file" accept={accept} className="hidden" onChange={e => e.target.files?.[0] && onChange(e.target.files[0])} />
+            <button
+                type="button"
+                disabled={loading}
+                onClick={() => ref.current?.click()}
+                className="flex items-center gap-2 px-4 py-2 rounded-xl border-2 border-dashed border-brand-accent text-brand-light hover:border-brand-blue hover:text-brand-blue text-xs font-black uppercase tracking-wider transition-all disabled:opacity-50"
+            >
+                {loading ? '⏳ Subiendo...' : `+ ${label}`}
+            </button>
+        </>
+    );
+};
+
+// ---- Main component ----
 const CustomerTracking: React.FC = () => {
     const { customerProjects, addCustomerProject, updateCustomerProject, deleteCustomerProject } = useData();
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingProject, setEditingProject] = useState<CustomerProject | null>(null);
+    const [uploadingPresupuesto, setUploadingPresupuesto] = useState(false);
+    const [uploadingDoc, setUploadingDoc] = useState(false);
+    const [expandedId, setExpandedId] = useState<string | null>(null);
 
-    const [formData, setFormData] = useState({
-        customer_name: '',
-        project_name: '',
-        company: '',
-        phone: '',
-        job_type: '',
-        requirements: '',
-        status: 'PENDIENTE'
+    const emptyForm = (): {
+        customer_name: string; project_name: string; company: string;
+        phone: string; job_type: string; requirements: string; status: string;
+        presupuesto_url: string | null; documentos_cliente: CustomerDoc[];
+    } => ({
+        customer_name: '', project_name: '', company: Company.POTABILIZAR,
+        phone: '', job_type: '', requirements: '', status: 'PENDIENTE',
+        presupuesto_url: null,
+        documentos_cliente: [],
     });
+
+    const [formData, setFormData] = useState(emptyForm());
 
     const handleOpenModal = (project?: CustomerProject) => {
         if (project) {
@@ -25,22 +108,16 @@ const CustomerTracking: React.FC = () => {
                 customer_name: project.customer_name,
                 project_name: project.project_name,
                 company: project.company,
-                phone: project.phone,
-                job_type: project.job_type,
-                requirements: project.requirements,
-                status: project.status
+                phone: project.phone ?? '',
+                job_type: project.job_type ?? '',
+                requirements: project.requirements ?? '',
+                status: project.status,
+                presupuesto_url: project.presupuesto_url ?? null,
+                documentos_cliente: project.documentos_cliente ?? [],
             });
         } else {
             setEditingProject(null);
-            setFormData({
-                customer_name: '',
-                project_name: '',
-                company: Company.POTABILIZAR,
-                phone: '',
-                job_type: '',
-                requirements: '',
-                status: 'PENDIENTE'
-            });
+            setFormData(emptyForm());
         }
         setIsModalOpen(true);
     };
@@ -54,25 +131,48 @@ const CustomerTracking: React.FC = () => {
                 await addCustomerProject(formData);
             }
             setIsModalOpen(false);
-        } catch (error) {
-            console.error("Error saving customer project:", error);
-        }
+        } catch (err) { console.error(err); }
     };
 
-    const getStatusColor = (status: string) => {
-        switch (status) {
-            case 'COMPLETADO': return 'bg-brand-green/10 text-brand-green border-brand-green/20';
-            case 'EN PROGRESO': return 'bg-brand-blue/10 text-brand-blue border-brand-blue/20';
-            default: return 'bg-brand-orange/10 text-brand-orange border-brand-orange/20';
-        }
+    const handlePresupuestoUpload = async (file: File) => {
+        const tempId = editingProject?.id ?? `tmp-${Date.now()}`;
+        setUploadingPresupuesto(true);
+        try {
+            const path = await uploadFile(tempId, 'presupuesto', file);
+            setFormData(prev => ({ ...prev, presupuesto_url: path }));
+        } catch (err: any) { alert('Error al subir: ' + err.message); }
+        finally { setUploadingPresupuesto(false); }
+    };
+
+    const handleClientDocUpload = async (file: File) => {
+        const tempId = editingProject?.id ?? `tmp-${Date.now()}`;
+        setUploadingDoc(true);
+        try {
+            const path = await uploadFile(tempId, 'cliente', file);
+            const newDoc: CustomerDoc = { name: file.name, url: path, uploaded_at: new Date().toISOString() };
+            setFormData(prev => ({ ...prev, documentos_cliente: [...prev.documentos_cliente, newDoc] }));
+        } catch (err: any) { alert('Error al subir: ' + err.message); }
+        finally { setUploadingDoc(false); }
+    };
+
+    const handleRemoveClientDoc = (index: number) => {
+        const doc = formData.documentos_cliente[index];
+        deleteStorageFile(doc.url).catch(() => {});
+        setFormData(prev => ({ ...prev, documentos_cliente: prev.documentos_cliente.filter((_, i) => i !== index) }));
+    };
+
+    const handleRemovePresupuesto = () => {
+        if (formData.presupuesto_url) deleteStorageFile(formData.presupuesto_url).catch(() => {});
+        setFormData(prev => ({ ...prev, presupuesto_url: null }));
     };
 
     return (
         <div className="space-y-6">
+            {/* Header */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
                     <h3 className="text-2xl font-black text-brand-highlight tracking-tight">Seguimiento de Clientes</h3>
-                    <p className="text-sm text-brand-light">Gestión de proyectos y requerimientos por cliente.</p>
+                    <p className="text-sm text-brand-light">Gestión de proyectos, presupuestos y documentos por cliente.</p>
                 </div>
                 <button
                     onClick={() => handleOpenModal()}
@@ -82,71 +182,108 @@ const CustomerTracking: React.FC = () => {
                 </button>
             </div>
 
+            {/* Table */}
             <div className="bg-white rounded-[32px] overflow-hidden border border-brand-accent shadow-premium">
                 <div className="overflow-x-auto">
                     <table className="w-full text-left border-collapse">
                         <thead>
                             <tr className="bg-brand-secondary/50 border-b border-brand-accent text-[10px] text-brand-light uppercase font-black tracking-[0.2em]">
-                                <th className="p-6">Cliente / Proyecto</th>
-                                <th className="p-6">Empresa</th>
-                                <th className="p-6">Contacto</th>
-                                <th className="p-6">Tipo de Trabajo</th>
-                                <th className="p-6">Estado</th>
-                                <th className="p-6 text-right">Acciones</th>
+                                <th className="p-5">Cliente / Proyecto</th>
+                                <th className="p-5">Empresa</th>
+                                <th className="p-5">Contacto</th>
+                                <th className="p-5">Tipo</th>
+                                <th className="p-5">Presupuesto</th>
+                                <th className="p-5">Docs cliente</th>
+                                <th className="p-5">Estado</th>
+                                <th className="p-5 text-right">Acciones</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-brand-accent">
                             {customerProjects.length === 0 ? (
                                 <tr>
-                                    <td colSpan={6} className="p-12 text-center text-brand-light italic">No hay proyectos de clientes registrados.</td>
+                                    <td colSpan={8} className="p-12 text-center text-brand-light italic">
+                                        No hay proyectos registrados.
+                                    </td>
                                 </tr>
-                            ) : (
-                                customerProjects.map((project) => (
-                                    <tr key={project.id} className="hover:bg-brand-secondary/30 transition-colors group">
-                                        <td className="p-6">
+                            ) : customerProjects.map(project => (
+                                <React.Fragment key={project.id}>
+                                    <tr
+                                        className="hover:bg-brand-secondary/30 transition-colors cursor-pointer"
+                                        onClick={() => setExpandedId(expandedId === project.id ? null : project.id)}
+                                    >
+                                        <td className="p-5">
                                             <div className="font-black text-brand-highlight">{project.customer_name}</div>
-                                            <div className="text-xs text-brand-light font-bold uppercase tracking-tight">{project.project_name}</div>
+                                            <div className="text-xs text-brand-light font-bold uppercase">{project.project_name}</div>
                                         </td>
-                                        <td className="p-6">
+                                        <td className="p-5">
                                             <span className="inline-flex items-center px-3 py-1 rounded-full text-[10px] font-black uppercase bg-brand-secondary text-brand-highlight border border-brand-accent">
                                                 {project.company}
                                             </span>
                                         </td>
-                                        <td className="p-6">
-                                            <div className="flex items-center gap-2 text-brand-light font-bold text-sm">
+                                        <td className="p-5 text-sm font-bold text-brand-light">
+                                            <div className="flex items-center gap-1">
                                                 <PhoneIcon className="w-3 h-3" />
-                                                {project.phone || 'N/A'}
+                                                {project.phone || '—'}
                                             </div>
                                         </td>
-                                        <td className="p-6">
-                                            <div className="text-sm font-bold text-brand-highlight">{project.job_type}</div>
+                                        <td className="p-5 text-sm font-bold text-brand-highlight">{project.job_type || '—'}</td>
+                                        <td className="p-5">
+                                            {project.presupuesto_url ? (
+                                                <DocLink doc={{ name: 'Presupuesto.pdf', url: project.presupuesto_url, uploaded_at: '' }} />
+                                            ) : (
+                                                <span className="text-xs text-brand-light italic">Sin adjuntar</span>
+                                            )}
                                         </td>
-                                        <td className="p-6">
-                                            <span className={`inline-flex items-center px-3 py-1 rounded-full text-[9px] font-black uppercase border ${getStatusColor(project.status)}`}>
+                                        <td className="p-5">
+                                            {(project.documentos_cliente ?? []).length > 0 ? (
+                                                <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-black bg-brand-blue/10 text-brand-blue border border-brand-blue/20">
+                                                    📎 {project.documentos_cliente.length} archivo{project.documentos_cliente.length > 1 ? 's' : ''}
+                                                </span>
+                                            ) : (
+                                                <span className="text-xs text-brand-light italic">Sin docs</span>
+                                            )}
+                                        </td>
+                                        <td className="p-5">
+                                            <span className={`inline-flex items-center px-3 py-1 rounded-full text-[9px] font-black uppercase border ${STATUS_COLORS[project.status] ?? STATUS_COLORS['PENDIENTE']}`}>
                                                 {project.status}
                                             </span>
                                         </td>
-                                        <td className="p-6 text-right">
+                                        <td className="p-5 text-right" onClick={e => e.stopPropagation()}>
                                             <div className="flex justify-end gap-2">
-                                                <button 
-                                                    onClick={() => handleOpenModal(project)}
-                                                    className="p-2 rounded-xl text-brand-blue bg-brand-blue/10 hover:bg-brand-blue hover:text-white transition-all"
-                                                    title="Editar"
-                                                >
+                                                <button onClick={() => handleOpenModal(project)} className="p-2 rounded-xl text-brand-blue bg-brand-blue/10 hover:bg-brand-blue hover:text-white transition-all" title="Editar">
                                                     <EditIcon className="w-4 h-4" />
                                                 </button>
-                                                <button 
-                                                    onClick={() => deleteCustomerProject(project.id)}
-                                                    className="p-2 rounded-xl text-brand-red bg-brand-red/10 hover:bg-brand-red hover:text-white transition-all"
-                                                    title="Eliminar"
-                                                >
+                                                <button onClick={() => deleteCustomerProject(project.id)} className="p-2 rounded-xl text-brand-red bg-brand-red/10 hover:bg-brand-red hover:text-white transition-all" title="Eliminar">
                                                     <TrashIcon className="w-4 h-4" />
                                                 </button>
                                             </div>
                                         </td>
                                     </tr>
-                                ))
-                            )}
+                                    {/* Expanded row: show client docs + requirements */}
+                                    {expandedId === project.id && (
+                                        <tr className="bg-brand-secondary/20">
+                                            <td colSpan={8} className="px-8 py-5">
+                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                                    <div>
+                                                        <p className="text-[10px] font-black uppercase tracking-widest text-brand-light mb-2">Requerimientos / Notas</p>
+                                                        <p className="text-sm text-brand-highlight font-semibold whitespace-pre-wrap">{project.requirements || '—'}</p>
+                                                    </div>
+                                                    {(project.documentos_cliente ?? []).length > 0 && (
+                                                        <div>
+                                                            <p className="text-[10px] font-black uppercase tracking-widest text-brand-light mb-2">Documentos del cliente</p>
+                                                            <div className="flex flex-wrap gap-2">
+                                                                {project.documentos_cliente.map((doc, i) => (
+                                                                    <DocLink key={i} doc={doc} />
+                                                                ))}
+                                                            </div>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    )}
+                                </React.Fragment>
+                            ))}
                         </tbody>
                     </table>
                 </div>
@@ -155,107 +292,94 @@ const CustomerTracking: React.FC = () => {
             {/* Modal */}
             {isModalOpen && (
                 <div className="fixed inset-0 bg-brand-highlight/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-                    <div className="bg-white rounded-[32px] w-full max-w-lg overflow-hidden shadow-2xl border border-brand-accent animate-in fade-in zoom-in duration-300">
-                        <div className="bg-brand-secondary px-8 py-6 border-b border-brand-accent">
+                    <div className="bg-white rounded-[32px] w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl border border-brand-accent">
+                        <div className="bg-brand-secondary px-8 py-6 border-b border-brand-accent sticky top-0 z-10">
                             <h4 className="text-xl font-black text-brand-highlight tracking-tight">
-                                {editingProject ? 'Editar Cliente/Proyecto' : 'Nuevo Seguimiento'}
+                                {editingProject ? 'Editar Cliente / Proyecto' : 'Nuevo Seguimiento'}
                             </h4>
                         </div>
                         <form onSubmit={handleSubmit} className="p-8 space-y-5">
+                            {/* Row 1 */}
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="space-y-2">
-                                    <label className="text-[10px] font-black text-brand-light uppercase tracking-widest ml-1">Cliente</label>
-                                    <input
-                                        type="text"
-                                        required
-                                        className="w-full bg-brand-secondary border border-brand-accent rounded-2xl px-4 py-3 font-bold text-brand-highlight focus:ring-2 focus:ring-brand-orange outline-none transition-all"
-                                        value={formData.customer_name}
-                                        onChange={(e) => setFormData({ ...formData, customer_name: e.target.value })}
-                                    />
+                                    <label className="text-[10px] font-black text-brand-light uppercase tracking-widest">Cliente</label>
+                                    <input required className="w-full bg-brand-secondary border border-brand-accent rounded-2xl px-4 py-3 font-bold text-brand-highlight focus:ring-2 focus:ring-brand-orange outline-none" value={formData.customer_name} onChange={e => setFormData({ ...formData, customer_name: e.target.value })} />
                                 </div>
                                 <div className="space-y-2">
-                                    <label className="text-[10px] font-black text-brand-light uppercase tracking-widest ml-1">Proyecto</label>
-                                    <input
-                                        type="text"
-                                        required
-                                        className="w-full bg-brand-secondary border border-brand-accent rounded-2xl px-4 py-3 font-bold text-brand-highlight focus:ring-2 focus:ring-brand-orange outline-none transition-all"
-                                        value={formData.project_name}
-                                        onChange={(e) => setFormData({ ...formData, project_name: e.target.value })}
-                                    />
+                                    <label className="text-[10px] font-black text-brand-light uppercase tracking-widest">Proyecto</label>
+                                    <input required className="w-full bg-brand-secondary border border-brand-accent rounded-2xl px-4 py-3 font-bold text-brand-highlight focus:ring-2 focus:ring-brand-orange outline-none" value={formData.project_name} onChange={e => setFormData({ ...formData, project_name: e.target.value })} />
                                 </div>
                             </div>
-
+                            {/* Row 2 */}
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="space-y-2">
-                                    <label className="text-[10px] font-black text-brand-light uppercase tracking-widest ml-1">Empresa</label>
-                                    <select
-                                        className="w-full bg-brand-secondary border border-brand-accent rounded-2xl px-4 py-3 font-bold text-brand-highlight focus:ring-2 focus:ring-brand-orange outline-none transition-all"
-                                        value={formData.company}
-                                        onChange={(e) => setFormData({ ...formData, company: e.target.value })}
-                                    >
-                                        {Object.values(Company).map(c => (
-                                            <option key={c} value={c}>{c}</option>
-                                        ))}
+                                    <label className="text-[10px] font-black text-brand-light uppercase tracking-widest">Empresa</label>
+                                    <select className="w-full bg-brand-secondary border border-brand-accent rounded-2xl px-4 py-3 font-bold text-brand-highlight focus:ring-2 focus:ring-brand-orange outline-none" value={formData.company} onChange={e => setFormData({ ...formData, company: e.target.value })}>
+                                        {Object.values(Company).map(c => <option key={c} value={c}>{c}</option>)}
                                         <option value="OTRA">OTRA</option>
                                     </select>
                                 </div>
                                 <div className="space-y-2">
-                                    <label className="text-[10px] font-black text-brand-light uppercase tracking-widest ml-1">Teléfono</label>
-                                    <input
-                                        type="text"
-                                        className="w-full bg-brand-secondary border border-brand-accent rounded-2xl px-4 py-3 font-bold text-brand-highlight focus:ring-2 focus:ring-brand-orange outline-none transition-all"
-                                        value={formData.phone}
-                                        onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                                    />
+                                    <label className="text-[10px] font-black text-brand-light uppercase tracking-widest">Teléfono</label>
+                                    <input className="w-full bg-brand-secondary border border-brand-accent rounded-2xl px-4 py-3 font-bold text-brand-highlight focus:ring-2 focus:ring-brand-orange outline-none" value={formData.phone} onChange={e => setFormData({ ...formData, phone: e.target.value })} />
                                 </div>
                             </div>
-
+                            {/* Tipo + Estado */}
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-black text-brand-light uppercase tracking-widest">Tipo de Trabajo</label>
+                                    <input className="w-full bg-brand-secondary border border-brand-accent rounded-2xl px-4 py-3 font-bold text-brand-highlight focus:ring-2 focus:ring-brand-orange outline-none" value={formData.job_type} onChange={e => setFormData({ ...formData, job_type: e.target.value })} />
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-black text-brand-light uppercase tracking-widest">Estado</label>
+                                    <select className="w-full bg-brand-secondary border border-brand-accent rounded-2xl px-4 py-3 font-bold text-brand-highlight focus:ring-2 focus:ring-brand-orange outline-none" value={formData.status} onChange={e => setFormData({ ...formData, status: e.target.value })}>
+                                        <option value="PENDIENTE">PENDIENTE</option>
+                                        <option value="PRESUPUESTADO">PRESUPUESTADO</option>
+                                        <option value="EN PROGRESO">EN PROGRESO</option>
+                                        <option value="COMPLETADO">COMPLETADO</option>
+                                        <option value="CANCELADO">CANCELADO</option>
+                                    </select>
+                                </div>
+                            </div>
+                            {/* Requerimientos */}
                             <div className="space-y-2">
-                                <label className="text-[10px] font-black text-brand-light uppercase tracking-widest ml-1">Tipo de Trabajo</label>
-                                <input
-                                    type="text"
-                                    className="w-full bg-brand-secondary border border-brand-accent rounded-2xl px-4 py-3 font-bold text-brand-highlight focus:ring-2 focus:ring-brand-orange outline-none transition-all"
-                                    value={formData.job_type}
-                                    onChange={(e) => setFormData({ ...formData, job_type: e.target.value })}
-                                />
+                                <label className="text-[10px] font-black text-brand-light uppercase tracking-widest">Requerimientos / Notas</label>
+                                <textarea className="w-full bg-brand-secondary border border-brand-accent rounded-2xl px-4 py-3 font-bold text-brand-highlight focus:ring-2 focus:ring-brand-orange outline-none resize-none h-24" value={formData.requirements} onChange={e => setFormData({ ...formData, requirements: e.target.value })} />
                             </div>
 
-                            <div className="space-y-2">
-                                <label className="text-[10px] font-black text-brand-light uppercase tracking-widest ml-1">Requerimientos / Notas</label>
-                                <textarea
-                                    className="w-full bg-brand-secondary border border-brand-accent rounded-2xl px-4 py-3 font-bold text-brand-highlight focus:ring-2 focus:ring-brand-orange outline-none transition-all resize-none h-24"
-                                    value={formData.requirements}
-                                    onChange={(e) => setFormData({ ...formData, requirements: e.target.value })}
-                                />
+                            {/* ---- Presupuesto ---- */}
+                            <div className="space-y-3 p-5 bg-brand-secondary/50 rounded-2xl border border-brand-accent">
+                                <p className="text-[10px] font-black text-brand-light uppercase tracking-widest">📄 Presupuesto enviado al cliente (PDF)</p>
+                                {formData.presupuesto_url ? (
+                                    <div className="flex items-center gap-3">
+                                        <DocLink doc={{ name: 'Presupuesto.pdf', url: formData.presupuesto_url, uploaded_at: '' }} />
+                                        <button type="button" onClick={handleRemovePresupuesto} className="text-xs text-brand-red font-black hover:underline">Eliminar</button>
+                                        <UploadButton label="Reemplazar" accept=".pdf" loading={uploadingPresupuesto} onChange={handlePresupuestoUpload} />
+                                    </div>
+                                ) : (
+                                    <UploadButton label="Subir PDF presupuesto" accept=".pdf" loading={uploadingPresupuesto} onChange={handlePresupuestoUpload} />
+                                )}
                             </div>
 
-                            <div className="space-y-2">
-                                <label className="text-[10px] font-black text-brand-light uppercase tracking-widest ml-1">Estado</label>
-                                <select
-                                    className="w-full bg-brand-secondary border border-brand-accent rounded-2xl px-4 py-3 font-bold text-brand-highlight focus:ring-2 focus:ring-brand-orange outline-none transition-all"
-                                    value={formData.status}
-                                    onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-                                >
-                                    <option value="PENDIENTE">PENDIENTE</option>
-                                    <option value="PRESUPUESTADO">PRESUPUESTADO</option>
-                                    <option value="EN PROGRESO">EN PROGRESO</option>
-                                    <option value="COMPLETADO">COMPLETADO</option>
-                                    <option value="CANCELADO">CANCELADO</option>
-                                </select>
+                            {/* ---- Documentos del cliente ---- */}
+                            <div className="space-y-3 p-5 bg-brand-secondary/50 rounded-2xl border border-brand-accent">
+                                <p className="text-[10px] font-black text-brand-light uppercase tracking-widest">🖼️ Documentos / imágenes del cliente</p>
+                                {formData.documentos_cliente.length > 0 && (
+                                    <div className="flex flex-wrap gap-2">
+                                        {formData.documentos_cliente.map((doc, i) => (
+                                            <DocLink key={i} doc={doc} onDelete={() => handleRemoveClientDoc(i)} />
+                                        ))}
+                                    </div>
+                                )}
+                                <UploadButton label="Agregar archivo (PDF / imagen)" accept=".pdf,.jpg,.jpeg,.png,.webp" loading={uploadingDoc} onChange={handleClientDocUpload} />
                             </div>
 
-                            <div className="flex gap-3 pt-4">
-                                <button
-                                    type="button"
-                                    onClick={() => setIsModalOpen(false)}
-                                    className="flex-1 px-6 py-3 rounded-2xl font-black text-[11px] uppercase tracking-[0.2em] border border-brand-accent text-brand-light hover:bg-brand-secondary transition-all"
-                                >
+                            {/* Buttons */}
+                            <div className="flex gap-3 pt-2">
+                                <button type="button" onClick={() => setIsModalOpen(false)} className="flex-1 px-6 py-3 rounded-2xl font-black text-[11px] uppercase tracking-[0.2em] border border-brand-accent text-brand-light hover:bg-brand-secondary transition-all">
                                     Cancelar
                                 </button>
-                                <button
-                                    type="submit"
-                                    className="flex-1 px-6 py-3 rounded-2xl font-black text-[11px] uppercase tracking-[0.2em] bg-brand-orange text-white shadow-premium hover:scale-[1.02] active:scale-[0.98] transition-all"
-                                >
+                                <button type="submit" className="flex-1 px-6 py-3 rounded-2xl font-black text-[11px] uppercase tracking-[0.2em] bg-brand-orange text-white shadow-premium hover:scale-[1.02] active:scale-[0.98] transition-all">
                                     {editingProject ? 'Guardar Cambios' : 'Crear Seguimiento'}
                                 </button>
                             </div>

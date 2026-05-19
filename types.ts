@@ -351,6 +351,12 @@ export interface RecurringIncome {
   created_at: string;
 }
 
+export interface CustomerDoc {
+  name: string;
+  url: string;
+  uploaded_at: string;
+}
+
 export interface CustomerProject {
   id: string;
   customer_name: string;
@@ -360,6 +366,8 @@ export interface CustomerProject {
   job_type: string;
   requirements: string;
   status: string;
+  presupuesto_url: string | null;
+  documentos_cliente: CustomerDoc[];
   created_at: string;
 }
 
