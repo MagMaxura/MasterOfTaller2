@@ -446,15 +446,20 @@ const CustomerTracking: React.FC = () => {
                             </h4>
                         </div>
                         <form onSubmit={handleSubmit} className="p-8 space-y-5">
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="space-y-2">
-                                    <label className="text-[10px] font-black text-brand-light uppercase tracking-widest">Cliente</label>
-                                    <input required className="w-full bg-brand-secondary border border-brand-accent rounded-2xl px-4 py-3 font-bold text-brand-highlight focus:ring-2 focus:ring-brand-orange outline-none" value={formData.customer_name} onChange={e => setFormData({ ...formData, customer_name: e.target.value })} />
-                                </div>
-                                <div className="space-y-2">
-                                    <label className="text-[10px] font-black text-brand-light uppercase tracking-widest">Proyecto</label>
-                                    <input required className="w-full bg-brand-secondary border border-brand-accent rounded-2xl px-4 py-3 font-bold text-brand-highlight focus:ring-2 focus:ring-brand-orange outline-none" value={formData.project_name} onChange={e => setFormData({ ...formData, project_name: e.target.value })} />
-                                </div>
+                            {/* Client name — full width, prominent */}
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-black text-brand-light uppercase tracking-widest">Nombre / Empresa del Cliente</label>
+                                <input
+                                    required
+                                    placeholder="Ej: Juan Pérez / Empresa S.A."
+                                    className="w-full bg-brand-secondary border-2 border-brand-orange/40 rounded-2xl px-4 py-3 font-bold text-brand-highlight focus:ring-2 focus:ring-brand-orange outline-none text-lg"
+                                    value={formData.customer_name}
+                                    onChange={e => setFormData({ ...formData, customer_name: e.target.value })}
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-black text-brand-light uppercase tracking-widest">Nombre del Proyecto / Trabajo</label>
+                                <input required className="w-full bg-brand-secondary border border-brand-accent rounded-2xl px-4 py-3 font-bold text-brand-highlight focus:ring-2 focus:ring-brand-orange outline-none" value={formData.project_name} onChange={e => setFormData({ ...formData, project_name: e.target.value })} />
                             </div>
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="space-y-2">
@@ -493,7 +498,14 @@ const CustomerTracking: React.FC = () => {
 
                             {/* Presupuesto */}
                             <div className="space-y-3 p-5 bg-brand-secondary/50 rounded-2xl border border-brand-accent">
-                                <p className="text-[10px] font-black text-brand-light uppercase tracking-widest">📄 Presupuesto enviado al cliente (PDF)</p>
+                                <div className="flex items-center justify-between">
+                                    <p className="text-[10px] font-black text-brand-light uppercase tracking-widest">📄 Presupuesto enviado al cliente (PDF)</p>
+                                    {formData.customer_name && (
+                                        <span className="text-[11px] font-black text-brand-orange bg-brand-orange/10 border border-brand-orange/20 px-3 py-1 rounded-full">
+                                            Para: {formData.customer_name}
+                                        </span>
+                                    )}
+                                </div>
                                 {formData.presupuesto_url ? (
                                     <div className="flex items-center gap-3">
                                         <DocLink doc={{ name: 'Presupuesto.pdf', url: formData.presupuesto_url, uploaded_at: '' }} />
