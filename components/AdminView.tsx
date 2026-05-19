@@ -155,6 +155,8 @@ const AdminView: React.FC = () => {
 
     return (
         <div className="relative min-h-screen bg-brand-secondary md:flex overflow-hidden">
+            {/* Lunch confirmation — floating popup, bottom-right */}
+            <LunchConfirmationCard userId={currentUser.id} />
             {/* Mobile header - Glassmorphism */}
             <header className="fixed top-0 left-0 right-0 z-20 flex items-center justify-between bg-white/70 backdrop-blur-xl border-b border-brand-accent px-6 py-4 md:hidden shadow-sm">
                 <button onClick={() => setIsSidebarOpen(true)} className="p-2.5 -ml-3 bg-brand-secondary/50 rounded-xl text-brand-light hover:text-brand-blue hover:bg-brand-blue/10 transition-all">
@@ -184,9 +186,6 @@ const AdminView: React.FC = () => {
                 <main className="flex-1 p-4 md:p-10 overflow-y-auto custom-scrollbar">
                     <div className="max-w-7xl mx-auto animate-fadeIn">
                         <div className={activeTab === 'manage' ? 'block' : 'hidden'}>
-                            <div className="mb-6">
-                                <LunchConfirmationCard userId={currentUser.id} />
-                            </div>
                             <UserManagement
                                 onManageInventory={setManagingInventoryFor}
                                 onManageBadges={setManagingBadgesFor}
