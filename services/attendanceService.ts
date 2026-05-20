@@ -98,7 +98,7 @@ export const attendanceService = {
         if (!attendanceUserId) return [];
         const { data, error } = await supabaseAttendance
             .from('access_logs')
-            .select('*')
+            .select('id, user_id, user_name, type, timestamp, tardiness_hours, early_departure_hours, hours_worked, overtime_hours, status, notes')
             .eq('user_id', attendanceUserId)
             .gte('timestamp', `${startDate}T00:00:00`)
             .lte('timestamp', `${endDate}T23:59:59`)
@@ -119,7 +119,7 @@ export const attendanceService = {
         if (!attendanceUserId) return [];
         const { data, error } = await supabaseAttendance
             .from('access_logs')
-            .select('*')
+            .select('id, user_id, user_name, type, timestamp, tardiness_hours, early_departure_hours, hours_worked, overtime_hours, status, notes')
             .eq('user_id', attendanceUserId)
             .order('timestamp', { ascending: true });
 
