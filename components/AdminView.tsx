@@ -35,6 +35,7 @@ import { api } from '../services/api';
 import { Role as UserRole } from '../types';
 import LunchConfirmationCard from './technician/LunchConfirmationCard';
 import ChatModal from './common/ChatModal';
+import TechnicianStatusMonitor from './admin/TechnicianStatusMonitor';
 
 import { BoxIcon, CalendarIcon, MapPinIcon, UserIcon, TasksIcon, BookOpenIcon, LogoutIcon, MenuIcon, ChartIcon, CurrencyDollarIcon, CogIcon, StarIcon, BriefcaseIcon, CreditCardIcon, LockIcon } from './Icons';
 
@@ -157,6 +158,8 @@ const AdminView: React.FC = () => {
 
     return (
         <div className="relative min-h-screen bg-brand-secondary md:flex overflow-hidden">
+            {/* Monitor de estado de técnicos — notifica cuando se desconectan */}
+            <TechnicianStatusMonitor />
             {/* Lunch confirmation — floating popup, bottom-right */}
             <LunchConfirmationCard userId={currentUser.id} />
             {/* Chat modal */}
