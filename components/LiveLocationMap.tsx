@@ -1,11 +1,12 @@
 import React, { useEffect, useRef, useState } from 'react';
-import mapboxgl from 'mapbox-gl';
-import 'mapbox-gl/dist/mapbox-gl.css';
+import maplibregl from 'maplibre-gl';
+import 'maplibre-gl/dist/maplibre-gl.css';
 import { User } from '../types';
 import { supabase } from '../config';
-import { MAPBOX_TOKEN } from '../constants';
 
-mapboxgl.accessToken = MAPBOX_TOKEN;
+// MapLibre GL — open-source fork of Mapbox GL, no API key required.
+// Uses free OpenStreetMap tiles via a public style.
+const MAP_STYLE = 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json';
 
 interface TechnicianLocation {
   user_id: string;
@@ -25,8 +26,8 @@ const STALE_MINUTES = 10;
 
 const LiveLocationMap: React.FC<LiveLocationMapProps> = ({ users, isVisible }) => {
   const mapContainer = useRef<HTMLDivElement>(null);
-  const map = useRef<mapboxgl.Map | null>(null);
-  const markers = useRef<Record<string, mapboxgl.Marker>>({});
+  const map = useRef<maplibregl.Map | null>(null);
+  const markers = useRef<Record<string, maplibregl.Marker>>({});
   const [locations, setLocations] = useState<TechnicianLocation[]>([]);
   const [onlineCount, setOnlineCount] = useState(0);
 
@@ -59,14 +60,14 @@ const LiveLocationMap: React.FC<LiveLocationMapProps> = ({ users, isVisible }) =
 
   useEffect(() => {
     if (!isVisible || !mapContainer.current || map.current) return;
-    map.current = new mapboxgl.Map({
+    map.current = new maplibregl.Map({
       container: mapContainer.current,
-      style: 'mapbox://styles/mapbox/streets-v12',
+      style: MAP_STYLE,
       center: [-60.7, -32.9],
       zoom: 12,
     });
-    map.current.addControl(new mapboxgl.NavigationControl(), 'top-right');
-    map.current.addControl(new mapboxgl.FullscreenControl(), 'top-right');
+    map.current.addControl(new maplibregl.NavigationControl(), 'top-right');
+    map.current.addControl(new maplibregl.FullscreenControl(), 'top-right');
   }, [isVisible]);
 
   useEffect(() => {
@@ -80,7 +81,7 @@ const LiveLocationMap: React.FC<LiveLocationMapProps> = ({ users, isVisible }) =
       const isActive = loc.is_online && age < STALE_MINUTES;
       const lastSeen = age < 1 ? 'ahora mismo' : age < 60 ? `hace ${Math.floor(age)} min` : `hace ${Math.floor(age / 60)}h`;
 
-      const popup = new mapboxgl.Popup({ offset: 25, closeButton: false }).setHTML(`
+      const popup = new maplibregl.Popup({ offset: 25, closeButton: false }).setHTML(`
         <div style="font-family:sans-serif;padding:4px 2px;">
           <strong style="font-size:13px;">${user.name}</strong><br/>
           <span style="font-size:11px;color:#64748b;">${user.role}</span><br/>
@@ -101,7 +102,7 @@ const LiveLocationMap: React.FC<LiveLocationMapProps> = ({ users, isVisible }) =
           <div style="position:absolute;bottom:-1px;right:-1px;width:13px;height:13px;border-radius:50%;background:${isActive ? '#22c55e' : '#94a3b8'};border:2px solid white;${isActive ? 'box-shadow:0 0 6px #22c55e80;' : ''}"></div>
           <div style="margin-top:3px;background:rgba(15,23,42,.85);color:white;font-size:10px;font-weight:800;padding:2px 7px;border-radius:99px;white-space:nowrap;">${user.name.split(' ')[0]}</div>
         `;
-        const marker = new mapboxgl.Marker({ element: el, anchor: 'bottom' })
+        const marker = new maplibregl.Marker({ element: el, anchor: 'bottom' })
           .setLngLat([loc.lng, loc.lat]).setPopup(popup).addTo(map.current!);
         el.addEventListener('click', () => marker.togglePopup());
         markers.current[loc.user_id] = marker;
@@ -113,7 +114,7 @@ const LiveLocationMap: React.FC<LiveLocationMapProps> = ({ users, isVisible }) =
     });
 
     if (locations.length > 0 && map.current) {
-      const bounds = new mapboxgl.LngLatBounds();
+      const bounds = new maplibregl.LngLatBounds();
       locations.forEach(l => bounds.extend([l.lng, l.lat]));
       map.current.fitBounds(bounds, { padding: 80, maxZoom: 15, duration: 800 });
     }

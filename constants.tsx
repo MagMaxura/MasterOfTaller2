@@ -14,5 +14,3 @@ export const ATTENDANCE_SUPABASE_ANON_KEY = import.meta.env.VITE_ATTENDANCE_SUPA
 // Esta es una clave pública, por lo que es seguro tenerla aquí.
 export const VAPID_PUBLIC_KEY = import.meta.env.VITE_VAPID_PUBLIC_KEY;
 
-// Mapbox public token — read from Vercel env var at build time.
-export const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_ACCESS_TOKEN as string;
