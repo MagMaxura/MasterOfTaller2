@@ -3,8 +3,9 @@ import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { User } from '../types';
 import { supabase } from '../config';
+import { MAPBOX_TOKEN } from '../constants';
 
-mapboxgl.accessToken = import.meta.env.VITE_MAPBOX_ACCESS_TOKEN as string;
+mapboxgl.accessToken = MAPBOX_TOKEN;
 
 interface TechnicianLocation {
   user_id: string;
