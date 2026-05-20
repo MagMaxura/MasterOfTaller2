@@ -4,6 +4,7 @@ import { User, Mission, MissionStatus, PayrollEvent, Role } from '../../types';
 import { useData } from '../../contexts/DataContext';
 import { useAuth } from '../../contexts/AuthContext';
 
+import ChatModal from '../common/ChatModal';
 import UserManagement from './UserManagement';
 import MissionCreator from './MissionCreator';
 import StockManagement from './stock/StockManagement';
@@ -58,6 +59,7 @@ const AdminView: React.FC = () => {
     const [editingMission, setEditingMission] = useState<Mission | null>(null);
     const [selectedMission, setSelectedMission] = useState<Mission | null>(null);
     const [editingPayrollEvent, setEditingPayrollEvent] = useState<PayrollEvent | null>(null);
+    const [chattingWith, setChattingWith] = useState<User | null>(null);
     const [addingPayrollEventFor, setAddingPayrollEventFor] = useState<User | null>(null);
     const [selectedDateForEvent, setSelectedDateForEvent] = useState<string | undefined>(undefined);
 
@@ -70,7 +72,7 @@ const AdminView: React.FC = () => {
         }));
     }, [missionRequestsCount]);
 
-    const isSuperAdmin = currentUser?.role === Role.ADMIN || currentUser?.role === 'administrador';
+    const isSuperAdmin = currentUser?.role === Role.ADMIN;
     
     const displayTabs = useMemo(() => {
         // SuperAdmin/Admin see everything by default
@@ -110,7 +112,7 @@ const AdminView: React.FC = () => {
                     >
                         {React.cloneElement(tab.icon, { className: "w-5 h-5 flex-shrink-0" })}
                         <span>{tab.label}</span>
-                        {tab.id === 'requests' && tab.notification && missionRequestsCount > 0 &&
+                        {tab.id === 'requests' && (tab as any).notification && missionRequestsCount > 0 &&
                             <span className="ml-auto h-5 min-w-[1.25rem] px-1.5 text-xs flex items-center justify-center rounded-full bg-brand-red text-white font-bold">{missionRequestsCount}</span>}
                     </button>
                 ))}
@@ -126,6 +128,9 @@ const AdminView: React.FC = () => {
 
     return (
         <div className="relative min-h-screen bg-brand-primary md:flex">
+            {chattingWith && currentUser && (
+                <ChatModal currentUser={currentUser} otherUser={chattingWith} onClose={() => setChattingWith(null)} />
+            )}
             {/* Mobile header */}
             <header className="sticky top-0 z-10 flex items-center justify-between bg-brand-secondary p-4 text-white md:hidden">
                 <button onClick={() => setIsSidebarOpen(true)} className="p-2 -ml-2">
@@ -188,10 +193,8 @@ const AdminView: React.FC = () => {
                             onManageBadges={setManagingBadgesFor}
                             onNotifyUser={setNotifyingUser}
                             onSetSalary={setAddingPayrollEventFor}
-                            onShowAttendance={(user) => {
-                                // Logic for showing attendance if needed, but for now matching the prop
-                                console.log('Show attendance for', user.name);
-                            }}
+                            onShowAttendance={() => {}}
+                            onChatWith={setChattingWith}
                         />
                     </div>
                     <div className={activeTab === 'missions' ? 'block' : 'hidden'}>

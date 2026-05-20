@@ -1,7 +1,6 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
 import { User, Mission, Role } from '../types';
-import { supabase } from '../config';
 import { useData } from '../contexts/DataContext';
 
 import Header from './technician/Header';
@@ -15,8 +14,9 @@ import TechnicianSuppliesView from './technician/TechnicianSuppliesView';
 import PaymentsView from './technician/payments/PaymentsView';
 import RequestVacationModal from './technician/modals/RequestVacationModal';
 import RewardStore from './technician/rewards/RewardStore';
+import LocationPermissionGate from './technician/LocationPermissionGate';
 import { hasSupplyAdminBadge, hasEquipmentAdminBadge, COOK_BADGE_NAME, DINER_BADGE_NAME } from '../utils/ranks';
-import { getCurrentGeoSnapshot } from '../utils/geo';
+import { checkLocationPermission, startLocationTracking, stopLocationTracking } from '../utils/locationTracker';
 import StockManagement from './admin/stock/StockManagement';
 import CreateItemModal from './admin/stock/CreateItemModal';
 import KitchenManagement from './admin/KitchenManagement';
@@ -45,33 +45,21 @@ const TechnicianUI: React.FC<TechnicianUIProps> = ({ user, isAdminViewing = fals
     const isCook = useMemo(() => user.badges.some(b => b.name === COOK_BADGE_NAME) || canAccessForUser(user.id, 'cocinero'), [user, canAccessForUser]);
     const isDiner = useMemo(() => user.role === 'administrador' || user.badges.some(b => b.name === DINER_BADGE_NAME) || canAccessForUser(user.id, 'comensal'), [user, canAccessForUser]);
 
-    // Removed package.json fetch to avoid 404 errors
+    // Location permission gate state (only for non-admin, non-viewing sessions)
+    const needsLocationCheck = !isAdminViewing && user.role === Role.TECHNICIAN;
+    const [locationPermission, setLocationPermission] = useState<'granted' | 'denied' | 'prompt' | 'checking'>('checking');
 
-        useEffect(() => {
-        if (isAdminViewing || user.role !== Role.TECHNICIAN) return;
-        let intervalId: number | undefined;
-        const updateLocation = () => {
-            getCurrentGeoSnapshot({ timeout: 10000, maximumAge: 30000 })
-                .then(async (geo) => {
-                    if (supabase) {
-                        const { error } = await supabase.from('profiles').update({
-                            lat: geo.lat,
-                            lng: geo.lng,
-                            location_last_update: geo.capturedAt
-                        }).eq('id', user.id);
-                        if (error) console.error('Error al actualizar la ubicacion:', error.message);
-                    }
-                })
-                .catch((error) => {
-                    console.error(`Error de geolocalizacion: ${error instanceof Error ? error.message : String(error)}`);
-                    if (intervalId) clearInterval(intervalId);
-                });
-        };
-        updateLocation();
-        intervalId = window.setInterval(updateLocation, 30000);
-        return () => { if (intervalId) clearInterval(intervalId); };
+    useEffect(() => {
+        if (!needsLocationCheck) { setLocationPermission('granted'); return; }
+        checkLocationPermission().then(status => setLocationPermission(status));
+    }, [needsLocationCheck]);
 
-    }, [user.id, user.role, isAdminViewing]);
+    // Start continuous tracking once permission is granted
+    useEffect(() => {
+        if (locationPermission !== 'granted' || !needsLocationCheck) return;
+        startLocationTracking(user.id);
+        return () => { stopLocationTracking(user.id); };
+    }, [locationPermission, user.id, needsLocationCheck]);
 
 
     const userMissions = useMemo(() => {
@@ -159,6 +147,13 @@ const TechnicianUI: React.FC<TechnicianUIProps> = ({ user, isAdminViewing = fals
             }
         }
     }, [isAdminViewing]);
+
+    // Blocking gate: technician must grant location before accessing the app
+    if (needsLocationCheck && (locationPermission === 'prompt' || locationPermission === 'denied')) {
+        return <LocationPermissionGate onGranted={() => setLocationPermission('granted')} />;
+    }
+    // Still checking — render nothing briefly
+    if (needsLocationCheck && locationPermission === 'checking') return null;
 
     return (
         <div className="min-h-screen bg-brand-secondary pb-24 md:pb-0 overflow-x-hidden">

@@ -2,16 +2,19 @@ import React from 'react';
 import { User } from '../../types';
 import { LEVEL_THRESHOLDS } from '../../config';
 import { useAuth } from '../../contexts/AuthContext';
+import { useData } from '../../contexts/DataContext';
 import { ArrowLeftIcon, LogoutIcon } from '../Icons';
 import ProgressBar from '../common/ProgressBar';
+import InboxButton from './InboxButton';
 
 const Header: React.FC<{ user: User; isAdminViewing?: boolean; onBack?: () => void; }> = ({ user, isAdminViewing, onBack }) => {
     const { handleLogout } = useAuth();
+    const { users } = useData();
     const nextLevelXp = LEVEL_THRESHOLDS[user.level] || LEVEL_THRESHOLDS[LEVEL_THRESHOLDS.length - 1];
     const currentLevelXp = LEVEL_THRESHOLDS[user.level - 1] || 0;
     const levelProgress = user.xp - currentLevelXp;
     const xpForNextLevel = nextLevelXp - currentLevelXp;
-    
+
     return (
         <header className="bg-brand-secondary p-4 flex items-center justify-between shadow-lg sticky top-0 z-20 h-16">
             <div className="flex items-center gap-4">
@@ -27,17 +30,20 @@ const Header: React.FC<{ user: User; isAdminViewing?: boolean; onBack?: () => vo
                     </div>
                 </div>
             </div>
-            {isAdminViewing && onBack ? (
-                 <button onClick={onBack} className="flex items-center gap-2 bg-brand-light text-brand-primary font-bold py-2 px-4 rounded-lg hover:bg-brand-highlight transition-colors">
-                    <ArrowLeftIcon className="w-5 h-5" />
-                    <span className="hidden sm:inline">Volver</span>
-                </button>
-            ) : (
-                <button onClick={handleLogout} className="flex items-center gap-2 bg-brand-red text-white font-bold py-2 px-4 rounded-lg hover:bg-red-700 transition-colors">
-                    <LogoutIcon className="w-5 h-5" />
-                    <span className="hidden sm:inline">Salir</span>
-                </button>
-            )}
+            <div className="flex items-center gap-2 relative">
+                {!isAdminViewing && <InboxButton currentUser={user} allUsers={users} />}
+                {isAdminViewing && onBack ? (
+                    <button onClick={onBack} className="flex items-center gap-2 bg-brand-light text-brand-primary font-bold py-2 px-4 rounded-lg hover:bg-brand-highlight transition-colors">
+                        <ArrowLeftIcon className="w-5 h-5" />
+                        <span className="hidden sm:inline">Volver</span>
+                    </button>
+                ) : (
+                    <button onClick={handleLogout} className="flex items-center gap-2 bg-brand-red text-white font-bold py-2 px-4 rounded-lg hover:bg-red-700 transition-colors">
+                        <LogoutIcon className="w-5 h-5" />
+                        <span className="hidden sm:inline">Salir</span>
+                    </button>
+                )}
+            </div>
         </header>
     );
 };

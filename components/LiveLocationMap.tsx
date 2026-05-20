@@ -1,130 +1,144 @@
+import React, { useEffect, useRef, useState } from 'react';
+import mapboxgl from 'mapbox-gl';
+import 'mapbox-gl/dist/mapbox-gl.css';
+import { User } from '../types';
+import { supabase } from '../config';
 
-import React, { useMemo, useEffect, useState } from 'react';
-import { User, Role } from '../types';
-import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
-import L from 'leaflet';
+mapboxgl.accessToken = import.meta.env.VITE_MAPBOX_ACCESS_TOKEN as string;
+
+interface TechnicianLocation {
+  user_id: string;
+  lat: number;
+  lng: number;
+  accuracy_m: number | null;
+  is_online: boolean;
+  updated_at: string;
+}
 
 interface LiveLocationMapProps {
   users: User[];
   isVisible: boolean;
 }
 
-const createCustomIcon = (user: User) => {
-  return L.divIcon({
-    html: `<div class="relative flex items-center justify-center">
-             <img class="w-10 h-10 rounded-full border-2 border-brand-blue object-cover shadow-lg" src="${user.avatar}" alt="${user.name}" />
-             <div class="absolute bottom-0 w-2 h-2 bg-green-400 rounded-full right-0 border-2 border-white"></div>
-           </div>`,
-    className: 'bg-transparent border-0',
-    iconSize: [40, 40],
-    iconAnchor: [20, 40],
-    popupAnchor: [0, -40]
-  });
-};
-
-const MapBoundsController: React.FC<{ technicians: User[] }> = ({ technicians }) => {
-    const map = useMap();
-    useEffect(() => {
-        // This effect runs after the map is confirmed to be in a sized container
-        map.invalidateSize();
-        if (technicians.length > 0) {
-            const bounds = L.latLngBounds(technicians.map(u => [u.location!.lat, u.location!.lng]));
-            map.fitBounds(bounds, { padding: [50, 50] });
-        }
-    }, [map, technicians]);
-
-    return null;
-};
-
+const STALE_MINUTES = 10;
 
 const LiveLocationMap: React.FC<LiveLocationMapProps> = ({ users, isVisible }) => {
-  const techniciansWithLocation = useMemo(() =>
-    users.filter(u => u.role === Role.TECHNICIAN && u.location && u.location.lat && u.location.lng),
-    [users]
-  );
-
-  const hasLocations = techniciansWithLocation.length > 0;
-  const [isMapReady, setIsMapReady] = useState(false);
+  const mapContainer = useRef<HTMLDivElement>(null);
+  const map = useRef<mapboxgl.Map | null>(null);
+  const markers = useRef<Record<string, mapboxgl.Marker>>({});
+  const [locations, setLocations] = useState<TechnicianLocation[]>([]);
+  const [onlineCount, setOnlineCount] = useState(0);
 
   useEffect(() => {
-    // This effect handles the logic of when to render the map component.
-    // It waits for a short, controlled delay after the tab becomes visible.
-    let timerId: number | undefined;
-
-    if (isVisible) {
-      // This delay gives the browser time to calculate the layout and dimensions
-      // of the map's container after its `display` property changes, which
-      // is the root cause of the "MutationObserver" error.
-      timerId = window.setTimeout(() => {
-        setIsMapReady(true);
-      }, 150);
-    } else {
-      // If the component is not visible, unmount the map by resetting the state.
-      setIsMapReady(false);
-    }
-
-    // Cleanup: clear the timeout if visibility changes or the component unmounts
-    // before the timeout completes.
-    return () => {
-      if (timerId) {
-        clearTimeout(timerId);
-      }
+    const fetchLocations = async () => {
+      const { data } = await supabase.from('technician_locations').select('*');
+      if (data) setLocations(data as TechnicianLocation[]);
     };
+    fetchLocations();
+
+    const channel = supabase
+      .channel('technician_locations_realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'technician_locations' }, payload => {
+        setLocations(prev => {
+          const incoming = payload.new as TechnicianLocation;
+          const idx = prev.findIndex(l => l.user_id === incoming.user_id);
+          if (idx >= 0) { const u = [...prev]; u[idx] = incoming; return u; }
+          return [...prev, incoming];
+        });
+      })
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, []);
+
+  useEffect(() => {
+    const now = Date.now();
+    setOnlineCount(locations.filter(l => l.is_online && (now - new Date(l.updated_at).getTime()) / 60000 < STALE_MINUTES).length);
+  }, [locations]);
+
+  useEffect(() => {
+    if (!isVisible || !mapContainer.current || map.current) return;
+    map.current = new mapboxgl.Map({
+      container: mapContainer.current,
+      style: 'mapbox://styles/mapbox/streets-v12',
+      center: [-60.7, -32.9],
+      zoom: 12,
+    });
+    map.current.addControl(new mapboxgl.NavigationControl(), 'top-right');
+    map.current.addControl(new mapboxgl.FullscreenControl(), 'top-right');
   }, [isVisible]);
 
-  return (
-    <div className="bg-brand-secondary p-6 rounded-lg shadow-xl">
-      <h3 className="text-xl font-bold mb-4 text-center">Ubicación del Equipo en Tiempo Real</h3>
-      <div className="bg-brand-primary p-2 rounded-lg min-h-[500px] h-[60vh] overflow-hidden">
-        {hasLocations ? (
-          // Only render the MapContainer when our delay confirms the container is ready.
-          isMapReady ? (
-            <MapContainer
-              center={[techniciansWithLocation[0].location!.lat, techniciansWithLocation[0].location!.lng]}
-              zoom={13}
-              scrollWheelZoom={true}
-              style={{ height: '100%', width: '100%', borderRadius: '0.5rem' }}
-            >
-              <TileLayer
-                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-              />
-              {techniciansWithLocation.map(user => (
-                <Marker
-                  key={user.id}
-                  position={[user.location!.lat, user.location!.lng]}
-                  icon={createCustomIcon(user)}
-                >
-                  <Popup>
-                      <div className="flex items-center gap-3">
-                          <img src={user.avatar} alt={user.name} className="w-10 h-10 rounded-full" />
-                          <div>
-                              <p className="font-bold">{user.name}</p>
-                              <p className="text-xs text-gray-500">
-                                  Última act: {new Date(user.location!.lastUpdate).toLocaleTimeString()}
-                              </p>
-                          </div>
-                      </div>
-                  </Popup>
-                </Marker>
-              ))}
-              <MapBoundsController technicians={techniciansWithLocation} />
-            </MapContainer>
-          ) : (
-            // Display a spinner during the short delay to improve UX
-            <div className="flex flex-col items-center justify-center h-full text-center">
-                <div className="w-12 h-12 border-4 border-t-transparent border-brand-blue rounded-full animate-spin"></div>
-                <p className="mt-4 text-brand-light">Cargando mapa...</p>
-            </div>
-          )
-        ) : (
-          <div className="flex flex-col items-center justify-center h-full text-center">
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-24 w-24 text-brand-accent/50" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
-            <p className="mt-4 text-brand-light max-w-md">
-              No hay técnicos compartiendo su ubicación. La ubicación se mostrará aquí automáticamente cuando un técnico inicie sesión.
-            </p>
+  useEffect(() => {
+    if (!map.current) return;
+    const now = Date.now();
+
+    locations.forEach(loc => {
+      const user = users.find(u => u.id === loc.user_id);
+      if (!user) return;
+      const age = (now - new Date(loc.updated_at).getTime()) / 60000;
+      const isActive = loc.is_online && age < STALE_MINUTES;
+      const lastSeen = age < 1 ? 'ahora mismo' : age < 60 ? `hace ${Math.floor(age)} min` : `hace ${Math.floor(age / 60)}h`;
+
+      const popup = new mapboxgl.Popup({ offset: 25, closeButton: false }).setHTML(`
+        <div style="font-family:sans-serif;padding:4px 2px;">
+          <strong style="font-size:13px;">${user.name}</strong><br/>
+          <span style="font-size:11px;color:#64748b;">${user.role}</span><br/>
+          <span style="font-size:11px;color:${isActive ? '#22c55e' : '#94a3b8'};">${isActive ? '● En línea' : '● Sin señal'} · ${lastSeen}</span>
+          ${loc.accuracy_m ? `<br/><span style="font-size:10px;color:#94a3b8;">Precisión: ±${Math.round(loc.accuracy_m)}m</span>` : ''}
+        </div>
+      `);
+
+      if (markers.current[loc.user_id]) {
+        markers.current[loc.user_id].setLngLat([loc.lng, loc.lat]).setPopup(popup);
+      } else {
+        const el = document.createElement('div');
+        el.style.cssText = 'position:relative;display:flex;flex-direction:column;align-items:center;cursor:pointer;';
+        el.innerHTML = `
+          <div style="width:44px;height:44px;border-radius:50%;border:3px solid ${isActive ? '#22c55e' : '#94a3b8'};overflow:hidden;box-shadow:0 2px 10px rgba(0,0,0,.35);background:#1e293b;">
+            <img src="${user.avatar}" style="width:100%;height:100%;object-fit:cover;" />
           </div>
-        )}
+          <div style="position:absolute;bottom:-1px;right:-1px;width:13px;height:13px;border-radius:50%;background:${isActive ? '#22c55e' : '#94a3b8'};border:2px solid white;${isActive ? 'box-shadow:0 0 6px #22c55e80;' : ''}"></div>
+          <div style="margin-top:3px;background:rgba(15,23,42,.85);color:white;font-size:10px;font-weight:800;padding:2px 7px;border-radius:99px;white-space:nowrap;">${user.name.split(' ')[0]}</div>
+        `;
+        const marker = new mapboxgl.Marker({ element: el, anchor: 'bottom' })
+          .setLngLat([loc.lng, loc.lat]).setPopup(popup).addTo(map.current!);
+        el.addEventListener('click', () => marker.togglePopup());
+        markers.current[loc.user_id] = marker;
+      }
+    });
+
+    Object.keys(markers.current).forEach(uid => {
+      if (!locations.find(l => l.user_id === uid)) { markers.current[uid].remove(); delete markers.current[uid]; }
+    });
+
+    if (locations.length > 0 && map.current) {
+      const bounds = new mapboxgl.LngLatBounds();
+      locations.forEach(l => bounds.extend([l.lng, l.lat]));
+      map.current.fitBounds(bounds, { padding: 80, maxZoom: 15, duration: 800 });
+    }
+  }, [locations, users]);
+
+  useEffect(() => () => { map.current?.remove(); map.current = null; }, []);
+
+  if (!isVisible) return null;
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center gap-4 bg-white rounded-2xl px-5 py-3 border border-brand-accent shadow-sm">
+        <div className="flex items-center gap-2">
+          <span className="w-2.5 h-2.5 rounded-full bg-green-500 animate-pulse" />
+          <span className="text-sm font-black text-brand-highlight">{onlineCount} en línea</span>
+        </div>
+        <span className="text-brand-accent">|</span>
+        <span className="text-xs text-brand-light font-semibold">{locations.length} técnico{locations.length !== 1 ? 's' : ''} con ubicación registrada</span>
+        <span className="ml-auto text-[10px] text-brand-light italic">Tiempo real · actualización automática</span>
+      </div>
+      <div className="rounded-3xl overflow-hidden border border-brand-accent shadow-premium" style={{ height: '600px' }}>
+        <div ref={mapContainer} style={{ width: '100%', height: '100%' }} />
+      </div>
+      <div className="flex items-center gap-6 text-xs font-semibold text-brand-light px-2">
+        <div className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-full bg-green-500" /> En línea (últimos {STALE_MINUTES} min)</div>
+        <div className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-full bg-slate-400" /> Sin señal / desconectado</div>
       </div>
     </div>
   );

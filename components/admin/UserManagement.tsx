@@ -18,7 +18,8 @@ const UserManagement: React.FC<{
     onNotifyUser: (user: User) => void;
     onSetSalary: (user: User) => void;
     onShowAttendance: (user: User) => void;
-}> = ({ onManageInventory, onManageBadges, onNotifyUser, onSetSalary, onShowAttendance }) => {
+    onChatWith: (user: User) => void;
+}> = ({ onManageInventory, onManageBadges, onNotifyUser, onSetSalary, onShowAttendance, onChatWith }) => {
     const { currentUser, users, missions, salaries, setViewingProfileOf, deactivateUser, updateUser, attendanceUsers } = useData();
     const { showToast } = useToast();
     const [activeRole, setActiveRole] = React.useState<Role>(Role.TECHNICIAN);
@@ -233,6 +234,9 @@ const UserManagement: React.FC<{
                                             {isAdmin && (
                                                 <ActionBtn onClick={() => handleNotifyClick(user)} color="blue" icon={<BellIcon className="w-4 h-4" />} label="Notificar" disabled={!user.pushSubscription} />
                                             )}
+                                            <ActionBtn onClick={() => onChatWith(user)} color="blue" icon={
+                                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-4 h-4"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                                            } label="Mensaje" />
                                             {isAdmin && (
                                                 <ActionBtn onClick={() => handleDeactivate(user)} color="red" icon={<LogoutIcon className="w-4 h-4" />} label="Baja" />
                                             )}

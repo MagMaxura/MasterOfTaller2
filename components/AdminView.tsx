@@ -34,6 +34,7 @@ import { supabaseAttendance } from '../config';
 import { api } from '../services/api';
 import { Role as UserRole } from '../types';
 import LunchConfirmationCard from './technician/LunchConfirmationCard';
+import ChatModal from './common/ChatModal';
 
 import { BoxIcon, CalendarIcon, MapPinIcon, UserIcon, TasksIcon, BookOpenIcon, LogoutIcon, MenuIcon, ChartIcon, CurrencyDollarIcon, CogIcon, StarIcon, BriefcaseIcon, CreditCardIcon, LockIcon } from './Icons';
 
@@ -53,6 +54,7 @@ const AdminView: React.FC = () => {
     const [notifyingUser, setNotifyingUser] = useState<User | null>(null);
     const [editingMission, setEditingMission] = useState<Mission | null>(null);
     const [selectedMission, setSelectedMission] = useState<Mission | null>(null);
+    const [chattingWith, setChattingWith] = useState<User | null>(null);
 
     // The real-time attendance monitor has been moved to a database webhook
     // for "always-on" notifications that work even when the admin is offline.
@@ -157,6 +159,10 @@ const AdminView: React.FC = () => {
         <div className="relative min-h-screen bg-brand-secondary md:flex overflow-hidden">
             {/* Lunch confirmation — floating popup, bottom-right */}
             <LunchConfirmationCard userId={currentUser.id} />
+            {/* Chat modal */}
+            {chattingWith && currentUser && (
+                <ChatModal currentUser={currentUser} otherUser={chattingWith} onClose={() => setChattingWith(null)} />
+            )}
             {/* Mobile header - Glassmorphism */}
             <header className="fixed top-0 left-0 right-0 z-20 flex items-center justify-between bg-white/70 backdrop-blur-xl border-b border-brand-accent px-6 py-4 md:hidden shadow-sm">
                 <button onClick={() => setIsSidebarOpen(true)} className="p-2.5 -ml-3 bg-brand-secondary/50 rounded-xl text-brand-light hover:text-brand-blue hover:bg-brand-blue/10 transition-all">
@@ -192,6 +198,7 @@ const AdminView: React.FC = () => {
                                 onNotifyUser={setNotifyingUser}
                                 onSetSalary={setSettingSalaryFor}
                                 onShowAttendance={setViewingAttendanceFor}
+                                onChatWith={setChattingWith}
                             />
                         </div>
                         <div className={activeTab === 'payroll' ? 'block' : 'hidden'}>
