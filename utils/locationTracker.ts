@@ -7,8 +7,8 @@ import { supabase } from '../config';
 //   1. At least MIN_INTERVAL_MS has passed since the last write, AND
 //   2. The device has moved at least MIN_DISTANCE_M meters (or it's the first fix).
 // Result: ~4 writes/min while moving, ~0 writes/min while still.
-const MIN_INTERVAL_MS = 15_000;  // 15 seconds
-const MIN_DISTANCE_M  = 10;      // 10 metres
+const MIN_INTERVAL_MS = 20_000;  // 20 seconds
+const MIN_DISTANCE_M  = 20;      // 20 metres
 
 let watchId: string | null = null;
 let lastWriteTime = 0;
@@ -109,9 +109,8 @@ export async function stopLocationTracking(userId: string): Promise<void> {
     navigator.geolocation.clearWatch(Number(watchId));
   }
   watchId = null;
-  // Mark as offline
-  await supabase.from('technician_locations').upsert(
-    { user_id: userId, is_online: false, updated_at: new Date().toISOString() },
-    { onConflict: 'user_id' }
-  );
+  // Mark as offline — update only, row must already exist
+  await supabase.from('technician_locations')
+    .update({ is_online: false, updated_at: new Date().toISOString() })
+    .eq('user_id', userId);
 }
