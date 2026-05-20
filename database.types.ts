@@ -1049,6 +1049,83 @@ export interface Database {
           }
         ]
       }
+      technician_locations: {
+        Row: {
+          user_id: string
+          lat: number
+          lng: number
+          accuracy_m: number | null
+          is_online: boolean
+          updated_at: string
+        }
+        Insert: {
+          user_id: string
+          lat: number
+          lng: number
+          accuracy_m?: number | null
+          is_online?: boolean
+          updated_at?: string
+        }
+        Update: {
+          user_id?: string
+          lat?: number
+          lng?: number
+          accuracy_m?: number | null
+          is_online?: boolean
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "technician_locations_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      messages: {
+        Row: {
+          id: string
+          sender_id: string
+          receiver_id: string
+          content: string
+          read_at: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          sender_id: string
+          receiver_id: string
+          content: string
+          read_at?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          sender_id?: string
+          receiver_id?: string
+          content?: string
+          read_at?: string | null
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "messages_sender_id_fkey"
+            columns: ["sender_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "messages_receiver_id_fkey"
+            columns: ["receiver_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
     }
     Views: {
       [_ in never]: never
