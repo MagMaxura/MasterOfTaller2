@@ -636,65 +636,92 @@ const PayrollManagement: React.FC<PayrollManagementProps> = ({ onAddEvent, onEdi
                     )}
 
                     {/* ESTADÍSTICAS */}
-                    {(showHistory ? paidPeriods : calculatedPeriods).length > 0 && (
-                        <div className="mt-12 p-6 bg-brand-primary rounded-xl border border-white/5 shadow-2xl animation-fade-in-up">
-                            <h3 className="text-xl font-black text-brand-orange mb-6 flex items-center gap-2 uppercase tracking-widest">
-                                <span className="w-2 h-8 bg-brand-orange rounded-full"></span>
-                                {showHistory ? 'Resumen Histórico' : 'Estadísticas de Nómina'}
-                            </h3>
+                    {(showHistory ? paidPeriods : calculatedPeriods).length > 0 && (() => {
+                        const activePeriods = showHistory ? paidPeriods : calculatedPeriods;
+                        const grandTotal = activePeriods.reduce((s, p) => s + p.monto_final_a_pagar, 0);
 
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
-                                {/* Por Empresa */}
-                                <div className="space-y-6">
-                                    <h4 className="text-sm font-black text-brand-blue uppercase tracking-[0.2em] border-b border-white/10 pb-3">Por Empresa</h4>
-                                    <div className="space-y-4">
-                                        {Object.entries((showHistory ? (
-                                            paidPeriods.reduce((acc: Record<string, number>, p) => {
-                                                const u = users.find(user => user.id === p.user_id);
-                                                const company = u?.company || 'PÚBLICO/SIN EMPRESA';
-                                                acc[company] = (acc[company] || 0) + p.monto_final_a_pagar;
-                                                return acc;
-                                            }, {})
-                                        ) : stats.byCompany)).map(([name, total]) => (
-                                            <div key={name} className="flex justify-between items-center group">
-                                                <span className="text-sm font-bold text-slate-300 group-hover:text-white transition-colors">{name}</span>
-                                                <span className="font-black text-white text-sm bg-white/5 py-1 px-3 rounded-lg">{formatCurrency(total)}</span>
-                                            </div>
+                        const byCompany = activePeriods.reduce((acc: Record<string, { total: number; count: number }>, p) => {
+                            const u = users.find(u => u.id === p.user_id);
+                            const key = u?.company || 'Sin empresa';
+                            if (!acc[key]) acc[key] = { total: 0, count: 0 };
+                            acc[key].total += p.monto_final_a_pagar;
+                            acc[key].count++;
+                            return acc;
+                        }, {});
+
+                        const byArea = activePeriods.reduce((acc: Record<string, { total: number; count: number }>, p) => {
+                            const u = users.find(u => u.id === p.user_id);
+                            const key = u?.role || 'Sin área';
+                            if (!acc[key]) acc[key] = { total: 0, count: 0 };
+                            acc[key].total += p.monto_final_a_pagar;
+                            acc[key].count++;
+                            return acc;
+                        }, {});
+
+                        const sortedCompany = Object.entries(byCompany).sort((a, b) => b[1].total - a[1].total);
+                        const sortedArea = Object.entries(byArea).sort((a, b) => b[1].total - a[1].total);
+                        const maxCompany = sortedCompany[0]?.[1].total || 1;
+                        const maxArea = sortedArea[0]?.[1].total || 1;
+
+                        const BarRow = ({ label, total, count, max, color }: { label: string; total: number; count: number; max: number; color: string }) => (
+                            <div className="space-y-1.5">
+                                <div className="flex items-center justify-between gap-3">
+                                    <span className="text-sm font-black text-brand-highlight capitalize truncate max-w-[55%]">{label}</span>
+                                    <div className="flex items-center gap-2 flex-shrink-0">
+                                        <span className="text-[10px] font-bold text-brand-light">{count} persona{count !== 1 ? 's' : ''}</span>
+                                        <span className="text-sm font-black text-brand-highlight">{formatCurrency(total)}</span>
+                                    </div>
+                                </div>
+                                <div className="h-2 bg-brand-accent/30 rounded-full overflow-hidden">
+                                    <div
+                                        className={`h-full rounded-full transition-all duration-700 ${color}`}
+                                        style={{ width: `${Math.round((total / max) * 100)}%` }}
+                                    />
+                                </div>
+                                <div className="flex justify-end">
+                                    <span className="text-[10px] text-brand-light font-semibold">{Math.round((total / grandTotal) * 100)}% del total</span>
+                                </div>
+                            </div>
+                        );
+
+                        return (
+                            <div className="mt-10 bg-white rounded-3xl border border-brand-accent shadow-premium overflow-hidden">
+                                <div className="px-6 py-5 border-b border-brand-accent flex items-center gap-3">
+                                    <span className="w-1.5 h-6 bg-brand-orange rounded-full" />
+                                    <h3 className="text-base font-black text-brand-highlight uppercase tracking-widest">
+                                        {showHistory ? 'Resumen Histórico' : 'Estadísticas de Nómina'}
+                                    </h3>
+                                </div>
+
+                                <div className="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-brand-accent">
+                                    {/* Por Empresa */}
+                                    <div className="p-6 space-y-5">
+                                        <h4 className="text-[11px] font-black text-brand-blue uppercase tracking-[0.2em]">Por Empresa</h4>
+                                        {sortedCompany.map(([name, { total, count }]) => (
+                                            <BarRow key={name} label={name} total={total} count={count} max={maxCompany} color="bg-brand-blue" />
+                                        ))}
+                                    </div>
+
+                                    {/* Por Área */}
+                                    <div className="p-6 space-y-5">
+                                        <h4 className="text-[11px] font-black text-brand-orange uppercase tracking-[0.2em]">Por Área</h4>
+                                        {sortedArea.map(([name, { total, count }]) => (
+                                            <BarRow key={name} label={name} total={total} count={count} max={maxArea} color="bg-brand-orange" />
                                         ))}
                                     </div>
                                 </div>
 
-                                {/* Por Área */}
-                                <div className="space-y-6">
-                                    <h4 className="text-sm font-black text-brand-orange uppercase tracking-[0.2em] border-b border-white/10 pb-3">Por Área</h4>
-                                    <div className="space-y-4">
-                                        {Object.entries((showHistory ? (
-                                            paidPeriods.reduce((acc: Record<string, number>, p) => {
-                                                const u = users.find(user => user.id === p.user_id);
-                                                const area = u?.role || 'SIN ÁREA';
-                                                acc[area] = (acc[area] || 0) + p.monto_final_a_pagar;
-                                                return acc;
-                                            }, {})
-                                        ) : stats.byArea)).map(([name, total]) => (
-                                            <div key={name} className="flex justify-between items-center group">
-                                                <span className="text-sm font-bold text-slate-300 group-hover:text-white transition-colors capitalize">{name.toLowerCase()}</span>
-                                                <span className="font-black text-white text-sm bg-white/5 py-1 px-3 rounded-lg">{formatCurrency(total)}</span>
-                                            </div>
-                                        ))}
-                                    </div>
+                                <div className="px-6 py-5 border-t border-brand-accent bg-brand-secondary/30 flex flex-col sm:flex-row justify-between items-center gap-2">
+                                    <span className="text-[11px] font-black text-brand-light uppercase tracking-widest">
+                                        {showHistory ? 'Total pagado histórico' : 'Total global proyectado'}
+                                    </span>
+                                    <span className="text-2xl font-black text-brand-highlight">
+                                        {formatCurrency(grandTotal)}
+                                    </span>
                                 </div>
                             </div>
-
-                            <div className="mt-10 pt-8 border-t border-white/10 flex flex-col sm:flex-row justify-between items-center gap-4">
-                                <span className="text-sm font-black text-brand-light uppercase tracking-widest opacity-60">
-                                    {showHistory ? 'TOTAL PAGADO HISTÓRICO' : 'TOTAL GLOBAL PROYECTADO'}
-                                </span>
-                                <span className="text-3xl font-black text-brand-gold drop-shadow-[0_0_15px_rgba(255,191,0,0.3)]">
-                                    {formatCurrency(showHistory ? paidPeriods.reduce((sum, p) => sum + p.monto_final_a_pagar, 0) : stats.grandTotal)}
-                                </span>
-                            </div>
-                        </div>
-                    )}
+                        );
+                    })()}
                 </>
             ) : (
                 <div className="space-y-8 animation-fade-in">
