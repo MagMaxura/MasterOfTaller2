@@ -341,8 +341,21 @@ const PayrollManagement: React.FC<PayrollManagementProps> = ({ onAddEvent, onEdi
     const [isLoading, setIsLoading] = useState<'calculating' | 'paying' | null>(null);
     const [editingScheduleUser, setEditingScheduleUser] = useState<User | null>(null);
     const [partialPayPeriod, setPartialPayPeriod] = useState<PaymentPeriod | null>(null);
+    const [filterUserId, setFilterUserId] = useState<string>('');
+    const [filterSearch, setFilterSearch] = useState('');
+    const [showFilterDropdown, setShowFilterDropdown] = useState(false);
 
     const allUsersForPayroll = useMemo(() => [...users].sort((a, b) => a.name.localeCompare(b.name)), [users]);
+
+    const filteredUsersForPayroll = useMemo(() =>
+        filterUserId ? allUsersForPayroll.filter(u => u.id === filterUserId) : allUsersForPayroll,
+    [allUsersForPayroll, filterUserId]);
+
+    const filteredDropdownUsers = useMemo(() =>
+        allUsersForPayroll.filter(u => u.name.toLowerCase().includes(filterSearch.toLowerCase())),
+    [allUsersForPayroll, filterSearch]);
+
+    const selectedFilterUser = useMemo(() => allUsersForPayroll.find(u => u.id === filterUserId), [allUsersForPayroll, filterUserId]);
 
     const calculatedPeriods = useMemo(() => {
         // Get only periods that overlap with "now" or are within the matching quincena
@@ -397,7 +410,12 @@ const PayrollManagement: React.FC<PayrollManagementProps> = ({ onAddEvent, onEdi
         }
     }
 
-    const totalToPay = useMemo(() => calculatedPeriods.reduce((sum, p) => sum + p.monto_final_a_pagar, 0), [calculatedPeriods]);
+    const totalToPay = useMemo(() => {
+        const periods = filterUserId
+            ? calculatedPeriods.filter(p => p.user_id === filterUserId)
+            : calculatedPeriods;
+        return periods.reduce((sum, p) => sum + p.monto_final_a_pagar, 0);
+    }, [calculatedPeriods, filterUserId]);
 
     const stats = useMemo(() => {
         const byCompany: Record<string, number> = {};
@@ -511,8 +529,77 @@ const PayrollManagement: React.FC<PayrollManagementProps> = ({ onAddEvent, onEdi
                         </button>
                     </div>
 
+                    {/* ---- Person filter ---- */}
+                    <div className="relative mb-4">
+                        <div
+                            className={`flex items-center gap-3 bg-brand-primary border rounded-2xl px-4 py-3 cursor-pointer transition-all ${showFilterDropdown ? 'border-brand-blue ring-2 ring-brand-blue/20' : 'border-white/10 hover:border-white/20'}`}
+                            onClick={() => setShowFilterDropdown(v => !v)}
+                        >
+                            {selectedFilterUser ? (
+                                <>
+                                    <img src={selectedFilterUser.avatar} className="w-7 h-7 rounded-full object-cover border border-white/20" alt="" />
+                                    <span className="flex-1 text-sm font-black text-brand-highlight">{selectedFilterUser.name}</span>
+                                    <button
+                                        onClick={(e) => { e.stopPropagation(); setFilterUserId(''); setFilterSearch(''); setShowFilterDropdown(false); }}
+                                        className="text-brand-light hover:text-white text-lg leading-none"
+                                    >✕</button>
+                                </>
+                            ) : (
+                                <>
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-5 h-5 text-brand-light flex-shrink-0"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+                                    <span className="flex-1 text-sm text-brand-light font-semibold">Filtrar por persona…</span>
+                                    <span className="text-[10px] font-black uppercase tracking-widest text-brand-light opacity-50">{allUsersForPayroll.length} personas</span>
+                                </>
+                            )}
+                        </div>
+
+                        {showFilterDropdown && (
+                            <div className="absolute top-full left-0 right-0 z-30 mt-1 bg-brand-primary border border-white/10 rounded-2xl shadow-2xl overflow-hidden">
+                                <div className="p-3 border-b border-white/5">
+                                    <input
+                                        autoFocus
+                                        type="text"
+                                        placeholder="Buscar nombre..."
+                                        value={filterSearch}
+                                        onChange={e => setFilterSearch(e.target.value)}
+                                        onClick={e => e.stopPropagation()}
+                                        className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm text-brand-highlight placeholder-brand-light outline-none focus:border-brand-blue"
+                                    />
+                                </div>
+                                <div className="max-h-64 overflow-y-auto custom-scrollbar">
+                                    {filterUserId && (
+                                        <button
+                                            onClick={() => { setFilterUserId(''); setFilterSearch(''); setShowFilterDropdown(false); }}
+                                            className="flex items-center gap-3 w-full px-4 py-3 hover:bg-white/5 transition-colors border-b border-white/5"
+                                        >
+                                            <span className="w-7 h-7 rounded-full bg-white/10 flex items-center justify-center text-xs">✕</span>
+                                            <span className="text-sm font-semibold text-brand-light">Mostrar todos</span>
+                                        </button>
+                                    )}
+                                    {filteredDropdownUsers.map(u => (
+                                        <button
+                                            key={u.id}
+                                            onClick={() => { setFilterUserId(u.id); setFilterSearch(''); setShowFilterDropdown(false); }}
+                                            className={`flex items-center gap-3 w-full px-4 py-3 hover:bg-white/5 transition-colors ${u.id === filterUserId ? 'bg-brand-blue/10' : ''}`}
+                                        >
+                                            <img src={u.avatar} className="w-7 h-7 rounded-full object-cover border border-white/20" alt="" />
+                                            <div className="text-left">
+                                                <p className="text-sm font-black text-brand-highlight leading-tight">{u.name}</p>
+                                                <p className="text-[10px] text-brand-light capitalize">{u.role}</p>
+                                            </div>
+                                            {u.id === filterUserId && <span className="ml-auto text-brand-blue text-sm">✓</span>}
+                                        </button>
+                                    ))}
+                                    {filteredDropdownUsers.length === 0 && (
+                                        <p className="text-center text-brand-light text-sm py-6">Sin resultados</p>
+                                    )}
+                                </div>
+                            </div>
+                        )}
+                    </div>
+
                     <div className="space-y-4">
-                        {allUsersForPayroll.map(person => {
+                        {filteredUsersForPayroll.map(person => {
                             const personPeriod = calculatedPeriods.find(p => p.user_id === person.id);
                             return <TechnicianPayRow
                                 key={person.id}
